@@ -1,0 +1,67 @@
+{
+  "item.doomsdayessentials.medic_kit": "Medical Kit",
+  "item.doomsdayessentials.tracking_compass": "Tracking Compass",
+  "item.doomsdayessentials.tracking_compass.lore1": "Right-click to track the nearest player.",
+  "item.doomsdayessentials.tracking_compass.lore2": "Cooldown: %1$s minutes",
+  "item.doomsdayessentials.tracking_compass.desc1": "§7Only usable by Trackers.",
+  "item.doomsdayessentials.tracking_compass.desc2": "§eReusable",
+
+  "profession.medico.become": "§aYou are now a §eMedic§a!",
+  "profession.medico.leave": "§eYou left the Medic profession.",
+  "profession.medico.announce": "§e%1$s §ahas become a §eMedic§a!",
+  "profession.medico.not_medico": "§cOnly Medics can use this ability.",
+  "profession.medico.cooldown": "§eAbility cooling down: %1$s seconds left.",
+  "profession.medico.cooldown_ready": "§aYour heal ability is ready!",
+  "profession.medico.global_cooldown": "§eGlobal cooldown: %1$s:%2$s remaining.",
+  "profession.medico.global_cooldown_ready": "§aGlobal cooldown finished!",
+  "profession.medico.no_target": "§eNo injured ally nearby.",
+
+  "profession.combatente.become": "§aYou are now a §cCombatant§a!",
+  "profession.combatente.leave": "§eYou left the Combatant profession.",
+
+  "profession.rastreador.become": "§aYou are now a §bTracker§a!",
+  "profession.rastreador.leave": "§eYou left the Tracker profession.",
+
+  "item.medic_kit.not_medico": "§cOnly Medics can use the Medical Kit.",
+  "item.medic_kit.no_target": "§eNo injured player in range.",
+  "item.medic_kit.not_in_safezone": "§cYou cannot use the Medical Kit in a Safe Zone.",
+
+  "command.injury.heal.success": "§a%1$s healed %2$s injury level(s)!",
+
+  "injury.title.main": "§cINJURED!",
+  "injury.title.subtitle.1": "§eMinor",
+  "injury.title.subtitle.2": "§6Moderate",
+  "injury.title.subtitle.3": "§cSevere",
+  "injury.title.subtitle.4": "§4Critical",
+  "injury.title.subtitle.5": "§4Near Death",
+
+  "item.doomsdayessentials.medic_kit.lore1": "Right-click inside a Safe Zone to heal an ally.",
+  "item.doomsdayessentials.medic_kit.lore2": "Cast time: 1 second",
+  "item.doomsdayessentials.medic_kit.desc1": "§7Only works in healing beds or safe zones.",
+  "item.doomsdayessentials.medic_kit.desc2": "§eConsumable",
+
+  "profession.medico.gui.name": "§eMEDIC",
+  "profession.medico.gui.lore1": "§7Be the pillar of survival for your allies.",
+  "profession.medico.gui.lore2": "",
+  "profession.medico.gui.lore3": "§fUnlocked Abilities:",
+  "profession.medico.gui.lore4": "§a- Heal allies with the Medical Kit.",
+  "profession.medico.gui.lore5": "§a- Receives help requests.",
+
+  "profession.combatente.gui.name": "§cCOMBATANT",
+  "profession.combatente.gui.lore1": "§7More health and speed to win battles.",
+  "profession.combatente.gui.lore2": "",
+  "profession.combatente.gui.lore3": "§fBonuses:",
+  "profession.combatente.gui.lore4": "§a- +5 hearts of health",
+  "profession.combatente.gui.lore5": "§a- Permanent Speed I",
+
+  "profession.rastreador.gui.name": "§bTRACKER",
+  "profession.rastreador.gui.lore1": "§7Find enemies with ease!",
+  "profession.rastreador.gui.lore2": "",
+  "profession.rastreador.gui.lore3": "§fAbilities:",
+  "profession.rastreador.gui.lore4": "§a- Compass tracks nearest player",
+  "profession.rastreador.gui.lore5": "§a- Night vision (coming soon)",
+
+  "item.tracking_compass.not_tracker": "§cOnly Trackers can use the Tracking Compass.",
+
+  "profession.change.denied": "§cYou cannot change profession unless you are in Creative mode."
+} 

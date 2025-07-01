@@ -1,0 +1,146 @@
+package org.lupz.doomsdayessentials.injury;
+
+import net.minecraft.core.particles.ParticleTypes;
+import net.minecraft.network.chat.Component;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.sounds.SoundEvents;
+import net.minecraft.world.effect.MobEffectInstance;
+import net.minecraft.world.effect.MobEffects;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.level.Level;
+import net.minecraftforge.common.util.LazyOptional;
+import org.lupz.doomsdayessentials.config.EssentialsConfig;
+import org.lupz.doomsdayessentials.injury.capability.InjuryCapability;
+import org.lupz.doomsdayessentials.injury.capability.InjuryCapabilityProvider;
+import org.lupz.doomsdayessentials.injury.network.InjuryNetwork;
+import org.lupz.doomsdayessentials.injury.network.UpdateHealingProgressPacket;
+
+public class InjuryHelper {
+
+    public static LazyOptional<InjuryCapability> getCapability(Player player) {
+        return player.getCapability(InjuryCapabilityProvider.INJURY_CAPABILITY);
+    }
+
+    public static void applyEffects(Player player) {
+        if (EssentialsConfig.INJURY_SYSTEM_ENABLED.get()) {
+            getCapability(player).ifPresent(cap -> {
+                int level = cap.getInjuryLevel();
+                if (level <= 0) return;
+
+                // Apply effects based on injury level
+                if (level >= 1 && EssentialsConfig.ENABLE_SLOWNESS_EFFECT.get()) {
+                    player.addEffect(new MobEffectInstance(MobEffects.MOVEMENT_SLOWDOWN, 60, 0, false, false));
+                }
+                if (level >= 2) {
+                    if (EssentialsConfig.ENABLE_SLOWNESS_EFFECT.get()) player.addEffect(new MobEffectInstance(MobEffects.MOVEMENT_SLOWDOWN, 60, 1, false, false));
+                    if (EssentialsConfig.ENABLE_MINING_FATIGUE_EFFECT.get()) player.addEffect(new MobEffectInstance(MobEffects.DIG_SLOWDOWN, 60, 0, false, false));
+                }
+                if (level >= 3) {
+                    if (EssentialsConfig.ENABLE_SLOWNESS_EFFECT.get()) player.addEffect(new MobEffectInstance(MobEffects.MOVEMENT_SLOWDOWN, 80, 1, false, false));
+                    if (EssentialsConfig.ENABLE_MINING_FATIGUE_EFFECT.get()) player.addEffect(new MobEffectInstance(MobEffects.DIG_SLOWDOWN, 80, 1, false, false));
+                    player.addEffect(new MobEffectInstance(MobEffects.WEAKNESS, 80, 0, false, false));
+                }
+                if (level >= 4) {
+                    if (EssentialsConfig.ENABLE_SLOWNESS_EFFECT.get()) player.addEffect(new MobEffectInstance(MobEffects.MOVEMENT_SLOWDOWN, 80, 2, false, false));
+                    if (EssentialsConfig.ENABLE_MINING_FATIGUE_EFFECT.get()) player.addEffect(new MobEffectInstance(MobEffects.DIG_SLOWDOWN, 80, 2, false, false));
+                    if (EssentialsConfig.ENABLE_BLINDNESS_EFFECT.get()) player.addEffect(new MobEffectInstance(MobEffects.BLINDNESS, 40, 0, false, false));
+                }
+                if (level >= 5) {
+                    if (EssentialsConfig.ENABLE_SLOWNESS_EFFECT.get()) player.addEffect(new MobEffectInstance(MobEffects.MOVEMENT_SLOWDOWN, 100, 3, false, false));
+                    if (EssentialsConfig.ENABLE_MINING_FATIGUE_EFFECT.get()) player.addEffect(new MobEffectInstance(MobEffects.DIG_SLOWDOWN, 100, 3, false, false));
+                    if (EssentialsConfig.ENABLE_BLINDNESS_EFFECT.get()) player.addEffect(new MobEffectInstance(MobEffects.BLINDNESS, 140, 0, false, false));
+                    if (EssentialsConfig.ENABLE_NAUSEA_EFFECT.get()) player.addEffect(new MobEffectInstance(MobEffects.CONFUSION, 100, 0, false, false));
+                    if (EssentialsConfig.ENABLE_WITHER_EFFECT.get()) player.addEffect(new MobEffectInstance(MobEffects.WITHER, 60, 0, false, false));
+                }
+            });
+        }
+    }
+
+    public static void onHealingBed(Player player) {
+        if (EssentialsConfig.INJURY_SYSTEM_ENABLED.get()) {
+            getCapability(player).ifPresent(cap -> {
+                if (cap.getInjuryLevel() > 0) {
+                    int cooldown = cap.getHealCooldown();
+                    cap.setHealCooldown(cooldown + 1);
+                    int healingTimeMinutes = EssentialsConfig.HEALING_BED_TIME_MINUTES.get();
+                    int healingTimeTicks = healingTimeMinutes * 20 * 60;
+
+                    if (player.level() instanceof ServerLevel serverLevel) {
+                        if (cooldown % 20 == 0) {
+                            serverLevel.sendParticles(ParticleTypes.HEART, player.getX(), player.getY() + 1.0, player.getZ(), 2, 0.5, 0.5, 0.5, 0.0);
+                        }
+                    }
+
+                    if (player instanceof ServerPlayer serverPlayer) {
+                        if (cooldown % 20 == 0) {
+                            float progress = (float) cooldown / (float) healingTimeTicks;
+                            InjuryNetwork.sendToPlayer(new UpdateHealingProgressPacket(progress), serverPlayer);
+                        }
+                    }
+
+                    if (cooldown + 1 >= healingTimeTicks) {
+                        healPlayer(player, 1);
+                        cap.setHealCooldown(0);
+                    }
+                }
+            });
+        }
+    }
+
+    public static void healPlayer(Player player, int amount) {
+        if (EssentialsConfig.INJURY_SYSTEM_ENABLED.get()) {
+            getCapability(player).ifPresent(cap -> {
+                int oldLevel = cap.getInjuryLevel();
+                if (oldLevel > 0) {
+                    int newLevel = cap.decrementInjuryLevel(amount);
+                    if (newLevel <= 0) {
+                        player.sendSystemMessage(Component.translatable("injury.healed.full"));
+                    } else {
+                        player.sendSystemMessage(Component.translatable("injury.healed.partial", newLevel));
+                    }
+                    player.playSound(SoundEvents.PLAYER_LEVELUP, 1.0F, 1.5F);
+                }
+            });
+        }
+    }
+
+    public static void medicoHeal(Player healer, Player target) {
+        if (EssentialsConfig.INJURY_SYSTEM_ENABLED.get()) {
+            getCapability(target).ifPresent(cap -> {
+                int oldLevel = cap.getInjuryLevel();
+                if (oldLevel <= 0) {
+                    healer.sendSystemMessage(Component.translatable("medico.heal.not_injured"));
+                } else {
+                    int healAmount = EssentialsConfig.MEDICO_HEAL_AMOUNT.get();
+                    int newLevel = cap.decrementInjuryLevel(healAmount);
+                    if (newLevel <= 0) {
+                        target.sendSystemMessage(Component.translatable("medico.heal.target.full"));
+                        healer.sendSystemMessage(Component.translatable("medico.heal.healer.full"));
+                    } else {
+                        target.sendSystemMessage(Component.translatable("medico.heal.target.partial", newLevel));
+                        healer.sendSystemMessage(Component.translatable("medico.heal.healer.partial", newLevel));
+                    }
+                    target.playSound(SoundEvents.PLAYER_LEVELUP, 1.0F, 1.5F);
+                }
+            });
+        }
+    }
+
+    public static void incrementInjuryLevel(Player player) {
+        if (EssentialsConfig.INJURY_SYSTEM_ENABLED.get()) {
+            getCapability(player).ifPresent(cap -> {
+                int oldLevel = cap.getInjuryLevel();
+                int maxLevel = EssentialsConfig.MAX_INJURY_LEVEL.get();
+                if (oldLevel < maxLevel) {
+                    int newLevel = cap.incrementInjuryLevel();
+                    player.sendSystemMessage(Component.translatable("injury.increased", newLevel));
+                }
+            });
+        }
+    }
+
+    // This was empty in the decompiled code.
+    public static void tryInflictInjury(Player player, float damage) {
+    }
+} 

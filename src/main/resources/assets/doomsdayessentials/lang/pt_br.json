@@ -1,0 +1,68 @@
+{
+  "item.doomsdayessentials.medic_kit": "Kit Médico",
+  "item.doomsdayessentials.tracking_compass": "Bússola de Rastreamento",
+
+  "profession.medico.become": "§aVocê se tornou um §eMédico§a!",
+  "profession.medico.leave": "§eVocê deixou a profissão de Médico.",
+  "profession.medico.announce": "§e%1$s §ase tornou um §eMédico§a!",
+  "profession.medico.not_medico": "§cApenas Médicos podem usar essa habilidade.",
+  "profession.medico.cooldown": "§eHabilidade recarregando: %1$s segundos restantes.",
+  "profession.medico.cooldown_ready": "§aSua habilidade de cura está pronta!",
+  "profession.medico.global_cooldown": "§eTempo de recarga global: %1$s:%2$s restantes.",
+  "profession.medico.global_cooldown_ready": "§aO tempo de recarga global terminou!",
+  "profession.medico.no_target": "§eNenhum aliado ferido encontrado.",
+
+  "profession.combatente.become": "§aVocê se tornou um §cCombatente§a!",
+  "profession.combatente.leave": "§eVocê deixou a profissão de Combatente.",
+
+  "profession.rastreador.become": "§aVocê se tornou um §bRastreador§a!",
+  "profession.rastreador.leave": "§eVocê deixou a profissão de Rastreador.",
+
+  "item.medic_kit.not_medico": "§cApenas Médicos podem usar o Kit Médico.",
+  "item.medic_kit.no_target": "§eNenhum jogador ferido ao alcance.",
+  "item.medic_kit.not_in_safezone": "§cVocê não pode usar o Kit Médico em uma Zona Segura.",
+
+  "command.injury.heal.success": "§a%1$s curou %2$s nível(is) de ferimento!",
+
+  "injury.title.main": "§cFERIDO!",
+  "injury.title.subtitle.1": "§eLeve",
+  "injury.title.subtitle.2": "§6Moderado",
+  "injury.title.subtitle.3": "§cGrave",
+  "injury.title.subtitle.4": "§4Crítico",
+  "injury.title.subtitle.5": "§4À Beira da Morte",
+
+  "item.doomsdayessentials.medic_kit.lore1": "Clique com o botão direito em uma Zona Segura para curar um aliado.",
+  "item.doomsdayessentials.medic_kit.lore2": "Tempo de uso: 1 segundo",
+  "item.doomsdayessentials.medic_kit.desc1": "§7Use apenas em camas de cura ou em zonas seguras.",
+  "item.doomsdayessentials.medic_kit.desc2": "§eConsumível",
+
+  "profession.medico.gui.name": "§eMÉDICO",
+  "profession.medico.gui.lore1": "§7Seja o pilar de sobrevivência para seus aliados.",
+  "profession.medico.gui.lore2": "",
+  "profession.medico.gui.lore3": "§fHabilidades Desbloqueadas:",
+  "profession.medico.gui.lore4": "§a- Cura aliados com Kit Médico.",
+  "profession.medico.gui.lore5": "§a- Recebe pedidos de socorro.",
+
+  "profession.combatente.gui.name": "§cCOMBATENTE",
+  "profession.combatente.gui.lore1": "§7Mais vida e velocidade para vencer batalhas.",
+  "profession.combatente.gui.lore2": "",
+  "profession.combatente.gui.lore3": "§fBônus:",
+  "profession.combatente.gui.lore4": "§a- +5 corações de vida",
+  "profession.combatente.gui.lore5": "§a- Velocidade I permanente",
+
+  "profession.rastreador.gui.name": "§bRASTREADOR",
+  "profession.rastreador.gui.lore1": "§7Encontre inimigos com facilidade!",
+  "profession.rastreador.gui.lore2": "",
+  "profession.rastreador.gui.lore3": "§fHabilidades:",
+  "profession.rastreador.gui.lore4": "§a- Bússola rastreia o jogador mais próximo",
+  "profession.rastreador.gui.lore5": "§a- Visão noturna (em breve)",
+
+  "item.tracking_compass.not_tracker": "§cApenas Rastreadores podem usar a Bússola de Rastreamento.",
+
+  "profession.change.denied": "§cVocê não pode mudar de profissão a menos que esteja no modo Criativo.",
+
+  "item.doomsdayessentials.tracking_compass.lore1": "Clique com o direito para rastrear o jogador mais próximo.",
+  "item.doomsdayessentials.tracking_compass.lore2": "Tempo de recarga: %1$s minutos",
+  "item.doomsdayessentials.tracking_compass.desc1": "§7Somente Rastreadores podem usar.",
+  "item.doomsdayessentials.tracking_compass.desc2": "§eReutilizável"
+} 

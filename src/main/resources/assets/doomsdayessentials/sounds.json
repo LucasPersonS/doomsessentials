@@ -1,0 +1,26 @@
+{
+  "danger_zone_enter": {
+    "sounds": [
+      "doomsdayessentials:danger_zone",
+      "doomsdayessentials:danger_zone2",
+      "doomsdayessentials:danger_zone3"
+    ]
+  },
+  "safe_zone_enter": {
+    "sounds": [
+      "doomsdayessentials:safe_zone",
+      "doomsdayessentials:safe_zone2",
+      "doomsdayessentials:safe_zone3"
+    ]
+  },
+  "frequencia1": {
+    "sounds": [
+      "doomsdayessentials:frequencia1"
+    ]
+  },
+  "frequencia2": {
+    "sounds": [
+      "doomsdayessentials:frequencia2"
+    ]
+  }
+} 
