@@ -7,6 +7,7 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraftforge.event.CommandEvent;
 import net.minecraftforge.event.RegisterCommandsEvent;
 import net.minecraftforge.event.entity.player.PlayerEvent;
+import net.minecraftforge.event.TickEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
 import org.lupz.doomsdayessentials.EssentialsMod;
@@ -27,6 +28,7 @@ import org.lupz.doomsdayessentials.network.packet.s2c.SyncCombatStatePacket;
 import org.lupz.doomsdayessentials.professions.commands.MedicoCommand;
 import org.lupz.doomsdayessentials.professions.commands.ProfissoesCommand;
 import org.lupz.doomsdayessentials.professions.commands.RastreadorCommand;
+import org.lupz.doomsdayessentials.professions.MedicoProfession;
 
 @Mod.EventBusSubscriber(modid = EssentialsMod.MOD_ID, bus = Mod.EventBusSubscriber.Bus.FORGE)
 public class PlayerEventHandler {
@@ -92,5 +94,12 @@ public class PlayerEventHandler {
         MedicoCommand.register(dispatcher);
         RastreadorCommand.register(dispatcher);
         GlobalChatCommand.register(dispatcher);
+    }
+
+    @SubscribeEvent
+    public static void onPlayerTick(TickEvent.PlayerTickEvent event) {
+        if (event.phase == TickEvent.Phase.END && !event.player.level().isClientSide()) {
+            MedicoProfession.tickMedico(event.player);
+        }
     }
 } 

@@ -1,16 +1,18 @@
 package org.lupz.doomsdayessentials.injury.network;
 
+import net.minecraft.client.Minecraft;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.fml.DistExecutor;
 import net.minecraftforge.network.NetworkEvent;
-import org.lupz.doomsdayessentials.injury.client.InjuryClientPacketHandler;
+import org.lupz.doomsdayessentials.injury.client.DownedScreen;
+import org.lupz.doomsdayessentials.injury.client.InjuryClientState;
 
 import java.util.function.Supplier;
 
 public class UpdateDownedStatePacket {
-    private final boolean isDowned;
-    private final long downedUntil;
+    public final boolean isDowned;
+    public final long downedUntil;
 
     public UpdateDownedStatePacket(boolean isDowned, long downedUntil) {
         this.isDowned = isDowned;
@@ -27,17 +29,18 @@ public class UpdateDownedStatePacket {
         buf.writeLong(this.downedUntil);
     }
 
-    public boolean isDowned() {
-        return isDowned;
-    }
-
-    public long getDownedUntil() {
-        return downedUntil;
-    }
-
-    public static void handle(UpdateDownedStatePacket msg, Supplier<NetworkEvent.Context> ctx) {
+    public void handle(Supplier<NetworkEvent.Context> ctx) {
         ctx.get().enqueueWork(() -> {
-            DistExecutor.unsafeRunWhenOn(Dist.CLIENT, () -> () -> InjuryClientPacketHandler.handleUpdateDownedState(msg));
+            DistExecutor.unsafeRunWhenOn(Dist.CLIENT, () -> () -> {
+                InjuryClientState.setDowned(this.isDowned, this.downedUntil);
+                if (this.isDowned) {
+                    Minecraft.getInstance().setScreen(new DownedScreen());
+                } else {
+                    if (Minecraft.getInstance().screen instanceof DownedScreen) {
+                        Minecraft.getInstance().setScreen(null);
+                    }
+                }
+            });
         });
         ctx.get().setPacketHandled(true);
     }

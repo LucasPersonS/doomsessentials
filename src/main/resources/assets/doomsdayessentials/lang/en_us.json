@@ -1,6 +1,9 @@
 {
-  "item.doomsdayessentials.medic_kit": "§aKit Médico",
-  "item.doomsdayessentials.tracking_compass": "§bBússola de Rastreador",
+  "item.doomsdayessentials.medic_kit": "Medic Kit",
+  "item.doomsdayessentials.medic_kit.desc": "Used by Medics to heal downed players.",
+  "item.doomsdayessentials.tracking_compass": "Tracking Compass",
+  "item.doomsdayessentials.tracking_compass.desc": "Used by Trackers to find players.",
+  "item.doomsdayessentials.tracking_compass.not_tracker": "§cApenas Rastreadores podem usar este item.",
 
   "profession.medico.become": "§aVocê agora é um §eMédico§a! Use seus conhecimentos para salvar vidas.",
   "profession.medico.leave": "§7Você abandonou a vocação de Médico.",
@@ -30,6 +33,15 @@
   "injury.title.subtitle.3": "§cFerimentos Graves",
   "injury.title.subtitle.4": "§4Ferimento Crítico",
   "injury.title.subtitle.5": "§4À Beira da Morte",
+
+  "injury.healed.full": "§aVocê foi completamente curado!",
+  "injury.healed.partial": "§aSeu nível de ferimento foi reduzido para §e%d§a.",
+  "medico.heal.not_injured": "§cO alvo não está ferido.",
+  "medico.heal.target.full": "§aVocê foi totalmente curado pelo médico.",
+  "medico.heal.healer.full": "§aVocê curou completamente o seu alvo.",
+  "medico.heal.target.partial": "§aO médico reduziu seu nível de ferimento para §e%d§a.",
+  "medico.heal.healer.partial": "§aVocê reduziu o nível de ferimento do alvo para §e%d§a.",
+  "injury.increased": "§cSeu nível de ferimento aumentou para §e%d§c.",
 
   "item.doomsdayessentials.medic_kit.lore1": "§7Cura um aliado ferido em uma área segura.",
   "item.doomsdayessentials.medic_kit.lore2": "§eConsumível de uso único.",
@@ -74,12 +86,23 @@
   "profession.combatente.disabled": "§cA profissão de Combatente está desabilitada.",
   "profession.rastreador.disabled": "§cA profissão de Rastreador está desabilitada.",
 
-  "block.doomsdayessentials.medical_bed": "§cCama Médica",
+  "block.doomsdayessentials.medical_bed": "Medical Bed",
 
   "profession.medico.bed.success": "§aVocê colocou §e%1$s§a para descansar na Cama Médica.",
   "profession.medico.bed.target": "§eO médico §a%1$s§e está cuidando de você. Descanse.",
   "profession.medico.no_bed": "§cNenhuma Cama Médica disponível por perto.",
   "profession.medico.bed_cooldown": "§eHabilidade em recarga. §7Aguarde %d segundos.",
   "profession.medico.bed_cooldown_ready": "§aHabilidade da Cama Médica §ePronta§a!",
-  "profession.medico.info.bed": "§7Use §a/medico bed§7 para colocar um jogador ferido em uma cama."
+  "profession.medico.info.bed": "§7Use §a/medico bed§7 para colocar um jogador ferido em uma cama.",
+
+  "professions.doomsdayessentials.select": "Select Profession",
+  "professions.doomsdayessentials.combatente": "Combatant",
+  "professions.doomsdayessentials.medico": "Medic",
+  "professions.doomsdayessentials.rastreador": "Tracker",
+  "professions.doomsdayessentials.select_info": "Click to select your profession",
+  "professions.doomsdayessentials.medic_description": "Medics can heal other players and use medical beds.",
+  "professions.doomsdayessentials.combatente_description": "Combatants are skilled in combat and deal more damage.",
+  "professions.doomsdayessentials.rastreador_description": "Trackers can track other players using a compass.",
+  "commands.doomsdayessentials.profession.set": "Your profession has been set to %s.",
+  "commands.doomsdayessentials.profession.get": "Your profession is %s."
 } 

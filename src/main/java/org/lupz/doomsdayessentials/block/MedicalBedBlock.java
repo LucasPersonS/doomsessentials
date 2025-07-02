@@ -33,6 +33,7 @@ import net.minecraft.world.phys.shapes.Shapes;
 import net.minecraft.world.phys.shapes.VoxelShape;
 import org.jetbrains.annotations.Nullable;
 import org.lupz.doomsdayessentials.professions.ProfissaoManager;
+import org.lupz.doomsdayessentials.injury.InjuryHelper;
 
 import java.util.List;
 
@@ -54,40 +55,70 @@ public class MedicalBedBlock extends BaseEntityBlock {
     @Override
     public InteractionResult use(BlockState state, Level level, BlockPos pos, Player player, InteractionHand hand, BlockHitResult hit) {
         if (level.isClientSide) {
-            return InteractionResult.CONSUME;
-        }
-
-        BlockPos headPos = state.getValue(PART) == BedPart.HEAD ? pos : pos.relative(state.getValue(FACING));
-        BlockState headState = level.getBlockState(headPos);
-
-        if (headState.getValue(BlockStateProperties.OCCUPIED)) {
-            player.sendSystemMessage(Component.literal("§cThis bed is already occupied."));
             return InteractionResult.SUCCESS;
         }
+        if (!(player instanceof ServerPlayer medico)) {
+            return InteractionResult.FAIL;
+        }
 
-        if (!isMedico(player)) {
+        if (!isMedico(medico)) {
             player.sendSystemMessage(Component.literal("§cOnly medics can use this bed."));
             return InteractionResult.SUCCESS;
         }
 
-        List<Player> nearbyPlayers = level.getEntitiesOfClass(Player.class, new AABB(pos).inflate(5), p -> p != player);
-        if (nearbyPlayers.isEmpty()) {
-            player.sendSystemMessage(Component.literal("§cNo injured player nearby to treat."));
+        BlockPos headPos = state.getValue(PART) == BedPart.HEAD ? pos : pos.relative(state.getValue(FACING));
+
+        // Find nearest injured player within 5 blocks of the bed's head
+        Player target = findNearestInjuredPlayer(medico, headPos, 5.0);
+
+        if (target == null || !(target instanceof ServerPlayer targetPlayer)) {
+            medico.sendSystemMessage(Component.translatable("profession.medico.no_target"));
             return InteractionResult.SUCCESS;
         }
 
-        Player targetPlayer = nearbyPlayers.get(0); // For now, just take the first one found
-        targetPlayer.startSleeping(headPos);
-        level.setBlock(headPos, headState.setValue(BlockStateProperties.OCCUPIED, true), 3);
+        // Teleport target onto the bed
+        targetPlayer.teleportTo(headPos.getX() + 0.5, headPos.getY() + 0.5, headPos.getZ() + 0.5);
 
-        BlockEntity blockEntity = level.getBlockEntity(headPos);
-        if (blockEntity instanceof MedicalBedBlockEntity) {
-            ((MedicalBedBlockEntity) blockEntity).startHealing((ServerPlayer) targetPlayer);
-            player.sendSystemMessage(Component.literal("§aYou have put " + targetPlayer.getName().getString() + " to rest."));
-            targetPlayer.sendSystemMessage(Component.literal("§aA medic is treating your wounds."));
+        // Lock them to the bed
+        targetPlayer.getPersistentData().putBoolean("healingBedLock", true);
+        targetPlayer.getPersistentData().putInt("healingBedX", headPos.getX());
+        targetPlayer.getPersistentData().putInt("healingBedY", headPos.getY());
+        targetPlayer.getPersistentData().putInt("healingBedZ", headPos.getZ());
+
+        medico.sendSystemMessage(Component.translatable("profession.medico.bed.success", target.getDisplayName()));
+        targetPlayer.sendSystemMessage(Component.translatable("profession.medico.bed.target", medico.getDisplayName()));
+
+        // Set occupied state
+        level.setBlock(headPos, level.getBlockState(headPos).setValue(OCCUPIED, true), 3);
+        BlockPos footPos = headPos.relative(state.getValue(FACING).getOpposite());
+        if(level.getBlockState(footPos).is(this)) {
+            level.setBlock(footPos, level.getBlockState(footPos).setValue(OCCUPIED, true), 3);
         }
 
         return InteractionResult.SUCCESS;
+    }
+
+    private Player findNearestInjuredPlayer(Player source, BlockPos searchCenter, double range) {
+        Player nearest = null;
+        double nearestDistSq = Double.MAX_VALUE;
+        AABB searchBox = new AABB(searchCenter).inflate(range);
+
+        for (Player candidate : source.level().getEntitiesOfClass(Player.class, searchBox)) {
+            if (candidate == source) continue; // Don't target self
+
+            boolean isInjured = InjuryHelper.getCapability(candidate)
+                    .map(cap -> cap.getInjuryLevel() > 0)
+                    .orElse(false);
+
+            if (isInjured) {
+                double distSq = candidate.distanceToSqr(searchCenter.getX(), searchCenter.getY(), searchCenter.getZ());
+                if (distSq < nearestDistSq) {
+                    nearestDistSq = distSq;
+                    nearest = candidate;
+                }
+            }
+        }
+        return nearest;
     }
 
     private boolean isMedico(Player player) {
@@ -137,7 +168,6 @@ public class MedicalBedBlock extends BaseEntityBlock {
         return SHAPE;
     }
     
-    @Nullable
     @Override
     public BlockEntity newBlockEntity(BlockPos pos, BlockState state) {
         return new MedicalBedBlockEntity(pos, state);
@@ -146,7 +176,7 @@ public class MedicalBedBlock extends BaseEntityBlock {
     @Nullable
     @Override
     public <T extends BlockEntity> BlockEntityTicker<T> getTicker(Level level, BlockState state, BlockEntityType<T> type) {
-        return createTickerHelper(type, ModBlocks.MEDICAL_BED_BLOCK_ENTITY.get(), MedicalBedBlockEntity::tick);
+        return null;
     }
     
     @Override

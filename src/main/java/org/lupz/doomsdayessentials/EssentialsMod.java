@@ -57,17 +57,18 @@ public class EssentialsMod {
         IEventBus modEventBus = FMLJavaModLoadingContext.get().getModEventBus();
 
         ModItems.register(modEventBus);
+        InjuryItems.register(modEventBus);
+        ProfessionItems.register(modEventBus);
         ModBlocks.register(modEventBus);
-        ModEffects.register(modEventBus);
         ModSounds.register(modEventBus);
+        ModEffects.register(modEventBus);
         ProfessionMenuTypes.register(modEventBus);
 
         modEventBus.addListener(this::commonSetup);
 
         // Register Configs
-        ModLoadingContext modLoadingContext = ModLoadingContext.get();
-        modLoadingContext.registerConfig(ModConfig.Type.COMMON, EssentialsConfig.SPEC, MOD_ID + "-essentials.toml");
-        modLoadingContext.registerConfig(ModConfig.Type.COMMON, ProfessionConfig.SPEC, MOD_ID + "-professions.toml");
+        ModLoadingContext.get().registerConfig(ModConfig.Type.COMMON, EssentialsConfig.SPEC, MOD_ID + "-essentials.toml");
+        ModLoadingContext.get().registerConfig(ModConfig.Type.COMMON, ProfessionConfig.SPEC, MOD_ID + "-professions.toml");
 
         // Register ourselves for server and other game events we are interested in
         MinecraftForge.EVENT_BUS.register(this);

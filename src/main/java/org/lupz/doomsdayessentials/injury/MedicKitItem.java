@@ -66,7 +66,7 @@ public class MedicKitItem extends Item {
             final Player finalTarget = target;
             InjuryHelper.getCapability(finalTarget).ifPresent(cap -> {
                 if(cap.isDowned()) {
-                    cap.setDowned(false);
+                    cap.setDowned(false, null);
                     cap.setDownedUntil(0L);
                     InjuryEvents.clearDownedSource(finalTarget.getUUID());
                     finalTarget.setHealth(finalTarget.getMaxHealth() * 0.5f); // Restore to half health

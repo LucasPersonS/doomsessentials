@@ -20,12 +20,9 @@ import net.minecraftforge.event.entity.living.LivingHurtEvent;
 import net.minecraftforge.event.entity.living.LivingEntityUseItemEvent;
 import net.minecraftforge.event.entity.player.PlayerEvent;
 import net.minecraftforge.event.entity.player.PlayerEvent.PlayerLoggedInEvent;
-import net.minecraftforge.event.entity.player.PlayerSleepInBedEvent;
-import net.minecraftforge.eventbus.api.Event;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod.EventBusSubscriber;
 import org.lupz.doomsdayessentials.EssentialsMod;
-import org.lupz.doomsdayessentials.block.MedicalBedBlock;
 import org.lupz.doomsdayessentials.config.EssentialsConfig; // Assuming general config
 import org.lupz.doomsdayessentials.injury.capability.InjuryCapability;
 import org.lupz.doomsdayessentials.injury.capability.InjuryCapabilityProvider;
@@ -55,10 +52,26 @@ public class InjuryEvents {
 
    @SubscribeEvent
    public static void onPlayerTick(TickEvent.PlayerTickEvent event) {
-      if (event.phase == Phase.END && !event.player.level().isClientSide) {
-         InjuryHelper.getCapability(event.player).ifPresent(cap -> {
+      if (event.phase == Phase.END && !event.player.level().isClientSide && event.player instanceof ServerPlayer player) {
+
+         if (player.getPersistentData().getBoolean("healingBedLock")) {
+            int x = player.getPersistentData().getInt("healingBedX");
+            int y = player.getPersistentData().getInt("healingBedY");
+            int z = player.getPersistentData().getInt("healingBedZ");
+            BlockPos bedPos = new BlockPos(x, y, z);
+
+            if (player.position().distanceToSqr(bedPos.getX() + 0.5, bedPos.getY() + 0.5, bedPos.getZ() + 0.5) > 2.0) {
+               player.teleportTo(bedPos.getX() + 0.5, bedPos.getY() + 0.5, bedPos.getZ() + 0.5);
+            }
+            player.setDeltaMovement(0, 0, 0);
+
+            InjuryHelper.onHealingBed(player);
+            return; 
+         }
+
+         InjuryHelper.getCapability(player).ifPresent(cap -> {
             if (cap.getInjuryLevel() > 0) {
-               InjuryHelper.applyEffects(event.player);
+               InjuryHelper.applyEffects(player);
             }
          });
       }
@@ -71,6 +84,12 @@ public class InjuryEvents {
       }
 
       if (!EssentialsConfig.INJURY_SYSTEM_ENABLED.get()) {
+         return;
+      }
+
+      if (player.getPersistentData().contains("doomsessentials_force_death")) {
+         player.getPersistentData().remove("doomsessentials_force_death");
+         InjuryHelper.getCapability(player).ifPresent(cap -> cap.setDowned(false, null));
          return;
       }
 
@@ -91,7 +110,9 @@ public class InjuryEvents {
 
       InjuryHelper.getCapability(player).ifPresent(cap -> {
          if (cap.isDowned()) {
-            player.kill();
+            if (player.getPersistentData().contains("doomsessentials_force_death")) {
+               return;
+            }
             event.setCanceled(true);
          }
       });
@@ -133,26 +154,10 @@ public class InjuryEvents {
       }
    }
 
-   @SubscribeEvent
-   public static void onPlayerSleepInBed(PlayerSleepInBedEvent event) {
-      Player player = event.getPlayer();
-      Level level = player.level();
-      BlockPos bedPos = event.getPos();
-
-      if (bedPos == null) {
-         return;
-      }
-
-      if (level.getBlockState(bedPos).getBlock() instanceof MedicalBedBlock) {
-         event.setResult(Event.Result.ALLOW);
-      }
-   }
-
    public static void killPlayer(ServerPlayer player) {
       InjuryHelper.getCapability(player).ifPresent(cap -> {
          if(cap.isDowned()) {
             player.getPersistentData().putBoolean("doomsessentials_force_death", true);
-            // We need to provide a damage source. "Fell out of the world" is a generic one.
             player.hurt(player.damageSources().fellOutOfWorld(), Float.MAX_VALUE);
          }
       });
