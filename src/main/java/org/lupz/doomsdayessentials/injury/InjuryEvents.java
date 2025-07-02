@@ -20,9 +20,12 @@ import net.minecraftforge.event.entity.living.LivingHurtEvent;
 import net.minecraftforge.event.entity.living.LivingEntityUseItemEvent;
 import net.minecraftforge.event.entity.player.PlayerEvent;
 import net.minecraftforge.event.entity.player.PlayerEvent.PlayerLoggedInEvent;
+import net.minecraftforge.event.entity.player.PlayerSleepInBedEvent;
+import net.minecraftforge.eventbus.api.Event;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod.EventBusSubscriber;
 import org.lupz.doomsdayessentials.EssentialsMod;
+import org.lupz.doomsdayessentials.block.MedicalBedBlock;
 import org.lupz.doomsdayessentials.config.EssentialsConfig; // Assuming general config
 import org.lupz.doomsdayessentials.injury.capability.InjuryCapability;
 import org.lupz.doomsdayessentials.injury.capability.InjuryCapabilityProvider;
@@ -127,6 +130,21 @@ public class InjuryEvents {
          InjuryHelper.getCapability(player).ifPresent(cap -> {
             InjuryNetwork.sendToPlayer(new UpdateInjuryLevelPacket(cap.getInjuryLevel()), player);
          });
+      }
+   }
+
+   @SubscribeEvent
+   public static void onPlayerSleepInBed(PlayerSleepInBedEvent event) {
+      Player player = event.getPlayer();
+      Level level = player.level();
+      BlockPos bedPos = event.getPos();
+
+      if (bedPos == null) {
+         return;
+      }
+
+      if (level.getBlockState(bedPos).getBlock() instanceof MedicalBedBlock) {
+         event.setResult(Event.Result.ALLOW);
       }
    }
 
