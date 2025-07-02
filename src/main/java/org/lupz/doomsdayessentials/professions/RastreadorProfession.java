@@ -4,10 +4,13 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.effect.MobEffects;
-import org.lupz.doomsdayessentials.config.ProfessionConfig;
+import org.lupz.doomsdayessentials.config.EssentialsConfig;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.item.ItemStack;
 import org.lupz.doomsdayessentials.professions.items.ProfessionItems;
+import java.util.List;
+import net.minecraft.ChatFormatting;
+import org.lupz.doomsdayessentials.professions.capability.TrackerCapabilityProvider;
 
 public final class RastreadorProfession {
     private static final String TAG_IS_TRACKER = "isRastreador";
@@ -16,7 +19,7 @@ public final class RastreadorProfession {
 
     public static void onBecome(Player player) {
         if (player.level().isClientSide) return;
-        if (!ProfessionConfig.RASTREADOR_ENABLED.get()) {
+        if (!EssentialsConfig.RASTREADOR_ENABLED.get()) {
             player.sendSystemMessage(Component.translatable("profession.rastreador.disabled"));
             return;
         }
@@ -62,7 +65,7 @@ public final class RastreadorProfession {
     private static final String TAG_GLOW_COOLDOWN = "rastreadorGlowCooldown";
 
     public static boolean useGlowAbility(ServerPlayer player) {
-        if (!ProfessionConfig.RASTREADOR_ENABLED.get()) {
+        if (!EssentialsConfig.RASTREADOR_ENABLED.get()) {
             player.sendSystemMessage(Component.translatable("profession.rastreador.disabled"));
             return false;
         }
@@ -80,19 +83,26 @@ public final class RastreadorProfession {
             return false;
         }
 
-        // Find players in 30 block radius and apply glowing
-        double radius = 30.0;
-        var level = player.level();
-        for (Player other : level.players()) {
-            if (other == player) continue;
-            if (other.distanceTo(player) > radius) continue;
-            other.addEffect(new MobEffectInstance(MobEffects.GLOWING, 200, 0, false, false));
-        }
+        // Find players in radius and apply glowing if not on whitelist
+        double radius = EssentialsConfig.RASTREADOR_SCAN_RADIUS.get();
+        int duration = EssentialsConfig.RASTREADOR_SCAN_DURATION_SECONDS.get() * 20;
 
-        player.sendSystemMessage(Component.translatable("profession.rastreador.glow_used"));
+        player.getCapability(TrackerCapabilityProvider.TRACKER_CAPABILITY).ifPresent(cap -> {
+            List<ServerPlayer> nearbyPlayers = player.level().getEntitiesOfClass(ServerPlayer.class, player.getBoundingBox().inflate(radius),
+                    p -> p != player && !cap.isWhitelisted(p.getUUID()));
 
-        // Set cooldown (1 hour = 72000 ticks)
-        player.getPersistentData().putInt(TAG_GLOW_COOLDOWN, 72000);
+            if (nearbyPlayers.isEmpty()) {
+                player.sendSystemMessage(Component.literal("Nenhum jogador encontrado por perto.").withStyle(ChatFormatting.YELLOW));
+            } else {
+                for (ServerPlayer target : nearbyPlayers) {
+                    target.addEffect(new MobEffectInstance(MobEffects.GLOWING, duration, 0));
+                }
+                player.sendSystemMessage(Component.literal("Revelados " + nearbyPlayers.size() + " jogadores próximos!").withStyle(ChatFormatting.GREEN));
+            }
+        });
+
+        // Set cooldown from config
+        player.getPersistentData().putInt(TAG_GLOW_COOLDOWN, EssentialsConfig.RASTREADOR_SCAN_COOLDOWN_MINUTES.get() * 1200);
         return true;
     }
 

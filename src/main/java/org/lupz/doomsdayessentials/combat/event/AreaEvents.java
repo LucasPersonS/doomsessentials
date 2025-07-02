@@ -2,8 +2,6 @@ package org.lupz.doomsdayessentials.combat.event;
 
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.protocol.game.ClientboundSetTitleTextPacket;
-import net.minecraft.network.protocol.game.ClientboundSetSubtitleTextPacket;
-import net.minecraft.network.protocol.game.ClientboundSetActionBarTextPacket;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.damagesource.DamageTypes;
 import net.minecraft.world.entity.Mob;
@@ -16,15 +14,11 @@ import net.minecraftforge.event.level.ExplosionEvent;
 import net.minecraftforge.eventbus.api.Event;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
-import org.lupz.doomsdayessentials.EssentialsMod;
 import org.lupz.doomsdayessentials.combat.AreaManager;
 import org.lupz.doomsdayessentials.combat.AreaType;
 import org.lupz.doomsdayessentials.combat.ManagedArea;
 import org.lupz.doomsdayessentials.combat.CombatManager;
-import org.lupz.doomsdayessentials.network.PacketHandler;
 import net.minecraftforge.event.entity.EntityMobGriefingEvent;
-import org.lupz.doomsdayessentials.sound.ModSounds;
-import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerLevel;
 import org.lupz.doomsdayessentials.effect.ModEffects;
 import net.minecraft.world.effect.MobEffects;
@@ -32,7 +26,6 @@ import net.minecraft.world.effect.MobEffectInstance;
 
 import java.util.Map;
 import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.HashMap;
 
 @Mod.EventBusSubscriber(bus = Mod.EventBusSubscriber.Bus.FORGE)
@@ -104,6 +97,11 @@ public class AreaEvents {
     }
 
     private static void applyAreaEffects(ServerPlayer player, ManagedArea area) {
+        // Put player in combat if in a DANGER zone
+        if (area.getType() == AreaType.DANGER) {
+            CombatManager.get().tagPlayer(player);
+        }
+
         // Heal players
         if (area.isHealPlayers()) {
             if (player.getHealth() < player.getMaxHealth() && player.tickCount % 20 == 0) { // every second

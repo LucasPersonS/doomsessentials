@@ -2,15 +2,7 @@ package org.lupz.doomsdayessentials;
 
 import com.mojang.logging.LogUtils;
 import net.minecraft.client.gui.screens.MenuScreens;
-import net.minecraft.client.renderer.item.CompassItemPropertyFunction;
-import net.minecraft.client.renderer.item.ItemProperties;
-import net.minecraft.core.BlockPos;
-import net.minecraft.core.GlobalPos;
 import net.minecraft.core.registries.Registries;
-import net.minecraft.nbt.NbtUtils;
-import net.minecraft.resources.ResourceKey;
-import net.minecraft.resources.ResourceLocation;
-import net.minecraft.world.level.Level;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.event.server.ServerStartingEvent;
@@ -28,21 +20,15 @@ import org.lupz.doomsdayessentials.combat.CombatManager;
 import org.lupz.doomsdayessentials.combat.command.AreaCommand;
 import org.lupz.doomsdayessentials.combat.command.CombatCommand;
 import org.lupz.doomsdayessentials.command.DoomsHelpCommand;
-import org.lupz.doomsdayessentials.command.GlobalChatCommand;
 import org.lupz.doomsdayessentials.command.SoundCommand;
 import org.lupz.doomsdayessentials.config.EssentialsConfig;
-import org.lupz.doomsdayessentials.config.ProfessionConfig;
 import org.lupz.doomsdayessentials.effect.ModEffects;
-import org.lupz.doomsdayessentials.event.AdminChatEvents;
-import org.lupz.doomsdayessentials.event.ChatEvents;
 import org.lupz.doomsdayessentials.item.ModItems;
 import org.lupz.doomsdayessentials.injury.InjuryCommands;
-import org.lupz.doomsdayessentials.injury.InjuryEvents;
 import org.lupz.doomsdayessentials.injury.InjuryItems;
 import org.lupz.doomsdayessentials.injury.network.InjuryNetwork;
 import org.lupz.doomsdayessentials.network.PacketHandler;
 import org.lupz.doomsdayessentials.professions.items.ProfessionItems;
-import org.lupz.doomsdayessentials.professions.items.TrackingCompassItem;
 import org.lupz.doomsdayessentials.professions.menu.ProfessionMenuTypes;
 import org.lupz.doomsdayessentials.professions.menu.ProfissoesScreen;
 import org.lupz.doomsdayessentials.sound.ModSounds;
@@ -68,7 +54,6 @@ public class EssentialsMod {
 
         // Register Configs
         ModLoadingContext.get().registerConfig(ModConfig.Type.COMMON, EssentialsConfig.SPEC, MOD_ID + "-essentials.toml");
-        ModLoadingContext.get().registerConfig(ModConfig.Type.COMMON, ProfessionConfig.SPEC, MOD_ID + "-professions.toml");
 
         // Register ourselves for server and other game events we are interested in
         MinecraftForge.EVENT_BUS.register(this);

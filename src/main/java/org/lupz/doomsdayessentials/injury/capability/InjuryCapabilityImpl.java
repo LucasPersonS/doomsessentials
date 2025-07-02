@@ -1,21 +1,21 @@
 package org.lupz.doomsdayessentials.injury.capability;
 
 import net.minecraft.nbt.CompoundTag;
+import org.lupz.doomsdayessentials.config.EssentialsConfig;
 
 public class InjuryCapabilityImpl implements InjuryCapability {
    private int injuryLevel = 0;
-   private int healCooldown = 0;
-   private boolean healing = false;
-   private float healingProgress = 0.0F;
    private int deathCount = 0;
+   private float healingProgress = 0.0f;
    private boolean downed = false;
-   private float downedHealth = 0;
+   private float downedHealth = 20.0f;
    private long downedUntil = 0L;
    private java.util.UUID lastAttacker = null;
 
    public InjuryCapabilityImpl() {
    }
 
+   @Override
    public int getInjuryLevel() {
       return this.injuryLevel;
    }
@@ -35,22 +35,6 @@ public class InjuryCapabilityImpl implements InjuryCapability {
    public int decrementInjuryLevel(int amount) {
       this.injuryLevel = Math.max(0, this.injuryLevel - amount);
       return this.injuryLevel;
-   }
-
-   public int getHealCooldown() {
-      return this.healCooldown;
-   }
-
-   public void setHealCooldown(int cooldown) {
-      this.healCooldown = Math.max(0, cooldown);
-   }
-
-   public boolean isHealing() {
-      return this.healing;
-   }
-
-   public void setHealing(boolean healing) {
-      this.healing = healing;
    }
 
    public float getHealingProgress() {
@@ -114,8 +98,6 @@ public class InjuryCapabilityImpl implements InjuryCapability {
    public CompoundTag serializeNBT() {
       CompoundTag tag = new CompoundTag();
       tag.putInt("InjuryLevel", this.injuryLevel);
-      tag.putInt("HealCooldown", this.healCooldown);
-      tag.putBoolean("Healing", this.healing);
       tag.putFloat("HealingProgress", this.healingProgress);
       tag.putInt("DeathCount", this.deathCount);
       tag.putBoolean("Downed", this.downed);
@@ -129,8 +111,6 @@ public class InjuryCapabilityImpl implements InjuryCapability {
 
    public void deserializeNBT(CompoundTag nbt) {
       this.injuryLevel = nbt.getInt("InjuryLevel");
-      this.healCooldown = nbt.getInt("HealCooldown");
-      this.healing = nbt.getBoolean("Healing");
       this.healingProgress = nbt.getFloat("HealingProgress");
       this.deathCount = nbt.getInt("DeathCount");
       this.downed = nbt.getBoolean("Downed");

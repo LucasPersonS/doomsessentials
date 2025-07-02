@@ -1,9 +1,10 @@
 package org.lupz.doomsdayessentials.combat;
 
+import com.mojang.serialization.Codec;
+import com.mojang.serialization.codecs.RecordCodecBuilder;
 import net.minecraft.core.BlockPos;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.world.level.Level;
-import com.google.gson.annotations.SerializedName;
 import org.jetbrains.annotations.NotNull;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.core.registries.Registries;
@@ -15,62 +16,42 @@ import net.minecraft.core.registries.Registries;
  */
 public final class ManagedArea {
 
-    @SerializedName("name")
     private final String name;
-
-    @SerializedName("type")
     private final AreaType type;
-
-    @SerializedName("dimension")
     private final ResourceKey<Level> dimension;
-
-    @SerializedName("pos1")
     private final BlockPos pos1;
-
-    @SerializedName("pos2")
     private final BlockPos pos2;
 
     // Optional behavioural flags -------------------------------------------------------------
 
-    @SerializedName("prevent_pvp")
     private boolean preventPvp;
-
-    @SerializedName("prevent_explosions")
     private boolean preventExplosions;
-
-    @SerializedName("prevent_mob_griefing")
     private boolean preventMobGriefing;
-
-    @SerializedName("prevent_block_modification")
     private boolean preventBlockModification;
-
-    // New flags start here
-    @SerializedName("allow_flight")
     private boolean allowFlight;
-
-    @SerializedName("disable_fall_damage")
     private boolean disableFallDamage;
-
-    @SerializedName("prevent_hunger_loss")
     private boolean preventHungerLoss;
-
-    @SerializedName("heal_players")
     private boolean healPlayers;
-
-    @SerializedName("radiation_damage")
     private float radiationDamage;
-
-    @SerializedName("entry_message")
     private String entryMessage;
-
-    @SerializedName("exit_message")
     private String exitMessage;
 
     public ManagedArea(@NotNull String name,
                        @NotNull AreaType type,
                        @NotNull ResourceKey<Level> dimension,
                        @NotNull BlockPos pos1,
-                       @NotNull BlockPos pos2) {
+                       @NotNull BlockPos pos2,
+                       boolean preventPvp,
+                       boolean preventExplosions,
+                       boolean preventMobGriefing,
+                       boolean preventBlockModification,
+                       boolean allowFlight,
+                       boolean disableFallDamage,
+                       boolean preventHungerLoss,
+                       boolean healPlayers,
+                       float radiationDamage,
+                       String entryMessage,
+                       String exitMessage) {
         this.name = name;
         this.type = type;
         this.dimension = dimension;
@@ -86,37 +67,58 @@ public final class ManagedArea {
         this.pos1 = new BlockPos(minX, minY, minZ);
         this.pos2 = new BlockPos(maxX, maxY, maxZ);
 
-        // Defaults
-        this.preventPvp = false;
-        this.preventExplosions = false;
-        this.preventMobGriefing = false;
-        this.preventBlockModification = false;
-        this.allowFlight = false;
-        this.disableFallDamage = false;
-        this.preventHungerLoss = false;
-        this.healPlayers = false;
-        this.radiationDamage = 0.0f;
-        this.entryMessage = "";
-        this.exitMessage = "";
+        this.preventPvp = preventPvp;
+        this.preventExplosions = preventExplosions;
+        this.preventMobGriefing = preventMobGriefing;
+        this.preventBlockModification = preventBlockModification;
+        this.allowFlight = allowFlight;
+        this.disableFallDamage = disableFallDamage;
+        this.preventHungerLoss = preventHungerLoss;
+        this.healPlayers = healPlayers;
+        this.radiationDamage = radiationDamage;
+        this.entryMessage = entryMessage;
+        this.exitMessage = exitMessage;
+    }
+
+    public ManagedArea(@NotNull String name,
+                       @NotNull AreaType type,
+                       @NotNull ResourceKey<Level> dimension,
+                       @NotNull BlockPos pos1,
+                       @NotNull BlockPos pos2) {
+        this(name, type, dimension, pos1, pos2, false, false, false, false, false, false, false, false, 0.0f, "", "");
     }
 
     /**
      * Copy constructor to create a new area with different bounds but identical properties.
      */
     public ManagedArea(ManagedArea other, BlockPos newPos1, BlockPos newPos2) {
-        this(other.name, other.type, other.dimension, newPos1, newPos2);
-        this.preventPvp = other.preventPvp;
-        this.preventExplosions = other.preventExplosions;
-        this.preventMobGriefing = other.preventMobGriefing;
-        this.preventBlockModification = other.preventBlockModification;
-        this.allowFlight = other.allowFlight;
-        this.disableFallDamage = other.disableFallDamage;
-        this.preventHungerLoss = other.preventHungerLoss;
-        this.healPlayers = other.healPlayers;
-        this.radiationDamage = other.radiationDamage;
-        this.entryMessage = other.entryMessage;
-        this.exitMessage = other.exitMessage;
+        this(other.name, other.type, other.dimension, newPos1, newPos2,
+                other.preventPvp, other.preventExplosions, other.preventMobGriefing,
+                other.preventBlockModification, other.allowFlight, other.disableFallDamage,
+                other.preventHungerLoss, other.healPlayers, other.radiationDamage,
+                other.entryMessage, other.exitMessage);
     }
+
+    public static final Codec<ManagedArea> CODEC = RecordCodecBuilder.create(instance ->
+            instance.group(
+                    Codec.STRING.fieldOf("name").forGetter(ManagedArea::getName),
+                    AreaType.CODEC.fieldOf("type").forGetter(ManagedArea::getType),
+                    ResourceKey.codec(Registries.DIMENSION).fieldOf("dimension").forGetter(ManagedArea::getDimension),
+                    BlockPos.CODEC.fieldOf("pos1").forGetter(ManagedArea::getPos1),
+                    BlockPos.CODEC.fieldOf("pos2").forGetter(ManagedArea::getPos2),
+                    Codec.BOOL.optionalFieldOf("prevent_pvp", false).forGetter(ManagedArea::isPreventPvp),
+                    Codec.BOOL.optionalFieldOf("prevent_explosions", false).forGetter(ManagedArea::isPreventExplosions),
+                    Codec.BOOL.optionalFieldOf("prevent_mob_griefing", false).forGetter(ManagedArea::isPreventMobGriefing),
+                    Codec.BOOL.optionalFieldOf("prevent_block_modification", false).forGetter(ManagedArea::isPreventBlockModification),
+                    Codec.BOOL.optionalFieldOf("allow_flight", false).forGetter(ManagedArea::isAllowFlight),
+                    Codec.BOOL.optionalFieldOf("disable_fall_damage", false).forGetter(ManagedArea::isDisableFallDamage),
+                    Codec.BOOL.optionalFieldOf("prevent_hunger_loss", false).forGetter(ManagedArea::isPreventHungerLoss),
+                    Codec.BOOL.optionalFieldOf("heal_players", false).forGetter(ManagedArea::isHealPlayers),
+                    Codec.FLOAT.optionalFieldOf("radiation_damage", 0.0f).forGetter(ManagedArea::getRadiationDamage),
+                    Codec.STRING.optionalFieldOf("entry_message", "").forGetter(ManagedArea::getEntryMessage),
+                    Codec.STRING.optionalFieldOf("exit_message", "").forGetter(ManagedArea::getExitMessage)
+            ).apply(instance, ManagedArea::new)
+    );
 
     // ------------------------------------------------------------------------
     // Basic getters

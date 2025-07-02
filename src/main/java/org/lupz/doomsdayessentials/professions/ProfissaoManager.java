@@ -3,7 +3,7 @@ package org.lupz.doomsdayessentials.professions;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import org.lupz.doomsdayessentials.EssentialsMod;
-import org.lupz.doomsdayessentials.config.ProfessionConfig;
+import org.lupz.doomsdayessentials.config.EssentialsConfig;
 
 import java.io.File;
 import java.io.FileReader;
@@ -39,7 +39,10 @@ public final class ProfissaoManager {
 
     public static void setProfession(UUID playerUUID, String profession) {
         if (!canBecome(profession)) {
-            EssentialsMod.LOGGER.info("Player {} tried to become a {} but the limit has been reached.", playerUUID, profession);
+            net.minecraft.server.level.ServerPlayer player = net.minecraft.server.MinecraftServer.getInstance().getPlayerList().getPlayer(playerUUID);
+            if (player != null) {
+                player.sendSystemMessage(net.minecraft.network.chat.Component.literal("§cO limite para a profissão " + profession + " foi atingido."));
+            }
             return;
         }
         playerProfessions.put(playerUUID, profession);
@@ -72,9 +75,9 @@ public final class ProfissaoManager {
         String id = professionId == null ? "" : professionId.toLowerCase();
         int maxAllowed;
         switch (id) {
-            case "medico" -> maxAllowed = ProfessionConfig.MEDICO_MAX_COUNT.get();
-            case "combatente" -> maxAllowed = ProfessionConfig.COMBATENTE_MAX_COUNT.get();
-            case "rastreador" -> maxAllowed = ProfessionConfig.RASTREADOR_MAX_COUNT.get();
+            case "medico" -> maxAllowed = EssentialsConfig.MEDICO_MAX_COUNT.get();
+            case "combatente" -> maxAllowed = EssentialsConfig.COMBATENTE_MAX_COUNT.get();
+            case "rastreador" -> maxAllowed = EssentialsConfig.RASTREADOR_MAX_COUNT.get();
             default -> {
                 // No limit defined for unknown professions
                 return true;

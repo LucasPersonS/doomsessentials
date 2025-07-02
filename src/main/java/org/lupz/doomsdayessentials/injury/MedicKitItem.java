@@ -19,13 +19,14 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.TooltipFlag;
 import net.minecraft.world.item.UseAnim;
 import net.minecraft.world.level.Level;
-import org.lupz.doomsdayessentials.config.ProfessionConfig;
+import org.lupz.doomsdayessentials.config.EssentialsConfig;
 import org.lupz.doomsdayessentials.injury.capability.InjuryCapability;
 import org.lupz.doomsdayessentials.injury.network.InjuryNetwork;
 import org.lupz.doomsdayessentials.injury.network.UpdateDownedStatePacket;
 import org.lupz.doomsdayessentials.professions.ProfissaoManager;
 import org.lupz.doomsdayessentials.injury.InjuryEvents;
 import org.lupz.doomsdayessentials.EssentialsMod;
+import net.minecraft.world.phys.AABB;
 
 public class MedicKitItem extends Item {
    public MedicKitItem(Item.Properties properties) {
@@ -35,7 +36,7 @@ public class MedicKitItem extends Item {
    @Override
    public InteractionResultHolder<ItemStack> use(Level level, Player player, InteractionHand hand) {
       ItemStack stack = player.getItemInHand(hand);
-      if (!this.isMedico(player)) {
+      if (!isMedico(player)) {
          if (!level.isClientSide) {
             player.sendSystemMessage(Component.translatable("item.medic_kit.not_medico"));
          }
@@ -51,46 +52,44 @@ public class MedicKitItem extends Item {
    public ItemStack finishUsingItem(ItemStack stack, Level level, LivingEntity entity) {
       if (entity instanceof ServerPlayer player) {
          if (!level.isClientSide) {
-            double range = ProfessionConfig.MEDICO_KIT_RANGE.get();
-            int hearts = ProfessionConfig.MEDICO_KIT_HEAL_HEARTS.get();
+            double range = EssentialsConfig.MEDIC_HEAL_RADIUS.get();
+            int hearts = EssentialsConfig.MEDIC_HEAL_AMOUNT.get().intValue();
+            float healAmount = hearts; // Convert hearts to half-hearts
 
-            Player target = this.findNearestLowHealthAlly(player, range);
-            if (target == null) {
-                target = this.findNearestDownedPlayer(player, range);
-                if (target == null) {
-                    player.sendSystemMessage(Component.translatable("item.medic_kit.no_target"));
-                    return stack;
-                }
-            }
+            AABB area = new AABB(player.blockPosition()).inflate(range);
+            level.getEntitiesOfClass(Player.class, area).forEach(p -> {
+                if (p != player && player.distanceToSqr(p) <= range * range) { // Check spherical radius & not self
+                    InjuryHelper.getCapability(p).ifPresent(cap -> {
+                        boolean healed = false;
+                        if(cap.isDowned()) {
+                            cap.setDowned(false, null);
+                            cap.setDownedUntil(0L);
+                            InjuryEvents.clearDownedSource(p.getUUID());
+                            p.setHealth(p.getMaxHealth() * 0.5f); // Restore to half health
+                            p.setPose(net.minecraft.world.entity.Pose.STANDING);
+                            p.sendSystemMessage(Component.translatable("item.doomsdayessentials.medic_kit.revived_by_medic", player.getDisplayName()).withStyle(ChatFormatting.GREEN));
+                            InjuryNetwork.sendToPlayer(new UpdateDownedStatePacket(false, 0L), (ServerPlayer) p);
+                            player.sendSystemMessage(Component.translatable("item.doomsdayessentials.medic_kit.revived_player", p.getDisplayName()).withStyle(ChatFormatting.GREEN));
+                            healed = true;
+                        } else if (p.getHealth() < p.getMaxHealth()) {
+                            float newHealth = Math.min(p.getMaxHealth(), p.getHealth() + healAmount);
+                            p.setHealth(newHealth);
+                            player.sendSystemMessage(Component.translatable("item.doomsdayessentials.medic_kit.healed_player", p.getDisplayName()).withStyle(ChatFormatting.GREEN));
+                            healed = true;
+                        }
 
-            final Player finalTarget = target;
-            InjuryHelper.getCapability(finalTarget).ifPresent(cap -> {
-                if(cap.isDowned()) {
-                    cap.setDowned(false, null);
-                    cap.setDownedUntil(0L);
-                    InjuryEvents.clearDownedSource(finalTarget.getUUID());
-                    finalTarget.setHealth(finalTarget.getMaxHealth() * 0.5f); // Restore to half health
-                    finalTarget.setPose(net.minecraft.world.entity.Pose.STANDING);
-                    finalTarget.sendSystemMessage(Component.literal("Você foi revivido por um médico!").withStyle(ChatFormatting.GREEN));
-                    InjuryNetwork.sendToPlayer(new UpdateDownedStatePacket(false, 0L), (ServerPlayer) finalTarget);
-                } else {
-                    float healAmount = hearts * 2.0f; // hearts to health points
-                    float newHealth = Math.min(finalTarget.getMaxHealth(), finalTarget.getHealth() + healAmount);
-                    finalTarget.setHealth(newHealth);
+                        if (healed) {
+                            p.sendSystemMessage(Component.translatable("item.doomsdayessentials.medic_kit.healed_by_medic", player.getDisplayName()).withStyle(ChatFormatting.GREEN));
+                        }
+                    });
                 }
             });
 
-
             if (level instanceof ServerLevel serverLevel) {
-                serverLevel.sendParticles(ParticleTypes.HEART, target.getX(), target.getY() + 1.0, target.getZ(), 15, 0.5, 0.5, 0.5, 0.02);
+                serverLevel.sendParticles(ParticleTypes.HEART, player.getX(), player.getY() + 1.0, player.getZ(), 15, 0.5, 0.5, 0.5, 0.02);
             }
 
-            level.playSound(null, target.getX(), target.getY(), target.getZ(), SoundEvents.PLAYER_LEVELUP, SoundSource.PLAYERS, 1.0F, 1.5F);
-
-            player.sendSystemMessage(Component.literal("§aAlvo curado!"));
-            if (target != player) {
-                target.sendSystemMessage(Component.literal("§aVocê foi curado por um médico!"));
-            }
+            level.playSound(null, player.getX(), player.getY(), player.getZ(), SoundEvents.PLAYER_LEVELUP, SoundSource.PLAYERS, 1.0F, 1.5F);
 
             if (!player.getAbilities().instabuild) {
                 stack.shrink(1);
@@ -125,71 +124,5 @@ public class MedicKitItem extends Item {
    private boolean isMedico(Player player) {
       String profession = ProfissaoManager.getProfession(player.getUUID());
       return profession != null && profession.equalsIgnoreCase("medico");
-   }
-
-   private Player findNearestDownedPlayer(Player source, double range) {
-       Player nearest = null;
-       double nearestDist = Double.MAX_VALUE;
-       for(Player player : source.level().players()) {
-           if (player != source && player.distanceToSqr(source) <= range * range) {
-               boolean isDowned = InjuryHelper.getCapability(player).map(InjuryCapability::isDowned).orElse(false);
-               if (isDowned) {
-                   double dist = player.distanceToSqr(source);
-                   if (dist < nearestDist) {
-                       nearestDist = dist;
-                       nearest = player;
-                   }
-               }
-           }
-       }
-       return nearest;
-   }
-
-   private Player findNearestInjuredPlayer(Player source, double range) {
-      Player nearest = null;
-      double nearestDist = Double.MAX_VALUE;
-      Iterator var7 = source.level().players().iterator();
-
-      while(var7.hasNext()) {
-         Player player = (Player)var7.next();
-         if (player != source && player.distanceToSqr(source) <= range * range) {
-            boolean isInjured = InjuryHelper.getCapability(player).map((cap) -> {
-               return cap.getInjuryLevel() > 0;
-            }).orElse(false);
-            if (isInjured) {
-               double dist = player.distanceToSqr(source);
-               if (dist < nearestDist) {
-                  nearestDist = dist;
-                  nearest = player;
-               }
-            }
-         }
-      }
-
-      return nearest;
-   }
-
-   private Player findNearestLowHealthAlly(Player source, double range) {
-      Player nearest = null;
-      double nearestDist = Double.MAX_VALUE;
-      Iterator var7 = source.level().players().iterator();
-
-      while(var7.hasNext()) {
-         Player player = (Player)var7.next();
-         if (player != source && player.distanceToSqr(source) <= range * range) {
-            boolean isInjured = InjuryHelper.getCapability(player).map((cap) -> {
-               return cap.getInjuryLevel() > 0;
-            }).orElse(false);
-            if (isInjured) {
-               double dist = player.distanceToSqr(source);
-               if (dist < nearestDist) {
-                  nearestDist = dist;
-                  nearest = player;
-               }
-            }
-         }
-      }
-
-      return nearest;
    }
 } 

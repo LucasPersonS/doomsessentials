@@ -1,11 +1,8 @@
 package org.lupz.doomsdayessentials.event;
 
-import com.mojang.brigadier.CommandDispatcher;
-import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraftforge.event.CommandEvent;
-import net.minecraftforge.event.RegisterCommandsEvent;
 import net.minecraftforge.event.entity.player.PlayerEvent;
 import net.minecraftforge.event.TickEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
@@ -14,21 +11,12 @@ import org.lupz.doomsdayessentials.EssentialsMod;
 import org.lupz.doomsdayessentials.combat.AreaManager;
 import org.lupz.doomsdayessentials.combat.CombatManager;
 import org.lupz.doomsdayessentials.combat.ManagedArea;
-import org.lupz.doomsdayessentials.combat.command.AreaCommand;
-import org.lupz.doomsdayessentials.combat.command.CombatCommand;
-import org.lupz.doomsdayessentials.command.AdminChatCommand;
-import org.lupz.doomsdayessentials.command.DoomsHelpCommand;
-import org.lupz.doomsdayessentials.command.GlobalChatCommand;
-import org.lupz.doomsdayessentials.command.SoundCommand;
 import org.lupz.doomsdayessentials.config.EssentialsConfig;
-import org.lupz.doomsdayessentials.injury.InjuryCommands;
 import org.lupz.doomsdayessentials.network.PacketHandler;
 import org.lupz.doomsdayessentials.network.packet.s2c.SyncAreasPacket;
 import org.lupz.doomsdayessentials.network.packet.s2c.SyncCombatStatePacket;
-import org.lupz.doomsdayessentials.professions.commands.MedicoCommand;
-import org.lupz.doomsdayessentials.professions.commands.ProfissoesCommand;
-import org.lupz.doomsdayessentials.professions.commands.RastreadorCommand;
 import org.lupz.doomsdayessentials.professions.MedicoProfession;
+import org.lupz.doomsdayessentials.professions.RastreadorProfession;
 
 @Mod.EventBusSubscriber(modid = EssentialsMod.MOD_ID, bus = Mod.EventBusSubscriber.Bus.FORGE)
 public class PlayerEventHandler {
@@ -82,24 +70,10 @@ public class PlayerEventHandler {
     }
 
     @SubscribeEvent
-    public static void onRegisterCommands(RegisterCommandsEvent event) {
-        CommandDispatcher<CommandSourceStack> dispatcher = event.getDispatcher();
-        DoomsHelpCommand.register(dispatcher);
-        AdminChatCommand.register(dispatcher);
-        SoundCommand.register(dispatcher);
-        InjuryCommands.register(dispatcher);
-        CombatCommand.register(dispatcher);
-        AreaCommand.register(dispatcher);
-        ProfissoesCommand.register(dispatcher);
-        MedicoCommand.register(dispatcher);
-        RastreadorCommand.register(dispatcher);
-        GlobalChatCommand.register(dispatcher);
-    }
-
-    @SubscribeEvent
     public static void onPlayerTick(TickEvent.PlayerTickEvent event) {
         if (event.phase == TickEvent.Phase.END && !event.player.level().isClientSide()) {
             MedicoProfession.tickMedico(event.player);
+            RastreadorProfession.tickTracker(event.player);
         }
     }
-} 
+}

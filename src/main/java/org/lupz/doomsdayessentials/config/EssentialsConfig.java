@@ -10,8 +10,6 @@ public class EssentialsConfig {
     public static final ForgeConfigSpec.IntValue COMBAT_DURATION_SECONDS;
     public static final ForgeConfigSpec.ConfigValue<java.util.List<? extends String>> ALLOWED_COMBAT_COMMANDS;
     public static final ForgeConfigSpec.IntValue COMBAT_LOG_TIMER;
-    public static final ForgeConfigSpec.DoubleValue HEAL_RANGE;
-    public static final ForgeConfigSpec.DoubleValue HEAL_AMOUNT;
     public static final ForgeConfigSpec.IntValue LOCAL_CHAT_RADIUS;
 
     // Injury System
@@ -33,11 +31,27 @@ public class EssentialsConfig {
     public static final ForgeConfigSpec.BooleanValue ENABLE_WITHER_EFFECT;
 
     // Professions
-    public static final ForgeConfigSpec.IntValue MEDIC_KIT_COOLDOWN;
-    public static final ForgeConfigSpec.DoubleValue MEDIC_KIT_RADIUS;
-    public static final ForgeConfigSpec.DoubleValue MEDIC_KIT_HEAL_AMOUNT;
+    public static final ForgeConfigSpec.IntValue MEDIC_HEAL_COOLDOWN;
+    public static final ForgeConfigSpec.DoubleValue MEDIC_HEAL_RADIUS;
+    public static final ForgeConfigSpec.DoubleValue MEDIC_HEAL_AMOUNT;
 
-    // Professions.tracker
+    // Professions.medico
+    public static final ForgeConfigSpec.BooleanValue MEDICO_ENABLED;
+    public static final ForgeConfigSpec.IntValue MEDICO_MAX_COUNT;
+    public static final ForgeConfigSpec.BooleanValue MEDICO_ANNOUNCE_JOIN;
+    public static final ForgeConfigSpec.BooleanValue MEDICO_AUTO_RECEIVE_KIT;
+    public static final ForgeConfigSpec.IntValue MEDICO_BED_COOLDOWN_SECONDS;
+    public static final ForgeConfigSpec.IntValue MEDICO_GLOBAL_COOLDOWN_MINUTES;
+
+    // Professions.combatente
+    public static final ForgeConfigSpec.BooleanValue COMBATENTE_ENABLED;
+    public static final ForgeConfigSpec.IntValue COMBATENTE_MAX_COUNT;
+
+    // Professions.rastreador
+    public static final ForgeConfigSpec.BooleanValue RASTREADOR_ENABLED;
+    public static final ForgeConfigSpec.IntValue RASTREADOR_MAX_COUNT;
+    public static final ForgeConfigSpec.IntValue RASTREADOR_SCAN_COOLDOWN_MINUTES;
+    public static final ForgeConfigSpec.DoubleValue RASTREADOR_SCAN_RADIUS;
     public static final ForgeConfigSpec.DoubleValue TRACKER_COMPASS_RADIUS;
     public static final ForgeConfigSpec.IntValue TRACKER_COMPASS_DURATION;
     public static final ForgeConfigSpec.IntValue TRACKER_COMPASS_COOLDOWN;
@@ -52,10 +66,6 @@ public class EssentialsConfig {
                 .defineList("allowedCombatCommands", java.util.List.of("msg", "r"), s -> s instanceof String);
         COMBAT_LOG_TIMER = BUILDER.comment("The duration (in seconds) that combat logs are visible.")
                 .defineInRange("combatLogTimer", 30, 1, 300);
-        HEAL_RANGE = BUILDER.comment("The range in blocks a medic's special heal can reach.")
-                .defineInRange("healRange", 5.0, 1.0, 20.0);
-        HEAL_AMOUNT = BUILDER.comment("The amount of health a medic's special heal restores.")
-                .defineInRange("healAmount", 4.0, 1.0, 20.0);
         BUILDER.pop();
 
         BUILDER.push("injury");
@@ -69,7 +79,7 @@ public class EssentialsConfig {
         INJURY_PVP_ONLY = BUILDER.comment("If true, only deaths from PvP will count towards injuries.")
                 .define("injuryPvpOnly", false);
         HEALING_BED_TIME_MINUTES = BUILDER.comment("Time in minutes a player must sleep to heal one level of injury.")
-                .defineInRange("healingBedTimeMinutes", 10, 1, 120);
+                .defineInRange("healingBedTimeMinutes", 1, 1, 120);
         MEDICO_HEAL_AMOUNT = BUILDER.comment("How many injury levels a medic can heal with a medic kit.")
                 .defineInRange("medicoHealAmount", 1, 1, 5);
         DOWNED_HEALTH_POOL = BUILDER
@@ -90,21 +100,52 @@ public class EssentialsConfig {
         BUILDER.pop();
 
         BUILDER.push("professions");
-        MEDIC_KIT_COOLDOWN = BUILDER.comment("The cooldown in seconds for the Medic Kit.")
-                .defineInRange("medicKitCooldown", 60, 10, 300);
-        MEDIC_KIT_RADIUS = BUILDER.comment("The radius in blocks for the Medic Kit's area of effect heal.")
-                .defineInRange("medicKitRadius", 5.0, 1.0, 20.0);
-        MEDIC_KIT_HEAL_AMOUNT = BUILDER.comment("The amount of health (in half hearts) the Medic Kit heals.")
-                .defineInRange("medicKitHealAmount", 8.0, 1.0, 40.0);
+        MEDIC_HEAL_COOLDOWN = BUILDER.comment("The cooldown in seconds for the Medic's heal ability.")
+                .defineInRange("medicHealCooldown", 60, 10, 300);
+        MEDIC_HEAL_RADIUS = BUILDER.comment("The radius in blocks for the Medic's area of effect heal.")
+                .defineInRange("medicHealRadius", 5.0, 1.0, 20.0);
+        MEDIC_HEAL_AMOUNT = BUILDER.comment("The amount of health (in half hearts) the Medic's heal ability restores.")
+                .defineInRange("medicHealAmount", 8.0, 1.0, 40.0);
+
+        BUILDER.comment("Configurações para a profissão de Médico").push("medico");
+        MEDICO_ENABLED = BUILDER.comment("Habilita ou desabilita a profissão de médico.")
+                .define("medicoEnabled", true);
+        MEDICO_MAX_COUNT = BUILDER.comment("Número máximo de médicos simultâneos permitidos no servidor (0 = ilimitado).")
+                .defineInRange("medicoMaxCount", 5, 0, 1000);
+        MEDICO_ANNOUNCE_JOIN = BUILDER.comment("Se verdadeiro, anuncia a todos os jogadores quando alguém se torna médico.")
+                .define("medicoAnnounceJoin", true);
+        MEDICO_AUTO_RECEIVE_KIT = BUILDER.comment("Se verdadeiro, entrega um kit médico quando o jogador se torna médico.")
+                .define("medicoAutoReceiveKit", true);
+        MEDICO_BED_COOLDOWN_SECONDS = BUILDER.comment("Cooldown em segundos para a habilidade /medico bed.")
+                .defineInRange("medicoBedCooldownSeconds", 60, 1, 3600);
+        MEDICO_GLOBAL_COOLDOWN_MINUTES = BUILDER.comment("Cooldown global em minutos antes que a habilidade de cura do médico possa ser usada novamente após qualquer cura.")
+                .defineInRange("medicoGlobalCooldownMinutes", 5, 1, 1440);
         BUILDER.pop();
 
-        BUILDER.push("professions.tracker");
+        BUILDER.comment("Configurações para a profissão de Combatente").push("combatente");
+        COMBATENTE_ENABLED = BUILDER.comment("Habilita ou desabilita a profissão de combatente.")
+                .define("combatenteEnabled", true);
+        COMBATENTE_MAX_COUNT = BUILDER.comment("Número máximo de combatentes simultâneos permitidos no servidor (0 = ilimitado).")
+                .defineInRange("combatenteMaxCount", 10, 0, 1000);
+        BUILDER.pop();
+
+        BUILDER.comment("Configurações para a profissão de Rastreador").push("rastreador");
+        RASTREADOR_ENABLED = BUILDER.comment("Habilita ou desabilita a profissão de rastreador.")
+                .define("rastreadorEnabled", true);
+        RASTREADOR_MAX_COUNT = BUILDER.comment("Número máximo de rastreadores simultâneos permitidos no servidor (0 = ilimitado).")
+                .defineInRange("rastreadorMaxCount", 5, 0, 1000);
+        RASTREADOR_SCAN_COOLDOWN_MINUTES = BUILDER.comment("Cooldown (em minutos) para a habilidade de escaneamento do rastreador.")
+                .defineInRange("rastreadorScanCooldownMinutes", 60, 1, 1440);
+        RASTREADOR_SCAN_RADIUS = BUILDER.comment("Raio (em blocos) da habilidade de escaneamento que aplica o efeito de brilho.")
+                .defineInRange("rastreadorScanRadius", 30.0, 5.0, 128.0);
         TRACKER_COMPASS_RADIUS = BUILDER.comment("The radius in blocks for the Tracking Compass's reveal effect.")
                 .defineInRange("trackerCompassRadius", 50.0, 10.0, 200.0);
         TRACKER_COMPASS_DURATION = BUILDER.comment("The duration in seconds for the Tracking Compass's glowing effect.")
                 .defineInRange("trackerCompassDuration", 10, 5, 60);
         TRACKER_COMPASS_COOLDOWN = BUILDER.comment("The cooldown in seconds for the Tracking Compass.")
                 .defineInRange("trackerCompassCooldown", 30, 10, 300);
+        BUILDER.pop();
+
         BUILDER.pop();
 
         BUILDER.push("Chat");

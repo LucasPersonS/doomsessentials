@@ -13,17 +13,9 @@ public interface InjuryCapability {
 
    int decrementInjuryLevel(int amount);
 
-   int getHealCooldown();
-
-   void setHealCooldown(int cooldown);
-
    CompoundTag serializeNBT();
 
    void deserializeNBT(CompoundTag nbt);
-
-   boolean isHealing();
-
-   void setHealing(boolean healing);
 
    float getHealingProgress();
 

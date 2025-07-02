@@ -18,6 +18,10 @@ import org.lupz.doomsdayessentials.injury.network.UpdateDownedStatePacket;
 import org.lupz.doomsdayessentials.injury.network.UpdateHealingProgressPacket;
 import org.lupz.doomsdayessentials.injury.network.UpdateInjuryLevelPacket;
 import org.lupz.doomsdayessentials.professions.MedicalHelpManager;
+import org.lupz.doomsdayessentials.block.ModBlocks;
+import net.minecraft.core.Direction;
+import net.minecraft.world.level.block.state.BlockState;
+import org.lupz.doomsdayessentials.block.MedicalBedBlock;
 
 import javax.annotation.Nullable;
 
@@ -95,60 +99,87 @@ public class InjuryHelper {
     }
 
     public static void onHealingBed(Player player) {
-        if (EssentialsConfig.INJURY_SYSTEM_ENABLED.get()) {
-            getCapability(player).ifPresent(cap -> {
-                if (cap.getInjuryLevel() > 0) {
-                    cap.setHealCooldown(cap.getHealCooldown() + 1);
-                    int cooldown = cap.getHealCooldown();
-                    int healingTimeMinutes = EssentialsConfig.HEALING_BED_TIME_MINUTES.get();
-                    int healingTimeTicks = healingTimeMinutes * 20 * 60;
-
-                    if (player.level() instanceof ServerLevel serverLevel) {
-                        if (cooldown % 20 == 0) {
-                            serverLevel.sendParticles(ParticleTypes.HEART, player.getX(), player.getY() + 1.0, player.getZ(), 2, 0.5, 0.5, 0.5, 0.0);
-                        }
-                    }
-
-                    if (player instanceof ServerPlayer serverPlayer) {
-                        if (cooldown % 20 == 0) {
-                            float progress = (float) cooldown / (float) healingTimeTicks;
-                            InjuryNetwork.sendToPlayer(new UpdateHealingProgressPacket(progress), serverPlayer);
-
-                            // Send action bar with remaining time
-                            int secondsRemaining = (healingTimeTicks - cooldown) / 20;
-                            int minutes = secondsRemaining / 60;
-                            int secs = secondsRemaining % 60;
-                            Component bar = Component.literal(String.format("§eRecuperação: %02d:%02d", minutes, secs));
-                            serverPlayer.displayClientMessage(bar, true);
-                        }
-                    }
-
-                    if (cooldown + 1 >= healingTimeTicks) {
-                        healPlayer(player, 1);
-                        cap.setHealCooldown(0);
-
-                        // If player fully healed, release from bed
-                        if (cap.getInjuryLevel() <= 0) {
-                            if (player.isSleeping()) {
-                                player.stopSleepInBed(true, true);
-                            }
-                            player.getPersistentData().remove("healingBedLock");
-                            player.getPersistentData().remove("healingBedX");
-                            player.getPersistentData().remove("healingBedY");
-                            player.getPersistentData().remove("healingBedZ");
-
-                            if (player instanceof ServerPlayer sp2) {
-                                InjuryNetwork.sendToPlayer(new UpdateHealingProgressPacket(-1f), sp2);
-                            }
-                        }
-
-                        if (player instanceof ServerPlayer sp) {
-                            InjuryNetwork.sendToPlayer(new org.lupz.doomsdayessentials.injury.network.UpdateInjuryLevelPacket(cap.getInjuryLevel()), sp);
-                        }
-                    }
-                }
-            });
+        if (!EssentialsConfig.INJURY_SYSTEM_ENABLED.get() || !(player instanceof ServerPlayer serverPlayer)) {
+            return;
         }
+
+        getCapability(player).ifPresent(cap -> {
+            if (cap.getInjuryLevel() <= 0) {
+                // Player is not injured, release them
+                releaseFromHealingBed(player);
+                return;
+            }
+
+            long startTime = player.getPersistentData().getLong("healingBedStartTime");
+            if (startTime == 0) {
+                // If start time is not set, set it now.
+                startTime = player.level().getGameTime();
+                player.getPersistentData().putLong("healingBedStartTime", startTime);
+            }
+
+            long healingTimeMinutes = EssentialsConfig.HEALING_BED_TIME_MINUTES.get();
+            long healingTimeTicks = healingTimeMinutes * 60 * 20;
+            long elapsedTimeTicks = player.level().getGameTime() - startTime;
+
+            // Send progress updates and particles roughly every second
+            if (player.tickCount % 20 == 0) {
+                if (player.level() instanceof ServerLevel serverLevel) {
+                    serverLevel.sendParticles(ParticleTypes.HEART, player.getX(), player.getY() + 1.0, player.getZ(), 2, 0.5, 0.5, 0.5, 0.0);
+                }
+
+                float progress = (float) elapsedTimeTicks / (float) healingTimeTicks;
+                InjuryNetwork.sendToPlayer(new UpdateHealingProgressPacket(progress), serverPlayer);
+
+                long ticksRemaining = healingTimeTicks - elapsedTimeTicks;
+                int secondsRemaining = (int) (ticksRemaining / 20);
+                int minutes = Math.max(0, secondsRemaining / 60);
+                int secs = Math.max(0, secondsRemaining % 60);
+                Component bar = Component.literal(String.format("§eRecuperação: %02d:%02d", minutes, secs));
+                serverPlayer.displayClientMessage(bar, true);
+            }
+
+            if (elapsedTimeTicks >= healingTimeTicks) {
+                healPlayer(player, 1);
+                player.getPersistentData().putLong("healingBedStartTime", player.level().getGameTime()); // Reset timer for next level
+
+                if (cap.getInjuryLevel() <= 0) {
+                    releaseFromHealingBed(player);
+                }
+            }
+        });
+    }
+
+    private static void releaseFromHealingBed(Player player) {
+        BlockPos bedPos = new BlockPos(
+                player.getPersistentData().getInt("healingBedX"),
+                player.getPersistentData().getInt("healingBedY"),
+                player.getPersistentData().getInt("healingBedZ")
+        );
+
+        player.getPersistentData().remove("healingBedLock");
+        player.getPersistentData().remove("healingBedStartTime");
+        player.getPersistentData().remove("healingBedX");
+        player.getPersistentData().remove("healingBedY");
+        player.getPersistentData().remove("healingBedZ");
+
+        if (player instanceof ServerPlayer sp) {
+            InjuryNetwork.sendToPlayer(new UpdateHealingProgressPacket(-1f), sp); // Hide progress bar
+
+            // Set bed to not occupied
+            Level level = player.level();
+            if(level.getBlockState(bedPos).is(ModBlocks.MEDICAL_BED.get())) {
+                BlockState bedState = level.getBlockState(bedPos);
+                level.setBlock(bedPos, bedState.setValue(MedicalBedBlock.OCCUPIED, false), 3);
+
+                Direction bedDirection = bedState.getValue(MedicalBedBlock.FACING);
+                BlockPos otherPartPos = bedPos.relative(bedDirection.getOpposite());
+                BlockState otherPartState = level.getBlockState(otherPartPos);
+                if(otherPartState.is(ModBlocks.MEDICAL_BED.get())) {
+                    level.setBlock(otherPartPos, otherPartState.setValue(MedicalBedBlock.OCCUPIED, false), 3);
+                }
+            }
+        }
+        player.sendSystemMessage(Component.translatable("injury.healed.full"));
     }
 
     public static void healPlayer(Player player, int amount) {
@@ -211,9 +242,5 @@ public class InjuryHelper {
                 }
             });
         }
-    }
-
-    // This was empty in the decompiled code.
-    public static void tryInflictInjury(Player player, float damage) {
     }
 } 

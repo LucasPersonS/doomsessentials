@@ -10,14 +10,11 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.properties.BedPart;
-import org.lupz.doomsdayessentials.config.ProfessionConfig;
+import org.lupz.doomsdayessentials.config.EssentialsConfig;
 import org.lupz.doomsdayessentials.injury.InjuryHelper;
 import org.lupz.doomsdayessentials.injury.InjuryItems;
-import org.lupz.doomsdayessentials.professions.MedicalHelpManager;
 import org.lupz.doomsdayessentials.block.MedicalBedBlock;
 import org.lupz.doomsdayessentials.professions.ProfissaoManager;
-
-import java.util.UUID;
 
 /**
  * Behaviour executed when a player becomes / leaves the Medico profession and for its active abilities.
@@ -36,7 +33,7 @@ public final class MedicoProfession {
      * ---------------------------------------------------------------------- */
     public static void onBecomeMedico(Player player) {
         if (player.level().isClientSide) return;
-        if (!ProfessionConfig.MEDICO_ENABLED.get()) {
+        if (!EssentialsConfig.MEDICO_ENABLED.get()) {
             player.sendSystemMessage(Component.translatable("profession.medico.disabled"));
             return;
         }
@@ -45,9 +42,9 @@ public final class MedicoProfession {
         player.sendSystemMessage(Component.translatable("profession.medico.become"));
 
         // Inform about abilities
-        player.sendSystemMessage(Component.translatable("profession.medico.info.bed", ProfessionConfig.MEDICO_BED_COOLDOWN_SECONDS.get()));
+        player.sendSystemMessage(Component.translatable("profession.medico.info.bed", EssentialsConfig.MEDICO_BED_COOLDOWN_SECONDS.get()));
 
-        if (ProfessionConfig.MEDICO_ANNOUNCE_JOIN.get()) {
+        if (EssentialsConfig.MEDICO_ANNOUNCE_JOIN.get()) {
             for (Player other : player.level().players()) {
                 if (other != player) {
                     other.sendSystemMessage(Component.translatable("profession.medico.announce", player.getDisplayName()));
@@ -55,7 +52,7 @@ public final class MedicoProfession {
             }
         }
 
-        if (ProfessionConfig.MEDICO_AUTO_RECEIVE_KIT.get()) {
+        if (EssentialsConfig.MEDICO_AUTO_RECEIVE_KIT.get()) {
             player.getInventory().add(new ItemStack(InjuryItems.MEDIC_KIT.get()));
         }
     }
@@ -73,7 +70,7 @@ public final class MedicoProfession {
      * Active ability – /medico heal
      * ---------------------------------------------------------------------- */
     public static boolean useHealingAbility(ServerPlayer player) {
-        if (!ProfessionConfig.MEDICO_ENABLED.get()) {
+        if (!EssentialsConfig.MEDICO_ENABLED.get()) {
             player.sendSystemMessage(Component.translatable("profession.medico.disabled"));
             return false;
         }
@@ -98,24 +95,37 @@ public final class MedicoProfession {
             return false;
         }
 
-        double range = ProfessionConfig.MEDICO_HEAL_RANGE.get();
-        Player target = findNearestInjuredPlayer(player, range);
-        if (target == null) {
+        double range = EssentialsConfig.MEDIC_HEAL_RADIUS.get();
+        float healAmount = EssentialsConfig.MEDIC_HEAL_AMOUNT.get().floatValue();
+        java.util.List<Player> healedPlayers = new java.util.ArrayList<>();
+        player.level().getEntitiesOfClass(Player.class, player.getBoundingBox().inflate(range)).forEach(p -> {
+            if (p != player && player.distanceToSqr(p) <= range * range) {
+                if (p.getHealth() < p.getMaxHealth()) {
+                    p.heal(healAmount);
+                    healedPlayers.add(p);
+                }
+            }
+        });
+
+        if (healedPlayers.isEmpty()) {
             player.sendSystemMessage(Component.translatable("profession.medico.no_target"));
             return false;
         }
 
-        InjuryHelper.medicoHeal(player, target);
-
         Level lvl = player.level();
         if (lvl instanceof ServerLevel serverLevel) {
-            serverLevel.sendParticles(ParticleTypes.HEART, target.getX(), target.getY() + 1.0, target.getZ(), 15, 0.5, 0.5, 0.5, 0.02);
+            serverLevel.sendParticles(ParticleTypes.HEART, player.getX(), player.getY() + 1.0, player.getZ(), 15, 0.5, 0.5, 0.5, 0.02);
+        }
+
+        for (Player p : healedPlayers) {
+            player.sendSystemMessage(Component.translatable("item.doomsdayessentials.medic_kit.healed_player", p.getDisplayName()).withStyle(net.minecraft.ChatFormatting.GREEN));
+            p.sendSystemMessage(Component.translatable("item.doomsdayessentials.medic_kit.healed_by_medic", player.getDisplayName()).withStyle(net.minecraft.ChatFormatting.GREEN));
         }
 
         // Apply cooldowns
-        int personalTicks = ProfessionConfig.MEDICO_HEAL_COOLDOWN_SECONDS.get() * 20;
+        int personalTicks = EssentialsConfig.MEDIC_HEAL_COOLDOWN.get() * 20;
         player.getPersistentData().putInt(TAG_HEAL_COOLDOWN, personalTicks);
-        int globalTicks = ProfessionConfig.MEDICO_GLOBAL_COOLDOWN_MINUTES.get() * 1200; // minutes to ticks
+        int globalTicks = EssentialsConfig.MEDICO_GLOBAL_COOLDOWN_MINUTES.get() * 1200; // minutes to ticks
         player.getPersistentData().putInt(TAG_GLOBAL_COOLDOWN, globalTicks);
         return true;
     }
@@ -124,7 +134,7 @@ public final class MedicoProfession {
      * Active ability – /medico bed <player>
      * ---------------------------------------------------------------------- */
     public static boolean putPatientInBed(ServerPlayer medico, ServerPlayer target) {
-        if (!ProfessionConfig.MEDICO_ENABLED.get()) {
+        if (!EssentialsConfig.MEDICO_ENABLED.get()) {
             medico.sendSystemMessage(Component.translatable("profession.medico.disabled"));
             return false;
         }
@@ -184,7 +194,7 @@ public final class MedicoProfession {
         medico.sendSystemMessage(Component.translatable("profession.medico.bed.success", target.getDisplayName()));
         target.sendSystemMessage(Component.translatable("profession.medico.bed.target", medico.getDisplayName()));
 
-        int bedTicks = ProfessionConfig.MEDICO_BED_COOLDOWN_SECONDS.get() * 20;
+        int bedTicks = EssentialsConfig.MEDICO_BED_COOLDOWN_SECONDS.get() * 20;
         medico.getPersistentData().putInt(TAG_BED_COOLDOWN, bedTicks);
         return true;
     }
@@ -241,17 +251,6 @@ public final class MedicoProfession {
             }
         }
 
-        // Action bar update every second for active help target
-        if (player.tickCount % 20 == 0 && player.getPersistentData().hasUUID("medicoHelpTarget")) {
-            UUID targetId = player.getPersistentData().getUUID("medicoHelpTarget");
-            Player target = player.level().getPlayerByUUID(targetId);
-            if (target != null) {
-                int dist = (int) player.distanceTo(target);
-                Component bar = Component.literal("§ePaciente: §f" + (int) target.getX() + " " + (int) target.getY() + " " + (int) target.getZ() + " §7d=" + dist);
-                ((ServerPlayer) player).displayClientMessage(bar, true);
-            }
-        }
-
         // Bed cooldown
         if (tag.contains(TAG_BED_COOLDOWN)) {
             int cd = tag.getInt(TAG_BED_COOLDOWN);
@@ -263,27 +262,5 @@ public final class MedicoProfession {
                 }
             }
         }
-    }
-
-    /* -------------------------------------------------------------------------
-     * Helpers
-     * ---------------------------------------------------------------------- */
-    private static Player findNearestInjuredPlayer(Player source, double range) {
-        Player nearest = null;
-        double nearestDistSq = Double.MAX_VALUE;
-        for (Player candidate : source.level().players()) {
-            if (candidate == source) continue;
-            if (candidate.distanceTo(source) > range) continue;
-            boolean injured = InjuryHelper.getCapability(candidate)
-                    .map(cap -> cap.getInjuryLevel() > 0)
-                    .orElse(false);
-            if (!injured) continue;
-            double distSq = candidate.distanceToSqr(source);
-            if (distSq < nearestDistSq) {
-                nearestDistSq = distSq;
-                nearest = candidate;
-            }
-        }
-        return nearest;
     }
 } 

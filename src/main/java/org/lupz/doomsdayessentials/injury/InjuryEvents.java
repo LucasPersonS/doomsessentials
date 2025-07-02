@@ -5,19 +5,13 @@ import java.util.Map;
 import java.util.UUID;
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.tags.BlockTags;
 import net.minecraft.world.entity.Entity;
-import net.minecraft.world.entity.LivingEntity;
-import net.minecraft.world.entity.monster.Monster;
 import net.minecraft.world.entity.player.Player;
-import net.minecraft.world.level.Level;
-import net.minecraft.world.level.block.Blocks;
 import net.minecraftforge.event.AttachCapabilitiesEvent;
 import net.minecraftforge.event.TickEvent;
 import net.minecraftforge.event.TickEvent.Phase;
 import net.minecraftforge.event.entity.living.LivingDeathEvent;
 import net.minecraftforge.event.entity.living.LivingHurtEvent;
-import net.minecraftforge.event.entity.living.LivingEntityUseItemEvent;
 import net.minecraftforge.event.entity.player.PlayerEvent;
 import net.minecraftforge.event.entity.player.PlayerEvent.PlayerLoggedInEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
@@ -26,12 +20,7 @@ import org.lupz.doomsdayessentials.EssentialsMod;
 import org.lupz.doomsdayessentials.config.EssentialsConfig; // Assuming general config
 import org.lupz.doomsdayessentials.injury.capability.InjuryCapability;
 import org.lupz.doomsdayessentials.injury.capability.InjuryCapabilityProvider;
-import org.lupz.doomsdayessentials.injury.network.DisplayInjuryTitlePacket;
 import org.lupz.doomsdayessentials.injury.network.InjuryNetwork;
-import org.lupz.doomsdayessentials.injury.network.UpdateHealingProgressPacket;
-import org.lupz.doomsdayessentials.injury.network.UpdateInjuryLevelPacket;
-import org.lupz.doomsdayessentials.professions.MedicoProfession;
-import net.minecraft.world.entity.Pose;
 import net.minecraft.world.damagesource.DamageSource;
 
 @EventBusSubscriber(modid = EssentialsMod.MOD_ID)
@@ -66,10 +55,17 @@ public class InjuryEvents {
             player.setDeltaMovement(0, 0, 0);
 
             InjuryHelper.onHealingBed(player);
-            return; 
+            return;
          }
 
          InjuryHelper.getCapability(player).ifPresent(cap -> {
+            if (cap.isDowned()) {
+               if (System.currentTimeMillis() > cap.getDownedUntil()) {
+                  killPlayer(player);
+                  return; 
+               }
+            }
+
             if (cap.getInjuryLevel() > 0) {
                InjuryHelper.applyEffects(player);
             }
@@ -113,6 +109,8 @@ public class InjuryEvents {
             if (player.getPersistentData().contains("doomsessentials_force_death")) {
                return;
             }
+            // Any damage taken while downed is fatal
+            killPlayer(player);
             event.setCanceled(true);
          }
       });
@@ -137,11 +135,6 @@ public class InjuryEvents {
       if (!event.getEntity().level().isClientSide) {
          InjuryHelper.revivePlayer(event.getEntity());
       }
-   }
-
-   @SubscribeEvent
-   public static void onItemUse(LivingEntityUseItemEvent.Finish event) {
-      //
    }
 
    @SubscribeEvent

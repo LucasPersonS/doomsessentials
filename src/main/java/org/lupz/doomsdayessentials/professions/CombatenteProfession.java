@@ -4,8 +4,7 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.world.entity.ai.attributes.AttributeModifier;
 import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.entity.player.Player;
-import net.minecraft.world.item.ItemStack;
-import org.lupz.doomsdayessentials.config.ProfessionConfig;
+import org.lupz.doomsdayessentials.config.EssentialsConfig;
 
 import java.util.UUID;
 
@@ -21,7 +20,7 @@ public final class CombatenteProfession {
 
     public static void onBecome(Player player) {
         if (player.level().isClientSide) return;
-        if (!ProfessionConfig.COMBATENTE_ENABLED.get()) {
+        if (!EssentialsConfig.COMBATENTE_ENABLED.get()) {
             player.sendSystemMessage(Component.translatable("profession.combatente.disabled"));
             return;
         }

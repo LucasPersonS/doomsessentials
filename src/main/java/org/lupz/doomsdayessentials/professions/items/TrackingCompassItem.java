@@ -12,11 +12,8 @@ import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.TooltipFlag;
 import net.minecraft.world.level.Level;
-import net.minecraft.world.phys.AABB;
 import org.lupz.doomsdayessentials.config.EssentialsConfig;
-import org.lupz.doomsdayessentials.professions.ProfissaoManager;
 import org.lupz.doomsdayessentials.professions.RastreadorProfession;
-import org.lupz.doomsdayessentials.professions.capability.TrackerCapabilityProvider;
 import net.minecraft.world.item.Vanishable;
 
 import javax.annotation.Nullable;
@@ -31,44 +28,20 @@ public class TrackingCompassItem extends Item implements Vanishable {
     @Override
     public InteractionResultHolder<ItemStack> use(Level level, Player player, InteractionHand hand) {
         ItemStack stack = player.getItemInHand(hand);
-        if (!RastreadorProfession.isTracker(player)) {
-            if (!level.isClientSide) {
-                player.sendSystemMessage(Component.translatable("item.tracking_compass.not_tracker").withStyle(ChatFormatting.RED));
-            }
+        if (level.isClientSide || !(player instanceof ServerPlayer serverPlayer)) {
             return InteractionResultHolder.fail(stack);
         }
 
         if (player.getCooldowns().isOnCooldown(this)) {
-            return InteractionResultHolder.pass(stack);
+            return InteractionResultHolder.fail(stack);
         }
 
-        if (level.isClientSide) {
+        if (RastreadorProfession.useGlowAbility(serverPlayer)) {
+            player.getCooldowns().addCooldown(this, EssentialsConfig.TRACKER_COMPASS_COOLDOWN.get());
             return InteractionResultHolder.success(stack);
         }
 
-        ServerPlayer serverPlayer = (ServerPlayer) player;
-        double radius = EssentialsConfig.TRACKER_COMPASS_RADIUS.get();
-        int duration = EssentialsConfig.TRACKER_COMPASS_DURATION.get() * 20; // to ticks
-        int cooldown = EssentialsConfig.TRACKER_COMPASS_COOLDOWN.get() * 20; // to ticks
-
-        AABB area = new AABB(player.blockPosition()).inflate(radius);
-
-        serverPlayer.getCapability(TrackerCapabilityProvider.TRACKER_CAPABILITY).ifPresent(cap -> {
-            List<ServerPlayer> nearbyPlayers = level.getEntitiesOfClass(ServerPlayer.class, area,
-                p -> p != serverPlayer && !cap.isWhitelisted(p.getUUID()));
-
-            if (nearbyPlayers.isEmpty()) {
-                serverPlayer.sendSystemMessage(Component.literal("Nenhum jogador encontrado por perto.").withStyle(ChatFormatting.YELLOW));
-            } else {
-                for (ServerPlayer target : nearbyPlayers) {
-                    target.addEffect(new MobEffectInstance(MobEffects.GLOWING, duration, 0));
-                }
-                serverPlayer.sendSystemMessage(Component.literal("Revelados " + nearbyPlayers.size() + " jogadores próximos!").withStyle(ChatFormatting.GREEN));
-            }
-        });
-        
-        serverPlayer.getCooldowns().addCooldown(this, cooldown);
-        return InteractionResultHolder.success(stack);
+        return InteractionResultHolder.fail(stack);
     }
 
     @Override

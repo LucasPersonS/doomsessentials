@@ -2,7 +2,11 @@ package org.lupz.doomsdayessentials.combat;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
-import com.google.gson.reflect.TypeToken;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonParser;
+import com.mojang.serialization.Codec;
+import com.mojang.serialization.JsonOps;
+import com.mojang.serialization.codecs.RecordCodecBuilder;
 import net.minecraft.core.BlockPos;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.level.ServerLevel;
@@ -43,11 +47,11 @@ public class AreaManager {
     private final Map<ResourceKey<Level>, List<ManagedArea>> areasByDimension = new ConcurrentHashMap<>();
     private final Map<String, ManagedArea> areasByName = new ConcurrentHashMap<>();
 
-    private final Gson gson;
+    private static final Codec<Map<String, ManagedArea>> AREAS_CODEC = Codec.unboundedMap(Codec.STRING, ManagedArea.CODEC);
     private final Path saveFile;
+    private final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
 
     private AreaManager() {
-        this.gson = new GsonBuilder().setPrettyPrinting().create();
         Path configDir = Path.of("config", "doomsdayessentials");
         this.saveFile = configDir.resolve("areas.json");
 
@@ -119,21 +123,21 @@ public class AreaManager {
             return;
         }
         try {
-            String json = Files.readString(saveFile);
-            Type mapType = new TypeToken<Map<String, ManagedArea>>() {}.getType();
-            Map<String, ManagedArea> loaded = gson.fromJson(json, mapType);
-            if (loaded != null) {
-                areasByName.clear();
-                areasByDimension.clear();
-                loaded.forEach((k, v) -> {
-                    if (v.getType() != null) {
-                        areasByName.put(k.toLowerCase(), v);
-                        areasByDimension.computeIfAbsent(v.getDimension(), key -> new ArrayList<>()).add(v);
-                    } else {
-                        System.err.println("[DoomsEssentials] Skipping area '"+k+"' with invalid type (perhaps deprecated). Delete or recreate it.");
-                    }
-                });
-            }
+            String jsonString = Files.readString(saveFile);
+            if (jsonString.isEmpty()) return;
+            JsonElement jsonElement = JsonParser.parseString(jsonString);
+
+            AREAS_CODEC.parse(JsonOps.INSTANCE, jsonElement)
+                    .resultOrPartial(error -> System.err.println("[DoomsEssentials] Failed to load areas.json: " + error))
+                    .ifPresent(loaded -> {
+                        areasByName.clear();
+                        areasByDimension.clear();
+                        loaded.forEach((k, v) -> {
+                            areasByName.put(k.toLowerCase(), v);
+                            areasByDimension.computeIfAbsent(v.getDimension(), key -> new ArrayList<>()).add(v);
+                        });
+                    });
+
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -141,9 +145,16 @@ public class AreaManager {
 
     public void saveAreas() {
         try {
-            String json = gson.toJson(areasByName);
-            Files.writeString(saveFile, json);
-        } catch (IOException e) {
+            AREAS_CODEC.encodeStart(JsonOps.INSTANCE, areasByName)
+                    .resultOrPartial(error -> System.err.println("[DoomsEssentials] Failed to save areas.json: " + error))
+                    .ifPresent(jsonElement -> {
+                        try {
+                            Files.writeString(saveFile, GSON.toJson(jsonElement));
+                        } catch (IOException e) {
+                            e.printStackTrace();
+                        }
+                    });
+        } catch (Exception e) {
             e.printStackTrace();
         }
     }
