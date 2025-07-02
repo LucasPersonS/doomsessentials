@@ -1,12 +1,12 @@
 package org.lupz.doomsdayessentials.injury.network;
 
-import java.util.function.Supplier;
-import net.minecraft.client.Minecraft;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.fml.DistExecutor;
 import net.minecraftforge.network.NetworkEvent;
-import org.lupz.doomsdayessentials.injury.capability.InjuryCapabilityProvider;
+import org.lupz.doomsdayessentials.injury.client.InjuryClientPacketHandler;
+
+import java.util.function.Supplier;
 
 public class UpdateHealingProgressPacket {
    private final float healingProgress;
@@ -23,14 +23,13 @@ public class UpdateHealingProgressPacket {
       buf.writeFloat(this.healingProgress);
    }
 
-   public void handle(Supplier<NetworkEvent.Context> ctx) {
+   public float getHealingProgress() {
+      return healingProgress;
+   }
+
+   public static void handle(UpdateHealingProgressPacket msg, Supplier<NetworkEvent.Context> ctx) {
       ctx.get().enqueueWork(() -> {
-          DistExecutor.unsafeRunWhenOn(Dist.CLIENT, () -> () -> {
-              Minecraft.getInstance().player.getCapability(InjuryCapabilityProvider.INJURY_CAPABILITY).ifPresent(cap -> {
-                  cap.setHealingProgress(this.healingProgress);
-                  cap.setHealing(this.healingProgress >= 0.0F);
-              });
-          });
+          DistExecutor.unsafeRunWhenOn(Dist.CLIENT, () -> () -> InjuryClientPacketHandler.handleUpdateHealingProgress(msg));
       });
       ctx.get().setPacketHandled(true);
    }

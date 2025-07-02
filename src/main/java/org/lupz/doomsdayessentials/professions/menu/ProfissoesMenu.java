@@ -55,10 +55,9 @@ public class ProfissoesMenu extends AbstractContainerMenu {
             ItemStack abandon = new ItemStack(Items.BARRIER);
             abandon.setHoverName(Component.literal("§cAbandonar Profissão"));
 
-            // Add lore describing the action (single line)
-            ListTag loreTag = new ListTag();
-            loreTag.add(StringTag.valueOf(Component.Serializer.toJson(Component.literal("§7Abandone sua profissão clicando aqui."))));
-            abandon.getOrCreateTagElement("display").put("Lore", loreTag);
+            List<Component> lore = new ArrayList<>();
+            lore.add(Component.literal("§7Abandone sua profissão clicando aqui."));
+            addLoreToItemStack(abandon, lore);
 
             this.container.setItem(13, abandon);
             return;
@@ -73,25 +72,29 @@ public class ProfissoesMenu extends AbstractContainerMenu {
         ItemStack stack = new ItemStack(vanillaItem);
         stack.setHoverName(Component.translatable("profession." + professionKey + ".gui.name"));
 
-        ListTag loreTag = new ListTag();
-        // assume up to 6 lore lines; stop when translation returns the raw key
+        List<Component> lore = new ArrayList<>();
         for (int i = 1; i <= 6; i++) {
             String key = "profession." + professionKey + ".gui.lore" + i;
-            Component c = Component.translatable(key);
-            // If translation missing, break
-            if (c.getString().equals(key)) break;
-            loreTag.add(StringTag.valueOf(Component.Serializer.toJson(c)));
-        }
-        if (!loreTag.isEmpty()) {
-            stack.getOrCreateTagElement("display").put("Lore", loreTag);
+            lore.add(Component.translatable(key));
         }
 
-        // Hide default attribute tooltip for combatente sword item
+        if (!lore.isEmpty()) {
+            addLoreToItemStack(stack, lore);
+        }
+
         if ("combatente".equals(professionKey)) {
-            stack.getOrCreateTag().putInt("HideFlags", 2); // hide attribute modifiers lines
+            stack.getOrCreateTag().putInt("HideFlags", 2);
         }
 
         this.container.setItem(slot, stack);
+    }
+
+    private void addLoreToItemStack(ItemStack stack, List<Component> lore) {
+        ListTag loreTag = new ListTag();
+        for (Component component : lore) {
+            loreTag.add(StringTag.valueOf(Component.Serializer.toJson(component)));
+        }
+        stack.getOrCreateTagElement("display").put("Lore", loreTag);
     }
 
     @Override

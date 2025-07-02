@@ -12,6 +12,7 @@ import net.minecraft.network.chat.Style;
 import net.minecraft.network.chat.ClickEvent;
 import net.minecraft.network.chat.HoverEvent;
 import org.lupz.doomsdayessentials.professions.MedicalHelpManager;
+import org.lupz.doomsdayessentials.professions.ProfissaoManager;
 import java.util.UUID;
 
 public final class MedicoCommand {
@@ -24,7 +25,7 @@ public final class MedicoCommand {
                     .then(Commands.literal("heal")
                             .executes(ctx -> {
                                 ServerPlayer player = ctx.getSource().getPlayerOrException();
-                                if (!player.getPersistentData().getBoolean("isMedico")) {
+                                if (!"medico".equalsIgnoreCase(ProfissaoManager.getProfession(player.getUUID()))) {
                                     player.sendSystemMessage(Component.translatable("profession.medico.not_medico"));
                                     return 0;
                                 }
@@ -53,7 +54,7 @@ public final class MedicoCommand {
 
                                 // Broadcast to all medics
                                 for (ServerPlayer p : ctx.getSource().getServer().getPlayerList().getPlayers()) {
-                                    if (p.getPersistentData().getBoolean("isMedico")) {
+                                    if ("medico".equalsIgnoreCase(ProfissaoManager.getProfession(p.getUUID()))) {
                                         p.sendSystemMessage(msg);
                                     }
                                 }
@@ -77,7 +78,7 @@ public final class MedicoCommand {
                     .then(Commands.literal("bed")
                             .executes(ctx -> {
                                 ServerPlayer medico = ctx.getSource().getPlayerOrException();
-                                if (!medico.getPersistentData().getBoolean("isMedico")) {
+                                if (!"medico".equalsIgnoreCase(ProfissaoManager.getProfession(medico.getUUID()))) {
                                     medico.sendSystemMessage(Component.translatable("profession.medico.not_medico"));
                                     return 0;
                                 }
@@ -86,7 +87,7 @@ public final class MedicoCommand {
                             .then(Commands.argument("alvo", EntityArgument.player())
                                     .executes(ctx -> {
                                         ServerPlayer medico = ctx.getSource().getPlayerOrException();
-                                        if (!medico.getPersistentData().getBoolean("isMedico")) {
+                                        if (!"medico".equalsIgnoreCase(ProfissaoManager.getProfession(medico.getUUID()))) {
                                             medico.sendSystemMessage(Component.translatable("profession.medico.not_medico"));
                                             return 0;
                                         }

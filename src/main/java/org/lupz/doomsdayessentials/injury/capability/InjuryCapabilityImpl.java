@@ -8,6 +8,10 @@ public class InjuryCapabilityImpl implements InjuryCapability {
    private boolean healing = false;
    private float healingProgress = 0.0F;
    private int deathCount = 0;
+   private boolean downed = false;
+   private float downedHealth = 0;
+   private long downedUntil = 0L;
+   private java.util.UUID lastAttacker = null;
 
    public InjuryCapabilityImpl() {
    }
@@ -70,6 +74,43 @@ public class InjuryCapabilityImpl implements InjuryCapability {
       return this.deathCount;
    }
 
+   public boolean isDowned() {
+      return this.downed;
+   }
+
+   public void setDowned(boolean downed, @javax.annotation.Nullable java.util.UUID lastAttacker) {
+      this.downed = downed;
+      this.lastAttacker = lastAttacker;
+   }
+
+   public float getDownedHealth() {
+      return this.downedHealth;
+   }
+
+   public void setDownedHealth(float health) {
+      this.downedHealth = health;
+   }
+
+   @Override
+   public long getDownedUntil() {
+      return this.downedUntil;
+   }
+
+   @Override
+   public void setDownedUntil(long time) {
+      this.downedUntil = time;
+   }
+
+   @Override
+   public java.util.UUID getLastAttacker() {
+      return this.lastAttacker;
+   }
+
+   @Override
+   public void setLastAttacker(java.util.UUID attacker) {
+      this.lastAttacker = attacker;
+   }
+
    public CompoundTag serializeNBT() {
       CompoundTag tag = new CompoundTag();
       tag.putInt("InjuryLevel", this.injuryLevel);
@@ -77,6 +118,12 @@ public class InjuryCapabilityImpl implements InjuryCapability {
       tag.putBoolean("Healing", this.healing);
       tag.putFloat("HealingProgress", this.healingProgress);
       tag.putInt("DeathCount", this.deathCount);
+      tag.putBoolean("Downed", this.downed);
+      tag.putFloat("DownedHealth", this.downedHealth);
+      tag.putLong("DownedUntil", this.downedUntil);
+      if (this.lastAttacker != null) {
+         tag.putUUID("LastAttacker", this.lastAttacker);
+      }
       return tag;
    }
 
@@ -86,5 +133,13 @@ public class InjuryCapabilityImpl implements InjuryCapability {
       this.healing = nbt.getBoolean("Healing");
       this.healingProgress = nbt.getFloat("HealingProgress");
       this.deathCount = nbt.getInt("DeathCount");
+      this.downed = nbt.getBoolean("Downed");
+      this.downedHealth = nbt.getFloat("DownedHealth");
+      this.downedUntil = nbt.getLong("DownedUntil");
+      if (nbt.hasUUID("LastAttacker")) {
+         this.lastAttacker = nbt.getUUID("LastAttacker");
+      } else {
+         this.lastAttacker = null;
+      }
    }
 } 

@@ -18,70 +18,68 @@ import org.lupz.doomsdayessentials.injury.network.UpdateInjuryLevelPacket;
 public class InjuryCommands {
 
     public static void register(CommandDispatcher<CommandSourceStack> dispatcher) {
-        dispatcher.register(
-            (LiteralArgumentBuilder<CommandSourceStack>) Commands.literal("injury")
-                .requires(source -> source.hasPermission(2))
+        dispatcher.register(Commands.literal("injury")
+                .requires(src -> src.hasPermission(2))
                 .then(Commands.literal("set")
-                    .then(Commands.argument("level", IntegerArgumentType.integer(0))
-                        .executes(ctx -> executeSetInjury(ctx, ctx.getSource().getPlayerOrException()))
                         .then(Commands.argument("player", EntityArgument.player())
-                            .executes(ctx -> executeSetInjury(ctx, EntityArgument.getPlayer(ctx, "player")))
-                        )
-                    )
-                )
-                .then(Commands.literal("heal")
-                    .executes(ctx -> executeHealInjury(ctx, ctx.getSource().getPlayerOrException()))
-                    .then(Commands.argument("player", EntityArgument.player())
-                        .executes(ctx -> executeHealInjury(ctx, EntityArgument.getPlayer(ctx, "player")))
-                    )
-                )
-                .then(Commands.literal("info")
-                    .executes(ctx -> executeInjuryInfo(ctx, ctx.getSource().getPlayerOrException()))
-                    .then(Commands.argument("player", EntityArgument.player())
-                        .executes(ctx -> executeInjuryInfo(ctx, EntityArgument.getPlayer(ctx, "player")))
-                    )
-                )
-        );
+                                .then(Commands.argument("level", IntegerArgumentType.integer(0))
+                                        .executes(ctx -> {
+                                            ServerPlayer target = EntityArgument.getPlayer(ctx, "player");
+                                            int level = IntegerArgumentType.getInteger(ctx, "level");
+                                            int maxLevel = EssentialsConfig.MAX_INJURY_LEVEL.get();
+
+                                            if (level > maxLevel) {
+                                                ctx.getSource().sendFailure(Component.literal("§cO nível de ferimento não pode ser maior que " + maxLevel));
+                                                return 0;
+                                            }
+
+                                            InjuryHelper.setInjuryLevel(target, level);
+                                            ctx.getSource().sendSuccess(() -> Component.literal("§aNível de ferimento de " + target.getName().getString() + " definido para " + level), true);
+                                            return 1;
+                                        }))))
+                .then(Commands.literal("forceheal")
+                        .then(Commands.argument("player", EntityArgument.player())
+                                .executes(ctx -> {
+                                    ServerPlayer target = EntityArgument.getPlayer(ctx, "player");
+                                    InjuryHelper.setInjuryLevel(target, 0);
+                                    InjuryHelper.revivePlayer(target);
+                                    forceUnbedPlayer(target);
+                                    ctx.getSource().sendSuccess(() -> Component.literal("§a" + target.getName().getString() + " foi totalmente curado e reanimado."), true);
+                                    return 1;
+                                })))
+                .then(Commands.literal("forceunbed")
+                        .then(Commands.argument("player", EntityArgument.player())
+                                .executes(ctx -> {
+                                    ServerPlayer target = EntityArgument.getPlayer(ctx, "player");
+                                    forceUnbedPlayer(target);
+                                    ctx.getSource().sendSuccess(() -> Component.literal("§a" + target.getName().getString() + " foi forçadamente removido da cama médica."), true);
+                                    return 1;
+                                })))
+                .then(Commands.literal("down")
+                        .then(Commands.argument("player", EntityArgument.player())
+                                .executes(ctx -> {
+                                    ServerPlayer target = EntityArgument.getPlayer(ctx, "player");
+                                    InjuryHelper.downPlayer(target, null);
+                                    ctx.getSource().sendSuccess(() -> Component.literal("§a" + target.getName().getString() + " foi derrubado."), true);
+                                    return 1;
+                                })))
+                .then(Commands.literal("revive")
+                        .then(Commands.argument("player", EntityArgument.player())
+                                .executes(ctx -> {
+                                    ServerPlayer target = EntityArgument.getPlayer(ctx, "player");
+                                    InjuryHelper.revivePlayer(target);
+                                    ctx.getSource().sendSuccess(() -> Component.literal("§a" + target.getName().getString() + " foi revivido."), true);
+                                    return 1;
+                                }))));
     }
 
-    private static int executeSetInjury(CommandContext<CommandSourceStack> context, ServerPlayer player) {
-        int level = IntegerArgumentType.getInteger(context, "level");
-        int maxLevel = EssentialsConfig.MAX_INJURY_LEVEL.get();
-        if (level > maxLevel) {
-            context.getSource().sendFailure(Component.translatable("command.injury.set.failure.too_high", maxLevel));
-            return 0;
+    private static void forceUnbedPlayer(ServerPlayer player) {
+        if (player.getPersistentData().contains("healingBedLock")) {
+            player.getPersistentData().remove("healingBedLock");
+            player.getPersistentData().remove("healingBedX");
+            player.getPersistentData().remove("healingBedY");
+            player.getPersistentData().remove("healingBedZ");
+            player.sendSystemMessage(Component.literal("§aVocê foi curado por um administrador."));
         }
-
-        InjuryHelper.getCapability(player).ifPresent(cap -> {
-            cap.setInjuryLevel(level);
-            InjuryNetwork.sendToPlayer(new UpdateInjuryLevelPacket(level), player);
-            context.getSource().sendSuccess(() -> Component.translatable("command.injury.set.success", player.getDisplayName(), level), true);
-            if (player != context.getSource().getEntity()) {
-                player.sendSystemMessage(Component.translatable("command.injury.set.notification", level));
-            }
-        });
-        return 1;
-    }
-
-    private static int executeHealInjury(CommandContext<CommandSourceStack> context, ServerPlayer player) {
-        InjuryHelper.getCapability(player).ifPresent(cap -> {
-            int oldLevel = cap.getInjuryLevel();
-            cap.setInjuryLevel(0);
-            InjuryNetwork.sendToPlayer(new UpdateInjuryLevelPacket(0), player);
-            context.getSource().sendSuccess(() -> Component.translatable("command.injury.heal.success", player.getDisplayName(), oldLevel), true);
-            if (player != context.getSource().getEntity()) {
-                player.sendSystemMessage(Component.translatable("command.injury.heal.notification"));
-            }
-        });
-        return 1;
-    }
-
-    private static int executeInjuryInfo(CommandContext<CommandSourceStack> context, ServerPlayer player) {
-        InjuryHelper.getCapability(player).ifPresent(cap -> {
-            int level = cap.getInjuryLevel();
-            int healCooldown = cap.getHealCooldown();
-            context.getSource().sendSuccess(() -> Component.translatable("command.injury.info.success", player.getDisplayName(), level, healCooldown, healCooldown / 20), false);
-        });
-        return 1;
     }
 } 

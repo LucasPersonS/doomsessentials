@@ -10,11 +10,12 @@ import net.minecraft.network.chat.ClickEvent;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.Style;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.sounds.SoundEvents;
+import net.minecraft.sounds.SoundSource;
 import net.minecraftforge.event.RegisterCommandsEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
 import org.lupz.doomsdayessentials.EssentialsMod;
-import net.minecraft.sounds.SoundSource;
 import org.lupz.doomsdayessentials.sound.ModSounds;
 
 @Mod.EventBusSubscriber(modid = EssentialsMod.MOD_ID, bus = Mod.EventBusSubscriber.Bus.FORGE)
@@ -60,7 +61,7 @@ public class DoomsHelpCommand {
         ctx.getSource().getServer().getPlayerList().getPlayers().forEach(p -> {
             if (p.hasPermissions(2)) {
                 p.sendSystemMessage(finalMsg);
-                p.playNotifySound(ModSounds.FREQUENCIA1.get(), SoundSource.MASTER, 1.0f, 1.0f);
+                p.playNotifySound(SoundEvents.ANVIL_FALL, SoundSource.MASTER, 1.0f, 1.0f);
             }
         });
 

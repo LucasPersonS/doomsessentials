@@ -1,15 +1,28 @@
 package org.lupz.doomsdayessentials.professions;
 
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.player.Player;
+import net.minecraftforge.event.AttachCapabilitiesEvent;
 import net.minecraftforge.event.entity.player.PlayerEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
 import org.lupz.doomsdayessentials.EssentialsMod;
+import org.lupz.doomsdayessentials.professions.capability.TrackerCapabilityProvider;
 
 /**
  * Re-apply profession passive bonuses when the player logs in or respawns.
  */
 @Mod.EventBusSubscriber(modid = EssentialsMod.MOD_ID)
 public final class ProfessionEvents {
+
+    @SubscribeEvent
+    public static void onAttachCapabilities(AttachCapabilitiesEvent<Entity> event) {
+        if (event.getObject() instanceof Player) {
+            if (!event.getObject().getCapability(TrackerCapabilityProvider.TRACKER_CAPABILITY).isPresent()) {
+                event.addCapability(TrackerCapabilityProvider.TRACKER_CAPABILITY_ID, new TrackerCapabilityProvider());
+            }
+        }
+    }
 
     @SubscribeEvent
     public static void onPlayerLogin(PlayerEvent.PlayerLoggedInEvent event) {
@@ -20,6 +33,11 @@ public final class ProfessionEvents {
     public static void onClone(PlayerEvent.Clone event) {
         if (event.isWasDeath()) {
             apply(event.getEntity());
+            event.getOriginal().getCapability(TrackerCapabilityProvider.TRACKER_CAPABILITY).ifPresent(oldCap -> {
+                event.getEntity().getCapability(TrackerCapabilityProvider.TRACKER_CAPABILITY).ifPresent(newCap -> {
+                    newCap.deserializeNBT(oldCap.serializeNBT());
+                });
+            });
         }
     }
 

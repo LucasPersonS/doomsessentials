@@ -4,30 +4,33 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.world.entity.player.Player;
 import org.lupz.doomsdayessentials.combat.ManagedArea;
 import org.lupz.doomsdayessentials.combat.AreaType;
+import net.minecraft.resources.ResourceLocation;
 
 import java.util.Collection;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
+import java.util.List;
+import java.util.ArrayList;
+import java.util.HashMap;
 
 public class ClientCombatState {
 
-    private static Map<String, ManagedArea> managedAreas = new ConcurrentHashMap<>();
-    private static Map<UUID, Integer> playersInCombat = new ConcurrentHashMap<>();
+    private static Map<ResourceLocation, List<ManagedArea>> managedAreasByDimension = new HashMap<>();
+    private static Map<UUID, Integer> playersInCombat = new HashMap<>();
     private static long lastCombatSyncTime = 0;
 
     public static void setManagedAreas(Collection<ManagedArea> areas) {
-        managedAreas = areas.stream().collect(Collectors.toMap(ManagedArea::getName, area -> area));
+        managedAreasByDimension.clear();
+        for (ManagedArea area : areas) {
+            managedAreasByDimension.computeIfAbsent(area.getDimension().location(), k -> new ArrayList<>()).add(area);
+        }
     }
 
     public static void setPlayersInCombat(Map<UUID, Integer> combatState) {
-        playersInCombat = new ConcurrentHashMap<>(combatState);
+        playersInCombat = new HashMap<>(combatState);
         lastCombatSyncTime = System.currentTimeMillis();
-    }
-
-    public static Map<String, ManagedArea> getManagedAreas() {
-        return managedAreas;
     }
 
     public static Map<UUID, Integer> getPlayersInCombat() {
@@ -49,8 +52,11 @@ public class ClientCombatState {
 
     public static ManagedArea getPlayerArea(Player player) {
         if (player == null) return null;
-        return managedAreas.values().stream()
-                .filter(area -> area.getDimension().location().equals(player.level().dimension().location()))
+        List<ManagedArea> areasInDim = managedAreasByDimension.get(player.level().dimension().location());
+        if (areasInDim == null) {
+            return null;
+        }
+        return areasInDim.stream()
                 .filter(area -> area.contains(player.blockPosition()))
                 .findFirst()
                 .orElse(null);

@@ -14,8 +14,12 @@ import org.lupz.doomsdayessentials.config.EssentialsConfig;
 import org.lupz.doomsdayessentials.injury.capability.InjuryCapability;
 import org.lupz.doomsdayessentials.injury.capability.InjuryCapabilityProvider;
 import org.lupz.doomsdayessentials.injury.network.InjuryNetwork;
+import org.lupz.doomsdayessentials.injury.network.UpdateDownedStatePacket;
 import org.lupz.doomsdayessentials.injury.network.UpdateHealingProgressPacket;
+import org.lupz.doomsdayessentials.injury.network.UpdateInjuryLevelPacket;
 import org.lupz.doomsdayessentials.professions.MedicalHelpManager;
+
+import javax.annotation.Nullable;
 
 public class InjuryHelper {
 
@@ -23,39 +27,71 @@ public class InjuryHelper {
         return player.getCapability(InjuryCapabilityProvider.INJURY_CAPABILITY);
     }
 
-    public static void applyEffects(Player player) {
-        if (EssentialsConfig.INJURY_SYSTEM_ENABLED.get()) {
-            getCapability(player).ifPresent(cap -> {
-                int level = cap.getInjuryLevel();
-                if (level <= 0) return;
+    public static InjuryCapability getCapabilityUnwrap(Player player) {
+        return player.getCapability(InjuryCapabilityProvider.INJURY_CAPABILITY).orElseThrow(() -> new IllegalStateException("Injury capability not present"));
+    }
 
-                // Apply effects based on injury level
-                if (level >= 1 && EssentialsConfig.ENABLE_SLOWNESS_EFFECT.get()) {
-                    player.addEffect(new MobEffectInstance(MobEffects.MOVEMENT_SLOWDOWN, 60, 0, false, false));
-                }
-                if (level >= 2) {
-                    if (EssentialsConfig.ENABLE_SLOWNESS_EFFECT.get()) player.addEffect(new MobEffectInstance(MobEffects.MOVEMENT_SLOWDOWN, 60, 1, false, false));
-                    if (EssentialsConfig.ENABLE_MINING_FATIGUE_EFFECT.get()) player.addEffect(new MobEffectInstance(MobEffects.DIG_SLOWDOWN, 60, 0, false, false));
-                }
-                if (level >= 3) {
-                    if (EssentialsConfig.ENABLE_SLOWNESS_EFFECT.get()) player.addEffect(new MobEffectInstance(MobEffects.MOVEMENT_SLOWDOWN, 80, 1, false, false));
-                    if (EssentialsConfig.ENABLE_MINING_FATIGUE_EFFECT.get()) player.addEffect(new MobEffectInstance(MobEffects.DIG_SLOWDOWN, 80, 1, false, false));
-                    player.addEffect(new MobEffectInstance(MobEffects.WEAKNESS, 80, 0, false, false));
-                }
-                if (level >= 4) {
-                    if (EssentialsConfig.ENABLE_SLOWNESS_EFFECT.get()) player.addEffect(new MobEffectInstance(MobEffects.MOVEMENT_SLOWDOWN, 80, 2, false, false));
-                    if (EssentialsConfig.ENABLE_MINING_FATIGUE_EFFECT.get()) player.addEffect(new MobEffectInstance(MobEffects.DIG_SLOWDOWN, 80, 2, false, false));
-                    if (EssentialsConfig.ENABLE_BLINDNESS_EFFECT.get()) player.addEffect(new MobEffectInstance(MobEffects.BLINDNESS, 40, 0, false, false));
-                }
-                if (level >= 5) {
-                    if (EssentialsConfig.ENABLE_SLOWNESS_EFFECT.get()) player.addEffect(new MobEffectInstance(MobEffects.MOVEMENT_SLOWDOWN, 100, 3, false, false));
-                    if (EssentialsConfig.ENABLE_MINING_FATIGUE_EFFECT.get()) player.addEffect(new MobEffectInstance(MobEffects.DIG_SLOWDOWN, 100, 3, false, false));
-                    if (EssentialsConfig.ENABLE_BLINDNESS_EFFECT.get()) player.addEffect(new MobEffectInstance(MobEffects.BLINDNESS, 140, 0, false, false));
-                    if (EssentialsConfig.ENABLE_NAUSEA_EFFECT.get()) player.addEffect(new MobEffectInstance(MobEffects.CONFUSION, 100, 0, false, false));
-                    if (EssentialsConfig.ENABLE_WITHER_EFFECT.get()) player.addEffect(new MobEffectInstance(MobEffects.WITHER, 60, 0, false, false));
-                }
-            });
-        }
+    public static void setInjuryLevel(Player player, int level) {
+        getCapability(player).ifPresent(cap -> {
+            int maxLevel = EssentialsConfig.MAX_INJURY_LEVEL.get();
+            int newLevel = Math.max(0, Math.min(level, maxLevel));
+            cap.setInjuryLevel(newLevel);
+            if (player instanceof ServerPlayer sp) {
+                InjuryNetwork.sendToPlayer(new UpdateInjuryLevelPacket(newLevel), sp);
+            }
+            if (newLevel > 0) {
+                applyEffects(player);
+            } else {
+                revivePlayer(player);
+            }
+        });
+    }
+
+    public static void downPlayer(Player player, @Nullable Player attacker) {
+        getCapability(player).ifPresent(cap -> {
+            if (cap.isDowned()) return;
+            long downedUntil = System.currentTimeMillis() + (long)EssentialsConfig.DOWNED_BLEED_OUT_SECONDS.get() * 1000;
+            cap.setDowned(true, attacker != null ? attacker.getUUID() : null);
+            cap.setDownedUntil(downedUntil);
+            if (player instanceof ServerPlayer sp) {
+                InjuryNetwork.sendToPlayer(new UpdateDownedStatePacket(true, downedUntil), sp);
+            }
+        });
+    }
+
+    public static void revivePlayer(Player player) {
+        getCapability(player).ifPresent(cap -> {
+            if (!cap.isDowned()) return;
+            cap.setDowned(false, null);
+            cap.setInjuryLevel(0);
+            player.clearFire();
+            player.removeAllEffects();
+            if (player instanceof ServerPlayer sp) {
+                InjuryNetwork.sendToPlayer(new UpdateDownedStatePacket(false, 0), sp);
+                InjuryNetwork.sendToPlayer(new UpdateInjuryLevelPacket(0), sp);
+            }
+        });
+    }
+
+    public static void applyEffects(Player player) {
+        if (!EssentialsConfig.INJURY_SYSTEM_ENABLED.get()) return;
+        getCapability(player).ifPresent(cap -> {
+            int level = cap.getInjuryLevel();
+            if (level <= 0) return;
+
+            if (level >= 1 && EssentialsConfig.ENABLE_SLOWNESS_EFFECT.get()) {
+                player.addEffect(new MobEffectInstance(MobEffects.MOVEMENT_SLOWDOWN, 60, 0, false, false, true));
+            }
+            if (level >= 2 && EssentialsConfig.ENABLE_MINING_FATIGUE_EFFECT.get()) {
+                player.addEffect(new MobEffectInstance(MobEffects.DIG_SLOWDOWN, 60, 0, false, false, true));
+            }
+            if (level >= 3) {
+                player.addEffect(new MobEffectInstance(MobEffects.WEAKNESS, 80, 0, false, false, true));
+            }
+            if (level >= 4 && EssentialsConfig.ENABLE_BLINDNESS_EFFECT.get()) {
+                player.addEffect(new MobEffectInstance(MobEffects.BLINDNESS, 40, 0, false, false, true));
+            }
+        });
     }
 
     public static void onHealingBed(Player player) {

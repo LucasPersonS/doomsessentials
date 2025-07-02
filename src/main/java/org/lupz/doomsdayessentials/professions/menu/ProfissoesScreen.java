@@ -18,7 +18,7 @@ import org.lupz.doomsdayessentials.professions.network.ProfessionNetwork;
 @OnlyIn(Dist.CLIENT)
 public class ProfissoesScreen extends AbstractContainerScreen<ProfissoesMenu> {
 
-    private static final ResourceLocation CHEST_LOCATION = new ResourceLocation("textures/gui/container/generic_54.png");
+    private static final ResourceLocation CHEST_LOCATION = ResourceLocation.fromNamespaceAndPath("minecraft", "textures/gui/container/generic_54.png");
     // no custom overlay texture – rely on vanilla chest background
 
     public ProfissoesScreen(ProfissoesMenu menu, Inventory inventory, Component title) {

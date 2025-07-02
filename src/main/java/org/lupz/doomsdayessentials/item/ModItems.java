@@ -19,10 +19,6 @@ public final class ModItems {
     public static final DeferredRegister<Item> ITEMS =
             DeferredRegister.create(ForgeRegistries.ITEMS, EssentialsMod.MOD_ID);
 
-    // ADD_MEDICAL_BED_ITEM
-    public static final RegistryObject<Item> MEDICAL_BED = ITEMS.register("medical_bed", () ->
-            new BlockItem(ModBlocks.MEDICAL_BED.get(), new Item.Properties()));
-
     public static void register(IEventBus bus) {
         ITEMS.register(bus);
     }

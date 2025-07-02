@@ -6,6 +6,8 @@ import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.effect.MobEffects;
 import org.lupz.doomsdayessentials.config.ProfessionConfig;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.item.ItemStack;
+import org.lupz.doomsdayessentials.professions.items.ProfessionItems;
 
 public final class RastreadorProfession {
     private static final String TAG_IS_TRACKER = "isRastreador";
@@ -21,6 +23,9 @@ public final class RastreadorProfession {
         player.getPersistentData().putBoolean(TAG_IS_TRACKER, true);
         player.sendSystemMessage(Component.translatable("profession.rastreador.become"));
 
+        // Give tracker compass
+        player.getInventory().add(new ItemStack(ProfessionItems.TRACKING_COMPASS.get()));
+
         // Apply passive bonuses (night vision)
         applyBonuses(player);
     }
@@ -29,6 +34,9 @@ public final class RastreadorProfession {
         if (player.level().isClientSide) return;
         player.getPersistentData().putBoolean(TAG_IS_TRACKER, false);
         player.sendSystemMessage(Component.translatable("profession.rastreador.leave"));
+
+        // Remove tracker compass from inventory
+        player.getInventory().items.removeIf(item -> item.getItem() == ProfessionItems.TRACKING_COMPASS.get());
 
         // Remove night vision when leaving
         player.removeEffect(MobEffects.NIGHT_VISION);

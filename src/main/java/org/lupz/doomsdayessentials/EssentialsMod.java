@@ -1,6 +1,16 @@
 package org.lupz.doomsdayessentials;
 
 import com.mojang.logging.LogUtils;
+import net.minecraft.client.gui.screens.MenuScreens;
+import net.minecraft.client.renderer.item.CompassItemPropertyFunction;
+import net.minecraft.client.renderer.item.ItemProperties;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.GlobalPos;
+import net.minecraft.core.registries.Registries;
+import net.minecraft.nbt.NbtUtils;
+import net.minecraft.resources.ResourceKey;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.level.Level;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.event.server.ServerStartingEvent;
@@ -12,28 +22,31 @@ import net.minecraftforge.fml.config.ModConfig;
 import net.minecraftforge.fml.event.lifecycle.FMLClientSetupEvent;
 import net.minecraftforge.fml.event.lifecycle.FMLCommonSetupEvent;
 import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
+import org.lupz.doomsdayessentials.block.ModBlocks;
 import org.lupz.doomsdayessentials.client.ClientCombatRenderHandler;
 import org.lupz.doomsdayessentials.combat.CombatManager;
 import org.lupz.doomsdayessentials.combat.command.AreaCommand;
 import org.lupz.doomsdayessentials.combat.command.CombatCommand;
+import org.lupz.doomsdayessentials.command.DoomsHelpCommand;
+import org.lupz.doomsdayessentials.command.GlobalChatCommand;
 import org.lupz.doomsdayessentials.command.SoundCommand;
 import org.lupz.doomsdayessentials.config.EssentialsConfig;
+import org.lupz.doomsdayessentials.config.ProfessionConfig;
+import org.lupz.doomsdayessentials.effect.ModEffects;
+import org.lupz.doomsdayessentials.event.AdminChatEvents;
+import org.lupz.doomsdayessentials.event.ChatEvents;
+import org.lupz.doomsdayessentials.item.ModItems;
 import org.lupz.doomsdayessentials.injury.InjuryCommands;
 import org.lupz.doomsdayessentials.injury.InjuryEvents;
 import org.lupz.doomsdayessentials.injury.InjuryItems;
 import org.lupz.doomsdayessentials.injury.network.InjuryNetwork;
 import org.lupz.doomsdayessentials.network.PacketHandler;
+import org.lupz.doomsdayessentials.professions.items.ProfessionItems;
+import org.lupz.doomsdayessentials.professions.items.TrackingCompassItem;
+import org.lupz.doomsdayessentials.professions.menu.ProfessionMenuTypes;
+import org.lupz.doomsdayessentials.professions.menu.ProfissoesScreen;
 import org.lupz.doomsdayessentials.sound.ModSounds;
-import org.lupz.doomsdayessentials.command.DoomsHelpCommand;
 import org.slf4j.Logger;
-import net.minecraft.client.renderer.item.ItemProperties;
-import net.minecraft.resources.ResourceLocation;
-import net.minecraft.client.renderer.item.CompassItemPropertyFunction;
-import net.minecraft.client.multiplayer.ClientLevel;
-import net.minecraft.world.item.CompassItem;
-import net.minecraft.world.entity.Entity;
-import net.minecraft.world.item.ItemStack;
-import org.lupz.doomsdayessentials.effect.ModEffects;
 
 @Mod(EssentialsMod.MOD_ID)
 public class EssentialsMod {
@@ -43,41 +56,29 @@ public class EssentialsMod {
     public EssentialsMod() {
         IEventBus modEventBus = FMLJavaModLoadingContext.get().getModEventBus();
 
-        // Register the commonSetup method for modloading
+        ModItems.register(modEventBus);
+        ModBlocks.register(modEventBus);
+        ModEffects.register(modEventBus);
+        ModSounds.register(modEventBus);
+        ProfessionMenuTypes.register(modEventBus);
+
         modEventBus.addListener(this::commonSetup);
 
-        // Register sound events
-        ModSounds.init();
-        InjuryItems.register(modEventBus);
-        org.lupz.doomsdayessentials.professions.items.ProfessionItems.register(modEventBus);
-        org.lupz.doomsdayessentials.block.ModBlocks.register(modEventBus);
-        org.lupz.doomsdayessentials.item.ModItems.register(modEventBus);
+        // Register Configs
+        ModLoadingContext modLoadingContext = ModLoadingContext.get();
+        modLoadingContext.registerConfig(ModConfig.Type.COMMON, EssentialsConfig.SPEC, MOD_ID + "-essentials.toml");
+        modLoadingContext.registerConfig(ModConfig.Type.COMMON, ProfessionConfig.SPEC, MOD_ID + "-professions.toml");
 
         // Register ourselves for server and other game events we are interested in
         MinecraftForge.EVENT_BUS.register(this);
-        MinecraftForge.EVENT_BUS.register(new InjuryEvents());
-        
-        // Register profession related content
-        org.lupz.doomsdayessentials.professions.menu.ProfessionMenuTypes.register(modEventBus);
-        
-        // Register config
-        ModLoadingContext.get().registerConfig(ModConfig.Type.COMMON, EssentialsConfig.SPEC);
-        // Register profession specific config
-        ModLoadingContext.get().registerConfig(ModConfig.Type.COMMON, org.lupz.doomsdayessentials.config.ProfessionConfig.SPEC, MOD_ID + "-profession.toml");
-
-        // Register custom effects
-        ModEffects.EFFECTS.register(modEventBus);
     }
 
     private void commonSetup(final FMLCommonSetupEvent event) {
         event.enqueueWork(() -> {
-            CombatManager.get(); // Initialize
+            CombatManager.get();
             PacketHandler.register();
             InjuryNetwork.register();
-
             org.lupz.doomsdayessentials.professions.ProfissaoManager.loadProfessions();
-
-            // TODO: add biome to world-gen via data-pack in future
         });
     }
 
@@ -89,10 +90,8 @@ public class EssentialsMod {
         DoomsHelpCommand.register(event.getServer().getCommands().getDispatcher());
         InjuryCommands.register(event.getServer().getCommands().getDispatcher());
 
-        // profession commands
         org.lupz.doomsdayessentials.professions.commands.ProfissoesCommand.register(event.getServer().getCommands().getDispatcher());
         org.lupz.doomsdayessentials.professions.commands.MedicoCommand.register(event.getServer().getCommands().getDispatcher());
-        // Register rastreador ability command
         org.lupz.doomsdayessentials.professions.commands.RastreadorCommand.register(event.getServer().getCommands().getDispatcher());
     }
 
@@ -100,17 +99,10 @@ public class EssentialsMod {
     public static class ClientModEvents {
         @SubscribeEvent
         public static void onClientSetup(FMLClientSetupEvent event) {
-            event.enqueueWork(ClientCombatRenderHandler::init);
-            event.enqueueWork(() -> net.minecraft.client.gui.screens.MenuScreens.register(
-                    org.lupz.doomsdayessentials.professions.menu.ProfessionMenuTypes.PROFISSOES_MENU.get(),
-                    org.lupz.doomsdayessentials.professions.menu.ProfissoesScreen::new));
-            // Register compass angle property for the Tracking Compass (same logic as vanilla compass)
-            event.enqueueWork(() -> ItemProperties.register(
-                    org.lupz.doomsdayessentials.professions.items.ProfessionItems.TRACKING_COMPASS.get(),
-                    new ResourceLocation("angle"),
-                    new CompassItemPropertyFunction((ClientLevel level, ItemStack stack, Entity entity) -> {
-                        return CompassItem.isLodestoneCompass(stack) ? CompassItem.getLodestonePosition(stack.getOrCreateTag()) : CompassItem.getSpawnPosition(level);
-                    })));
+            event.enqueueWork(() -> {
+                ClientCombatRenderHandler.init();
+                MenuScreens.register(ProfessionMenuTypes.PROFISSOES_MENU.get(), ProfissoesScreen::new);
+            });
         }
     }
 } 

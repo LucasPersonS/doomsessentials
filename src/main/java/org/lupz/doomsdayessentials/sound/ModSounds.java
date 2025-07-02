@@ -23,8 +23,7 @@ public class ModSounds {
         return SOUND_EVENTS.register(name, () -> SoundEvent.createFixedRangeEvent(ResourceLocation.fromNamespaceAndPath(EssentialsMod.MOD_ID, name), 16f));
     }
 
-    public static void init() {
-        IEventBus bus = FMLJavaModLoadingContext.get().getModEventBus();
-        SOUND_EVENTS.register(bus);
+    public static void register(IEventBus eventBus) {
+        SOUND_EVENTS.register(eventBus);
     }
 } 

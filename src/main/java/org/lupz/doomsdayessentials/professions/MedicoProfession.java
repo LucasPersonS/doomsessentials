@@ -15,6 +15,7 @@ import org.lupz.doomsdayessentials.injury.InjuryHelper;
 import org.lupz.doomsdayessentials.injury.InjuryItems;
 import org.lupz.doomsdayessentials.professions.MedicalHelpManager;
 import org.lupz.doomsdayessentials.block.MedicalBedBlock;
+import org.lupz.doomsdayessentials.professions.ProfissaoManager;
 
 import java.util.UUID;
 
@@ -77,7 +78,7 @@ public final class MedicoProfession {
             return false;
         }
 
-        if (!player.getPersistentData().getBoolean(TAG_IS_MEDICO)) {
+        if (!"medico".equalsIgnoreCase(ProfissaoManager.getProfession(player.getUUID()))) {
             player.sendSystemMessage(Component.translatable("profession.medico.not_medico"));
             return false;
         }
@@ -128,7 +129,7 @@ public final class MedicoProfession {
             return false;
         }
 
-        if (!medico.getPersistentData().getBoolean(TAG_IS_MEDICO)) {
+        if (!"medico".equalsIgnoreCase(ProfissaoManager.getProfession(medico.getUUID()))) {
             medico.sendSystemMessage(Component.translatable("profession.medico.not_medico"));
             return false;
         }
@@ -211,7 +212,7 @@ public final class MedicoProfession {
      * ---------------------------------------------------------------------- */
     public static void tickMedico(Player player) {
         if (player.level().isClientSide) return;
-        if (!player.getPersistentData().getBoolean(TAG_IS_MEDICO)) return;
+        if (!"medico".equalsIgnoreCase(ProfissaoManager.getProfession(player.getUUID()))) return;
 
         var tag = player.getPersistentData();
         // Personal cooldown

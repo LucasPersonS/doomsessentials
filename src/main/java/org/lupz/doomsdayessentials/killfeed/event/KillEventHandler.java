@@ -25,66 +25,60 @@ public class KillEventHandler {
 
     @SubscribeEvent
     public static void onLivingDeath(LivingDeathEvent event) {
-        if (!(event.getEntity() instanceof Player victim)) {
+        if (event.isCanceled()) {
+            return;
+        }
+        
+        if (event.getEntity().level().isClientSide()) {
             return;
         }
 
-        if (victim.level().isClientSide) {
+        if (!(event.getEntity() instanceof Player victim)) {
             return;
         }
 
         DamageSource source = event.getSource();
         Entity killer = source.getEntity();
+        Entity directKiller = source.getDirectEntity();
 
-        boolean isMobKill = killer != null && !(killer instanceof Player) && killer != victim;
-        
         String victimName = victim.getDisplayName().getString();
         UUID victimUUID = victim.getUUID();
-        String entityTypeId = ForgeRegistries.ENTITY_TYPES.getKey((isMobKill ? killer : victim).getType()).toString();
+        String victimTypeId = ForgeRegistries.ENTITY_TYPES.getKey(victim.getType()).toString();
 
         UUID killerUUID = null;
         String killerName = null;
-        String killerCredit = null;
-
-        if (killer instanceof Player) {
-            killerUUID = killer.getUUID();
-            killerName = killer.getDisplayName().getString();
-        } else if (killer instanceof LivingEntity) {
-            killerCredit = killer.getDisplayName().getString();
-        }
+        String killerTypeId = "minecraft:player";
 
         ItemStack weapon = ItemStack.EMPTY;
-        String weaponName;
-
-        if (isMobKill) {
-            weaponName = killer.getDisplayName().getString();
-        } else {
-            if (killer instanceof LivingEntity living) {
-                weapon = living.getMainHandItem();
-            }
-            weaponName = weapon.isEmpty() ? "Fists" : weapon.getDisplayName().getString();
-        }
-
+        String weaponName = "SUICIDE";
         String weaponId = "minecraft:air";
 
-        if (!weapon.isEmpty()) {
-            ResourceLocation key = ForgeRegistries.ITEMS.getKey(weapon.getItem());
-            if (key != null) {
-                weaponId = key.toString();
-                if (weaponId.startsWith("tacz:")) {
-                    CompoundTag tag = weapon.getTag();
-                    if (tag != null && tag.contains("GunId", 8)) {
-                        weaponName = tag.getString("GunId");
+        if (killer instanceof Player && killer != victim) {
+            killerUUID = killer.getUUID();
+            killerName = killer.getDisplayName().getString();
+            killerTypeId = ForgeRegistries.ENTITY_TYPES.getKey(killer.getType()).toString();
+
+            if (killer instanceof LivingEntity livingKiller) {
+                weapon = livingKiller.getMainHandItem();
+                if (!weapon.isEmpty()) {
+                    weaponName = weapon.getDisplayName().getString();
+                    ResourceLocation key = ForgeRegistries.ITEMS.getKey(weapon.getItem());
+                    if (key != null) {
+                        weaponId = key.toString();
                     }
+                } else {
+                    weaponName = "Fists";
                 }
             }
-        }
-
-        String damageType = source.getMsgId();
-        if (killer == null || killer == victim) {
-            killerName = null;
-            killerUUID = null;
-            switch (damageType) {
+        } else if (killer instanceof LivingEntity && killer != victim) {
+            killerName = killer.getDisplayName().getString();
+            killerTypeId = ForgeRegistries.ENTITY_TYPES.getKey(killer.getType()).toString();
+            weaponName = killerName;
+        } else {
+            // Environmental or self-inflicted deaths
+            killerName = null; // No specific killer
+            killerTypeId = null; // No killer entity
+            switch (source.getMsgId()) {
                 case "fall" -> weaponName = "FALL";
                 case "inFire", "onFire", "lava" -> weaponName = "FIRE";
                 case "explosion", "explosion.player" -> weaponName = "EXPLOSION";
@@ -92,14 +86,9 @@ public class KillEventHandler {
                 case "genericKill" -> weaponName = "/kill";
                 default -> weaponName = "SUICIDE";
             }
-            if (source.getDirectEntity() instanceof Player) {
-                killer = source.getDirectEntity();
-                killerUUID = killer.getUUID();
-                killerName = killer.getDisplayName().getString();
-            }
         }
-
-        KillFeedPacket packet = new KillFeedPacket(killerUUID, killerName != null ? killerName : killerCredit, victimUUID, victimName, weaponName, weaponId, entityTypeId);
+        
+        KillFeedPacket packet = new KillFeedPacket(killerUUID, killerName, victimUUID, victimName, weaponName, weaponId, killerTypeId != null ? killerTypeId : victimTypeId);
         PacketHandler.CHANNEL.send(PacketDistributor.ALL.noArg(), packet);
     }
 } 

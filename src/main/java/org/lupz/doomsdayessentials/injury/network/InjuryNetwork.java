@@ -38,9 +38,23 @@ public class InjuryNetwork {
           .decoder(UpdateInjuryLevelPacket::new)
           .consumerMainThread(UpdateInjuryLevelPacket::handle)
           .add();
+      INSTANCE.messageBuilder(UpdateDownedStatePacket.class, id(), NetworkDirection.PLAY_TO_CLIENT)
+          .encoder(UpdateDownedStatePacket::encode)
+          .decoder(UpdateDownedStatePacket::new)
+          .consumerMainThread(UpdateDownedStatePacket::handle)
+          .add();
+      INSTANCE.messageBuilder(PlayerActionPacket.class, id(), NetworkDirection.PLAY_TO_SERVER)
+          .encoder(PlayerActionPacket::encode)
+          .decoder(PlayerActionPacket::new)
+          .consumerMainThread(PlayerActionPacket::handle)
+          .add();
    }
 
    public static <MSG> void sendToPlayer(MSG message, ServerPlayer player) {
       INSTANCE.send(PacketDistributor.PLAYER.with(() -> player), message);
+   }
+
+   public static <MSG> void sendToServer(MSG message) {
+      INSTANCE.sendToServer(message);
    }
 } 

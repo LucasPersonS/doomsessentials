@@ -19,13 +19,13 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.TooltipFlag;
 import net.minecraft.world.item.UseAnim;
 import net.minecraft.world.level.Level;
-import org.lupz.doomsdayessentials.combat.AreaManager;
-import org.lupz.doomsdayessentials.combat.ManagedArea;
-import org.lupz.doomsdayessentials.combat.AreaType;
-import org.lupz.doomsdayessentials.config.EssentialsConfig;
-import org.lupz.doomsdayessentials.injury.capability.InjuryCapabilityProvider;
+import org.lupz.doomsdayessentials.config.ProfessionConfig;
+import org.lupz.doomsdayessentials.injury.capability.InjuryCapability;
 import org.lupz.doomsdayessentials.injury.network.InjuryNetwork;
+import org.lupz.doomsdayessentials.injury.network.UpdateDownedStatePacket;
 import org.lupz.doomsdayessentials.professions.ProfissaoManager;
+import org.lupz.doomsdayessentials.injury.InjuryEvents;
+import org.lupz.doomsdayessentials.EssentialsMod;
 
 public class MedicKitItem extends Item {
    public MedicKitItem(Item.Properties properties) {
@@ -51,20 +51,35 @@ public class MedicKitItem extends Item {
    public ItemStack finishUsingItem(ItemStack stack, Level level, LivingEntity entity) {
       if (entity instanceof ServerPlayer player) {
          if (!level.isClientSide) {
-            double range = org.lupz.doomsdayessentials.config.ProfessionConfig.MEDICO_KIT_RANGE.get();
-            int hearts = org.lupz.doomsdayessentials.config.ProfessionConfig.MEDICO_KIT_HEAL_HEARTS.get();
+            double range = ProfessionConfig.MEDICO_KIT_RANGE.get();
+            int hearts = ProfessionConfig.MEDICO_KIT_HEAL_HEARTS.get();
 
             Player target = this.findNearestLowHealthAlly(player, range);
             if (target == null) {
-                player.sendSystemMessage(Component.translatable("item.medic_kit.no_target"));
-                return stack;
+                target = this.findNearestDownedPlayer(player, range);
+                if (target == null) {
+                    player.sendSystemMessage(Component.translatable("item.medic_kit.no_target"));
+                    return stack;
+                }
             }
 
-            float healAmount = hearts * 2.0f; // hearts to health points
-            float newHealth = Math.min(target.getMaxHealth(), target.getHealth() + healAmount);
-            target.setHealth(newHealth);
+            final Player finalTarget = target;
+            InjuryHelper.getCapability(finalTarget).ifPresent(cap -> {
+                if(cap.isDowned()) {
+                    cap.setDowned(false);
+                    cap.setDownedUntil(0L);
+                    InjuryEvents.clearDownedSource(finalTarget.getUUID());
+                    finalTarget.setHealth(finalTarget.getMaxHealth() * 0.5f); // Restore to half health
+                    finalTarget.setPose(net.minecraft.world.entity.Pose.STANDING);
+                    finalTarget.sendSystemMessage(Component.literal("Você foi revivido por um médico!").withStyle(ChatFormatting.GREEN));
+                    InjuryNetwork.sendToPlayer(new UpdateDownedStatePacket(false, 0L), (ServerPlayer) finalTarget);
+                } else {
+                    float healAmount = hearts * 2.0f; // hearts to health points
+                    float newHealth = Math.min(finalTarget.getMaxHealth(), finalTarget.getHealth() + healAmount);
+                    finalTarget.setHealth(newHealth);
+                }
+            });
 
-            target.addEffect(new net.minecraft.world.effect.MobEffectInstance(net.minecraft.world.effect.MobEffects.REGENERATION, 100, 0));
 
             if (level instanceof ServerLevel serverLevel) {
                 serverLevel.sendParticles(ParticleTypes.HEART, target.getX(), target.getY() + 1.0, target.getZ(), 15, 0.5, 0.5, 0.5, 0.02);
@@ -110,6 +125,24 @@ public class MedicKitItem extends Item {
    private boolean isMedico(Player player) {
       String profession = ProfissaoManager.getProfession(player.getUUID());
       return profession != null && profession.equalsIgnoreCase("medico");
+   }
+
+   private Player findNearestDownedPlayer(Player source, double range) {
+       Player nearest = null;
+       double nearestDist = Double.MAX_VALUE;
+       for(Player player : source.level().players()) {
+           if (player != source && player.distanceToSqr(source) <= range * range) {
+               boolean isDowned = InjuryHelper.getCapability(player).map(InjuryCapability::isDowned).orElse(false);
+               if (isDowned) {
+                   double dist = player.distanceToSqr(source);
+                   if (dist < nearestDist) {
+                       nearestDist = dist;
+                       nearest = player;
+                   }
+               }
+           }
+       }
+       return nearest;
    }
 
    private Player findNearestInjuredPlayer(Player source, double range) {

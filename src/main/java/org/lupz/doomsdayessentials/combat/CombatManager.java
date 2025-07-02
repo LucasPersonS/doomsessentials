@@ -15,6 +15,7 @@ import org.lupz.doomsdayessentials.network.packet.s2c.SyncCombatStatePacket;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.Set;
 
 /**
  * Tracks combat-tag state for each player.  A player is considered "in combat" for a certain
@@ -30,6 +31,7 @@ public class CombatManager {
 
     // player UUID -> ticks remaining in combat
     private final Map<UUID, Integer> playersInCombat = new ConcurrentHashMap<>();
+    private final Set<UUID> combatLoggers = ConcurrentHashMap.newKeySet();
 
     private CombatManager() {
         MinecraftForge.EVENT_BUS.register(this);
@@ -56,6 +58,18 @@ public class CombatManager {
         playersInCombat.remove(uuid);
     }
 
+    public void addCombatLogger(UUID uuid) {
+        combatLoggers.add(uuid);
+    }
+
+    public boolean isCombatLogger(UUID uuid) {
+        return combatLoggers.contains(uuid);
+    }
+
+    public void removeCombatLogger(UUID uuid) {
+        combatLoggers.remove(uuid);
+    }
+
     public Map<UUID, Integer> getPlayersInCombat() {
         return playersInCombat;
     }
@@ -70,6 +84,11 @@ public class CombatManager {
     public void onPlayerAttack(LivingAttackEvent event) {
         if (!(event.getSource().getEntity() instanceof ServerPlayer attacker)) return;
         if (!(event.getEntity() instanceof ServerPlayer victim)) return;
+
+        // Don't tag players in creative or spectator mode
+        if (attacker.isCreative() || attacker.isSpectator() || victim.isCreative() || victim.isSpectator()) {
+            return;
+        }
 
         // Any player-vs-player damage counts
         tagPlayer(attacker);

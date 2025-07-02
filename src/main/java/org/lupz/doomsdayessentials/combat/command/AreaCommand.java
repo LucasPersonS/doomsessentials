@@ -125,7 +125,7 @@ public class AreaCommand {
     // Command impl
     // ---------------------------------------------------------------------
 
-    private static int createArea(CommandContext<CommandSourceStack> ctx) {
+    private static int createArea(CommandContext<CommandSourceStack> ctx) throws CommandSyntaxException {
         String name = StringArgumentType.getString(ctx, "name");
         String typeStr = StringArgumentType.getString(ctx, "type");
         AreaType type;
@@ -136,15 +136,9 @@ public class AreaCommand {
             return 0;
         }
 
-        BlockPos pos1;
-        BlockPos pos2;
-        try {
-            pos1 = BlockPosArgument.getLoadedBlockPos(ctx, "pos1");
-            pos2 = BlockPosArgument.getLoadedBlockPos(ctx, "pos2");
-        } catch (CommandSyntaxException ex) {
-            ctx.getSource().sendFailure(Component.literal(ex.getMessage()).withStyle(ChatFormatting.RED));
-            return 0;
-        }
+        BlockPos pos1 = BlockPosArgument.getBlockPos(ctx, "pos1");
+        BlockPos pos2 = BlockPosArgument.getBlockPos(ctx, "pos2");
+
         ServerLevel level = ctx.getSource().getLevel();
         ResourceKey<Level> dim = level.dimension();
 

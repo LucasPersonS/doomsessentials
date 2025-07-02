@@ -97,69 +97,65 @@ public class ClientCombatRenderHandler {
         poseStack.popPose();
     }
 
-
     @SubscribeEvent
     public void onRenderGuiOverlay(RenderGuiOverlayEvent.Pre event) {
         if (event.getOverlay() != VanillaGuiOverlay.PLAYER_HEALTH.type()) {
             return;
         }
 
-        Minecraft mc = Minecraft.getInstance();
-        if (mc.player == null) {
+        Minecraft minecraft = Minecraft.getInstance();
+        GuiGraphics guiGraphics = event.getGuiGraphics();
+        if (minecraft.player == null || minecraft.options.hideGui) {
             return;
         }
 
-        ManagedArea currentArea = ClientCombatState.getPlayerArea(mc.player);
-        boolean inDanger = currentArea != null && currentArea.getType() == AreaType.DANGER;
+        Player player = minecraft.player;
+        ManagedArea currentArea = ClientCombatState.getPlayerArea(player);
+
+        boolean inCombat = ClientCombatState.isPlayerInCombat(player.getUUID());
         boolean inSafe = currentArea != null && currentArea.getType() == AreaType.SAFE;
-        boolean inCombat = ClientCombatState.isPlayerInCombat(mc.player.getUUID());
-        long combatEndTime = ClientCombatState.getCombatEndTime(mc.player.getUUID());
-        boolean inFrequency = currentArea != null && currentArea.getType() == AreaType.FREQUENCY;
+        boolean inDanger = currentArea != null && currentArea.getType() == AreaType.DANGER;
+        long combatEndTime = ClientCombatState.getCombatEndTime(player.getUUID());
+        int remainingSeconds = (int) Math.max(0, (combatEndTime - System.currentTimeMillis()) / 1000);
 
-        GuiGraphics guiGraphics = event.getGuiGraphics();
-        PoseStack poseStack = guiGraphics.pose();
-        poseStack.pushPose();
+        int screenWidth = minecraft.getWindow().getGuiScaledWidth();
+        int screenHeight = minecraft.getWindow().getGuiScaledHeight();
+        Font font = minecraft.font;
 
-        int screenWidth = event.getWindow().getGuiScaledWidth();
-        int screenHeight = event.getWindow().getGuiScaledHeight();
-        Font font = mc.font;
+        if (inCombat && !inSafe) {
+            int iconSrcW = 95;
+            int iconSrcH = 22;
 
-        // Render In-combat HUD (icon + optional countdown)
-        if (inCombat || inDanger) {
-            long remainingSeconds = Math.max(0, (combatEndTime - System.currentTimeMillis()) / 1000);
-
-            // Draw the "in-combat" banner smaller than its native resolution but keep the
-            // original aspect-ratio so the texture is not stretched.
-            int iconSrcW = 190;
-            int iconSrcH = 45;
-
-            // Decrease banner size when GUI scale option is 3 or higher (large UIs)
-            int guiScaleSetting = Minecraft.getInstance().options.guiScale().get(); // 0 = Auto
-            float scaleFactor = (guiScaleSetting >= 3 || guiScaleSetting == 0 && screenWidth < 700) ? 0.6F : 1.0F;
+            int guiScaleSetting = minecraft.options.guiScale().get();
+            float scaleFactor = 1.0F;
+            if (guiScaleSetting >= 4 || (guiScaleSetting == 0 && screenWidth < 500)) {
+                scaleFactor = 0.7F;
+            } else if (guiScaleSetting == 3 || (guiScaleSetting == 0 && screenWidth < 700)) {
+                scaleFactor = 0.8F;
+            }
 
             int iconW = Math.round(iconSrcW * scaleFactor);
             int iconH = Math.round(iconSrcH * scaleFactor);
-
             int xIcon = (screenWidth - iconW) / 2;
             int yIcon = screenHeight - iconH - 50;
 
             RenderSystem.setShaderTexture(0, IN_COMBAT_ICON);
-            guiGraphics.blit(IN_COMBAT_ICON, xIcon, yIcon, 0, 0,
-                            iconW, iconH, iconSrcW, iconSrcH);
+            RenderSystem.enableBlend();
+
+            PoseStack poseStack = guiGraphics.pose();
+            poseStack.pushPose();
+            poseStack.translate(xIcon, yIcon, 0);
+            poseStack.scale(scaleFactor, scaleFactor, 1.0f);
+            guiGraphics.blit(IN_COMBAT_ICON, 0, 0, 0, 0, iconSrcW, iconSrcH, iconSrcW, iconSrcH);
+            poseStack.popPose();
+
+            RenderSystem.disableBlend();
 
             // Draw countdown (in seconds) centred beneath the icon when applicable and not in danger zone
             if (remainingSeconds > 0 && !inDanger) {
                 Component timer = Component.literal(String.valueOf(remainingSeconds)).withStyle(ChatFormatting.YELLOW);
                 int w = font.width(timer);
                 guiGraphics.drawString(font, timer, (screenWidth - w) / 2, yIcon + iconH + 4, 0xFFFFFF, true);
-            }
-
-            // Draw small swords icon to left of hotbar when in direct combat (not just danger zone)
-            if (inCombat) {
-                int hudY = screenHeight - 32;
-                int hudX = screenWidth / 2 - 98; // same offset as vanilla status icons
-                RenderSystem.setShaderTexture(0, COMBAT_ICON);
-                guiGraphics.blit(COMBAT_ICON, hudX, hudY, 0, 0, 16, 16, 16, 16);
             }
         } else if (inSafe) {
             Component safeText = Component.literal("ᴠᴏᴄê ᴇsᴛá ᴇᴍ ᴜᴍᴀ ᴢᴏɴᴀ ѕᴇɢᴜʀᴀ").withStyle(ChatFormatting.BOLD, ChatFormatting.GREEN);
@@ -179,22 +175,12 @@ public class ClientCombatRenderHandler {
         }
 
         // Full-screen red overlay when inside a Frequency zone (if player is not immune)
-        if (inFrequency && !mc.player.hasEffect(org.lupz.doomsdayessentials.effect.ModEffects.FREQUENCY.get())) {
+        boolean inFrequency = currentArea != null && currentArea.getType() == AreaType.FREQUENCY;
+        if (inFrequency && !minecraft.player.hasEffect(org.lupz.doomsdayessentials.effect.ModEffects.FREQUENCY.get())) {
             RenderSystem.disableDepthTest();
             RenderSystem.depthMask(false);
-            RenderSystem.enableBlend();
-            RenderSystem.defaultBlendFunc();
-            // darker red with 40% opacity
-            RenderSystem.setShaderColor(0.6F, 0.0F, 0.0F, 0.4F);
-            RenderSystem.setShaderTexture(0, FREQUENCY_OVERLAY);
-            guiGraphics.blit(FREQUENCY_OVERLAY, 0, 0, 0, 0, screenWidth, screenHeight, 16, 16);
-            RenderSystem.setShaderColor(1.0F, 1.0F, 1.0F, 1.0F);
-            RenderSystem.disableBlend();
-            RenderSystem.depthMask(true);
-            RenderSystem.enableDepthTest();
+            guiGraphics.fill(0, 0, screenWidth, screenHeight, 0x33FF0000); // Semi-transparent red
         }
-
-        poseStack.popPose();
     }
 
     private void renderSafeAreaOverlay(GuiGraphics guiGraphics) {

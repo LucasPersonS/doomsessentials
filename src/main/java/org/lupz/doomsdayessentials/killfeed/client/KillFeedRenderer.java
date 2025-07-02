@@ -147,7 +147,7 @@ public class KillFeedRenderer {
                 ItemStack mobIconStack = ItemStack.EMPTY;
                 try {
                     ResourceLocation entRl = ResourceLocation.parse(entry.entityTypeId());
-                    ResourceLocation eggRl = new ResourceLocation(entRl.getNamespace(), entRl.getPath() + "_spawn_egg");
+                    ResourceLocation eggRl = ResourceLocation.fromNamespaceAndPath(entRl.getNamespace(), entRl.getPath() + "_spawn_egg");
                     Item eggItem = ForgeRegistries.ITEMS.getValue(eggRl);
                     if (eggItem != null && eggItem != net.minecraft.world.item.Items.AIR) {
                         mobIconStack = new ItemStack(eggItem);

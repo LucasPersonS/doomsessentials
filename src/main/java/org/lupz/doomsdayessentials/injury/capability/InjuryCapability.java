@@ -34,4 +34,20 @@ public interface InjuryCapability {
    void setDeathCount(int count);
 
    int incrementDeathCount();
+
+   boolean isDowned();
+
+   void setDowned(boolean downed, @javax.annotation.Nullable java.util.UUID lastAttacker);
+
+   float getDownedHealth();
+
+   void setDownedHealth(float health);
+
+   long getDownedUntil();
+
+   void setDownedUntil(long time);
+
+   java.util.UUID getLastAttacker();
+
+   void setLastAttacker(java.util.UUID attacker);
 } 
