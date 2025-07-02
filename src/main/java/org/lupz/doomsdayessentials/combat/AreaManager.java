@@ -20,7 +20,10 @@ import java.nio.file.Path;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Map;
+import java.util.List;
+import java.util.ArrayList;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.stream.Collectors;
 
 /**
  * Loads / stores combat areas to disk and provides lookup helpers.
@@ -37,7 +40,8 @@ public class AreaManager {
     // Fields
     // ---------------------------------------------------------------------
 
-    private final Map<String, ManagedArea> areas = new ConcurrentHashMap<>();
+    private final Map<ResourceKey<Level>, List<ManagedArea>> areasByDimension = new ConcurrentHashMap<>();
+    private final Map<String, ManagedArea> areasByName = new ConcurrentHashMap<>();
 
     private final Gson gson;
     private final Path saveFile;
@@ -63,22 +67,24 @@ public class AreaManager {
     // ---------------------------------------------------------------------
 
     public Collection<ManagedArea> getAreas() {
-        return Collections.unmodifiableCollection(areas.values());
+        return Collections.unmodifiableCollection(areasByName.values());
     }
 
     public ManagedArea getArea(String name) {
-        return areas.get(name.toLowerCase());
+        return areasByName.get(name.toLowerCase());
     }
 
     public void addArea(@NotNull ManagedArea area) {
-        areas.put(area.getName().toLowerCase(), area);
+        areasByName.put(area.getName().toLowerCase(), area);
+        areasByDimension.computeIfAbsent(area.getDimension(), k -> new ArrayList<>()).add(area);
         saveAreas();
         broadcastAreaUpdate();
     }
 
     public boolean deleteArea(String name) {
-        ManagedArea removed = areas.remove(name.toLowerCase());
+        ManagedArea removed = areasByName.remove(name.toLowerCase());
         if (removed != null) {
+            areasByDimension.getOrDefault(removed.getDimension(), new ArrayList<>()).remove(removed);
             saveAreas();
             broadcastAreaUpdate();
             return true;
@@ -88,15 +94,19 @@ public class AreaManager {
 
     public ManagedArea getAreaAt(ServerLevel level, BlockPos pos) {
         ResourceKey<Level> dim = level.dimension();
-        return areas.values().stream()
-                .filter(a -> a.getDimension().equals(dim) && a.contains(pos))
+        List<ManagedArea> areasInDim = areasByDimension.get(dim);
+        if (areasInDim == null) {
+            return null;
+        }
+        return areasInDim.stream()
+                .filter(a -> a.contains(pos))
                 .findFirst()
                 .orElse(null);
     }
 
     public void broadcastAreaUpdate() {
         if (ServerLifecycleHooks.getCurrentServer() != null) {
-            PacketHandler.CHANNEL.send(net.minecraftforge.network.PacketDistributor.ALL.noArg(), new SyncAreasPacket(areas.values()));
+            PacketHandler.CHANNEL.send(net.minecraftforge.network.PacketDistributor.ALL.noArg(), new SyncAreasPacket(getAreas()));
         }
     }
 
@@ -113,8 +123,16 @@ public class AreaManager {
             Type mapType = new TypeToken<Map<String, ManagedArea>>() {}.getType();
             Map<String, ManagedArea> loaded = gson.fromJson(json, mapType);
             if (loaded != null) {
-                areas.clear();
-                loaded.forEach((k, v) -> areas.put(k.toLowerCase(), v));
+                areasByName.clear();
+                areasByDimension.clear();
+                loaded.forEach((k, v) -> {
+                    if (v.getType() != null) {
+                        areasByName.put(k.toLowerCase(), v);
+                        areasByDimension.computeIfAbsent(v.getDimension(), key -> new ArrayList<>()).add(v);
+                    } else {
+                        System.err.println("[DoomsEssentials] Skipping area '"+k+"' with invalid type (perhaps deprecated). Delete or recreate it.");
+                    }
+                });
             }
         } catch (IOException e) {
             e.printStackTrace();
@@ -123,7 +141,7 @@ public class AreaManager {
 
     public void saveAreas() {
         try {
-            String json = gson.toJson(areas);
+            String json = gson.toJson(areasByName);
             Files.writeString(saveFile, json);
         } catch (IOException e) {
             e.printStackTrace();

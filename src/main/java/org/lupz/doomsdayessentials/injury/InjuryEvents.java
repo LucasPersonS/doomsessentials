@@ -18,6 +18,7 @@ import net.minecraftforge.event.TickEvent.Phase;
 import net.minecraftforge.event.entity.living.LivingDeathEvent;
 import net.minecraftforge.event.entity.living.LivingEntityUseItemEvent;
 import net.minecraftforge.event.entity.player.PlayerEvent;
+import net.minecraftforge.event.entity.player.PlayerEvent.PlayerLoggedInEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod.EventBusSubscriber;
 import org.lupz.doomsdayessentials.EssentialsMod;
@@ -47,9 +48,31 @@ public class InjuryEvents {
    public static void onPlayerTick(TickEvent.PlayerTickEvent event) {
       if (event.phase == Phase.END && !event.player.level().isClientSide) {
          Player player = event.player;
+
+         // ==> LOCK LOGIC - HIGHEST PRIORITY <==
+         if (player.getPersistentData().getBoolean("healingBedLock")) {
+            int x = player.getPersistentData().getInt("healingBedX");
+            int y = player.getPersistentData().getInt("healingBedY");
+            int z = player.getPersistentData().getInt("healingBedZ");
+            BlockPos bedPos = new BlockPos(x, y, z);
+
+            // Force player to stay on the bed
+            player.teleportTo(bedPos.getX() + 0.5, bedPos.getY() + 0.5, bedPos.getZ() + 0.5);
+            player.setDeltaMovement(0, 0, 0);
+
+            // Attempt to keep them in the sleep animation
+            try { player.startSleepInBed(bedPos); } catch (Exception ignored) {}
+
+            // Manually tick the healing process
+            InjuryHelper.onHealingBed(player);
+            return; // Stop further processing to maintain the lock
+         }
+
+         // Standard healing/reset logic (only runs if not locked)
          InjuryHelper.applyEffects(player);
-         // Update medico profession cooldowns & messages
+         // Update profession cooldowns & messages
          MedicoProfession.tickMedico(player);
+         org.lupz.doomsdayessentials.professions.RastreadorProfession.tickTracker(player);
          if (isOnHealingBed(player)) {
             InjuryHelper.onHealingBed(player);
          } else {
@@ -68,13 +91,11 @@ public class InjuryEvents {
    private static boolean isOnHealingBed(Player player) {
       if (!player.isSleeping()) {
          return false;
-      } else {
-         BlockPos pos = player.getSleepingPos().orElse(null);
-         if (pos == null) return false;
-         BlockPos belowPos = pos.below();
-         Level level = player.level();
-         return level.getBlockState(pos).is(BlockTags.BEDS) && level.getBlockState(belowPos).is(Blocks.DIAMOND_BLOCK);
       }
+      BlockPos pos = player.getSleepingPos().orElse(null);
+      if (pos == null) return false;
+      Level level = player.level();
+      return level.getBlockState(pos).getBlock() instanceof org.lupz.doomsdayessentials.block.MedicalBedBlock;
    }
 
    @SubscribeEvent
@@ -143,6 +164,23 @@ public class InjuryEvents {
       if (event.getEntity() instanceof ServerPlayer) {
           // Empty
       }
+   }
+
+   // ───────────────── Login handling ─────────────────
+   @SubscribeEvent
+   public static void onPlayerLogin(PlayerLoggedInEvent event) {
+       if (!(event.getEntity() instanceof ServerPlayer player)) return;
+
+       player.getCapability(InjuryCapabilityProvider.INJURY_CAPABILITY).ifPresent(cap -> {
+           if (cap.getHealCooldown() > 0) {
+               int healingTimeTicks = org.lupz.doomsdayessentials.config.EssentialsConfig.HEALING_BED_TIME_MINUTES.get() * 20 * 60;
+               float progress = (float) cap.getHealCooldown() / (float) healingTimeTicks;
+               InjuryNetwork.sendToPlayer(new UpdateHealingProgressPacket(progress), player);
+           }
+
+           // Always sync injury level HUD
+           InjuryNetwork.sendToPlayer(new org.lupz.doomsdayessentials.injury.network.UpdateInjuryLevelPacket(cap.getInjuryLevel()), player);
+       });
    }
 
    static class InjuryDeathData {

@@ -3,14 +3,18 @@
     "sounds": [
       "doomsdayessentials:danger_zone",
       "doomsdayessentials:danger_zone2",
-      "doomsdayessentials:danger_zone3"
+      "doomsdayessentials:danger_zone3",
+      "doomsdayessentials:danger_zone_mya1",
+      "doomsdayessentials:danger_zone_mya2"
     ]
   },
   "safe_zone_enter": {
     "sounds": [
       "doomsdayessentials:safe_zone",
       "doomsdayessentials:safe_zone2",
-      "doomsdayessentials:safe_zone3"
+      "doomsdayessentials:safe_zone3",
+      "doomsdayessentials:safe_zone_mya1",
+      "doomsdayessentials:safe_zone_mya3"
     ]
   },
   "frequencia1": {
@@ -21,6 +25,11 @@
   "frequencia2": {
     "sounds": [
       "doomsdayessentials:frequencia2"
+    ]
+  },
+  "espalhe": {
+    "sounds": [
+      "doomsdayessentials:espalhe"
     ]
   }
 } 

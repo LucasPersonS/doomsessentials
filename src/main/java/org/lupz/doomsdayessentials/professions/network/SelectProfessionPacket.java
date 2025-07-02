@@ -63,10 +63,16 @@ public class SelectProfessionPacket {
                 return;
             }
 
-            // Trying to pick a new profession
-            if ("medico".equalsIgnoreCase(msg.professionId) && !ProfissaoManager.canBecomeMedico()) {
-                player.sendSystemMessage(Component.literal("§cO limite de médicos foi atingido. Não é possível se tornar um médico agora."));
-                EssentialsMod.LOGGER.info("Player {} tried to become a medico but the limit has been reached.", player.getName().getString());
+            // Trying to pick a new profession: validate limits in config
+            if (!ProfissaoManager.canBecome(msg.professionId)) {
+                String professionNameColored = switch (msg.professionId.toLowerCase()) {
+                    case "medico" -> "§eMédicos";
+                    case "combatente" -> "§cCombatentes";
+                    case "rastreador" -> "§bRastreadores";
+                    default -> msg.professionId;
+                };
+                player.sendSystemMessage(Component.literal("§cO limite de " + professionNameColored + " foi atingido. Não é possível se tornar um agora."));
+                EssentialsMod.LOGGER.info("Player {} tried to become a {} but the limit has been reached.", player.getName().getString(), msg.professionId);
                 return;
             }
 

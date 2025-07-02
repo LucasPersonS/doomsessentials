@@ -54,6 +54,12 @@ public class ProfissoesMenu extends AbstractContainerMenu {
         if (ProfissaoManager.hasProfession(this.player.getUUID())) {
             ItemStack abandon = new ItemStack(Items.BARRIER);
             abandon.setHoverName(Component.literal("§cAbandonar Profissão"));
+
+            // Add lore describing the action (single line)
+            ListTag loreTag = new ListTag();
+            loreTag.add(StringTag.valueOf(Component.Serializer.toJson(Component.literal("§7Abandone sua profissão clicando aqui."))));
+            abandon.getOrCreateTagElement("display").put("Lore", loreTag);
+
             this.container.setItem(13, abandon);
             return;
         }
@@ -79,6 +85,12 @@ public class ProfissoesMenu extends AbstractContainerMenu {
         if (!loreTag.isEmpty()) {
             stack.getOrCreateTagElement("display").put("Lore", loreTag);
         }
+
+        // Hide default attribute tooltip for combatente sword item
+        if ("combatente".equals(professionKey)) {
+            stack.getOrCreateTag().putInt("HideFlags", 2); // hide attribute modifiers lines
+        }
+
         this.container.setItem(slot, stack);
     }
 

@@ -52,20 +52,25 @@ public class InjuryHudOverlay {
    private static void renderHealingHud(GuiGraphics guiGraphics, int width, int height, float healingProgress) {
       Minecraft minecraft = Minecraft.getInstance();
       Font font = minecraft.font;
-      String text = String.format("Healing: %.0f%%", healingProgress * 100.0F);
+      String text = (healingProgress < 0.01f)
+              ? "Healing..."
+              : String.format("Healing: %.0f%%", healingProgress * 100.0F);
 
-      int barWidth = 100;
+      int barWidth = 120;
       int barHeight = 10;
       int x = width / 2 - barWidth / 2;
       int y = height / 2 + 20;
 
-      guiGraphics.fill(x - 1, y - 1, x + barWidth + 1, y + barHeight + 1, 0xFF000000); // Black background
+      // Dark grey background for better contrast
+      guiGraphics.fill(x - 1, y - 1, x + barWidth + 1, y + barHeight + 1, 0xFF444444);
 
-      int progressWidth = (int)((float)barWidth * healingProgress);
+      int progressWidth = Math.min(barWidth, (int)(barWidth * healingProgress));
+      if (progressWidth == 0 && healingProgress > 0f) progressWidth = 1; // ensure visible
       guiGraphics.fill(x, y, x + progressWidth, y + barHeight, Color.GREEN.getRGB());
 
+      // Draw text just above the bar for clarity
       int textX = width / 2 - font.width(text) / 2;
-      int textY = y + barHeight + 2;
+      int textY = y - font.lineHeight - 2;
       guiGraphics.drawString(font, text, textX, textY, 0xFFFFFF);
    }
 } 

@@ -1,0 +1,13 @@
+{
+  "variants": {
+    "part=foot,facing=north":  { "model": "doomsdayessentials:block/medical_bed", "y": 270 },
+    "part=foot,facing=east":   { "model": "doomsdayessentials:block/medical_bed", "y": 0 },
+    "part=foot,facing=south":  { "model": "doomsdayessentials:block/medical_bed", "y": 90 },
+    "part=foot,facing=west":   { "model": "doomsdayessentials:block/medical_bed", "y": 180 },
+
+    "part=head,facing=north":  { "model": "doomsdayessentials:block/medical_bed_head" },
+    "part=head,facing=east":   { "model": "doomsdayessentials:block/medical_bed_head" },
+    "part=head,facing=south":  { "model": "doomsdayessentials:block/medical_bed_head" },
+    "part=head,facing=west":   { "model": "doomsdayessentials:block/medical_bed_head" }
+  }
+} 

@@ -33,6 +33,7 @@ import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.world.item.CompassItem;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.item.ItemStack;
+import org.lupz.doomsdayessentials.effect.ModEffects;
 
 @Mod(EssentialsMod.MOD_ID)
 public class EssentialsMod {
@@ -49,6 +50,8 @@ public class EssentialsMod {
         ModSounds.init();
         InjuryItems.register(modEventBus);
         org.lupz.doomsdayessentials.professions.items.ProfessionItems.register(modEventBus);
+        org.lupz.doomsdayessentials.block.ModBlocks.register(modEventBus);
+        org.lupz.doomsdayessentials.item.ModItems.register(modEventBus);
 
         // Register ourselves for server and other game events we are interested in
         MinecraftForge.EVENT_BUS.register(this);
@@ -61,6 +64,9 @@ public class EssentialsMod {
         ModLoadingContext.get().registerConfig(ModConfig.Type.COMMON, EssentialsConfig.SPEC);
         // Register profession specific config
         ModLoadingContext.get().registerConfig(ModConfig.Type.COMMON, org.lupz.doomsdayessentials.config.ProfessionConfig.SPEC, MOD_ID + "-profession.toml");
+
+        // Register custom effects
+        ModEffects.EFFECTS.register(modEventBus);
     }
 
     private void commonSetup(final FMLCommonSetupEvent event) {
@@ -70,6 +76,8 @@ public class EssentialsMod {
             InjuryNetwork.register();
 
             org.lupz.doomsdayessentials.professions.ProfissaoManager.loadProfessions();
+
+            // TODO: add biome to world-gen via data-pack in future
         });
     }
 
@@ -84,6 +92,8 @@ public class EssentialsMod {
         // profession commands
         org.lupz.doomsdayessentials.professions.commands.ProfissoesCommand.register(event.getServer().getCommands().getDispatcher());
         org.lupz.doomsdayessentials.professions.commands.MedicoCommand.register(event.getServer().getCommands().getDispatcher());
+        // Register rastreador ability command
+        org.lupz.doomsdayessentials.professions.commands.RastreadorCommand.register(event.getServer().getCommands().getDispatcher());
     }
 
     @Mod.EventBusSubscriber(modid = MOD_ID, bus = Mod.EventBusSubscriber.Bus.MOD, value = Dist.CLIENT)

@@ -20,7 +20,7 @@
 
   "item.medic_kit.not_medico": "§cApenas Médicos podem usar o Kit Médico.",
   "item.medic_kit.no_target": "§eNenhum jogador ferido ao alcance.",
-  "item.medic_kit.not_in_safezone": "§cVocê não pode usar o Kit Médico em uma Zona Segura.",
+  "item.medic_kit.not_in_safezone": "§cVocê só pode usar o Kit Médico em uma Zona Segura.",
 
   "command.injury.heal.success": "§a%1$s curou %2$s nível(is) de ferimento!",
 
@@ -54,15 +54,35 @@
   "profession.rastreador.gui.lore1": "§7Encontre inimigos com facilidade!",
   "profession.rastreador.gui.lore2": "",
   "profession.rastreador.gui.lore3": "§fHabilidades:",
-  "profession.rastreador.gui.lore4": "§a- Bússola rastreia o jogador mais próximo",
-  "profession.rastreador.gui.lore5": "§a- Visão noturna (em breve)",
+  "profession.rastreador.gui.lore4": "§a- Habilidade: Revela inimigos em 30 blocos",
+  "profession.rastreador.gui.lore5": "§a- Duração do brilho: 10s (1h de recarga)",
+  "profession.rastreador.gui.lore6": "§a- Visão noturna permanente",
 
   "item.tracking_compass.not_tracker": "§cApenas Rastreadores podem usar a Bússola de Rastreamento.",
 
   "profession.change.denied": "§cVocê não pode mudar de profissão a menos que esteja no modo Criativo.",
 
   "item.doomsdayessentials.tracking_compass.lore1": "Clique com o direito para rastrear o jogador mais próximo.",
-  "item.doomsdayessentials.tracking_compass.lore2": "Tempo de recarga: %1$s minutos",
+  "item.doomsdayessentials.tracking_compass.lore2": "Tempo de recarga: 60 minutos",
   "item.doomsdayessentials.tracking_compass.desc1": "§7Somente Rastreadores podem usar.",
-  "item.doomsdayessentials.tracking_compass.desc2": "§eReutilizável"
+  "item.doomsdayessentials.tracking_compass.desc2": "§eReutilizável",
+
+  "profession.rastreador.not_tracker": "§cApenas Rastreadores podem usar essa habilidade.",
+  "profession.rastreador.cooldown": "§eHabilidade recarregando: %1$sm %2$ss restantes.",
+  "profession.rastreador.cooldown_ready": "§aSua habilidade de revelação está pronta!",
+  "profession.rastreador.glow_used": "§aInimigos próximos revelados!",
+
+  "effect.doomsdayessentials.frequencia": "Frequência",
+
+  "profession.medico.disabled": "§cA profissão de Médico está desativada neste servidor.",
+  "profession.combatente.disabled": "§cA profissão de Combatente está desativada neste servidor.",
+  "profession.rastreador.disabled": "§cA profissão de Rastreador está desativada neste servidor.",
+  "block.doomsdayessentials.medical_bed": "Cama Médica",
+
+  "profession.medico.bed.success": "§aVocê colocou %1$s para descansar.",
+  "profession.medico.bed.target": "§eO médico %1$s está cuidando de você. Descanse!",
+  "profession.medico.no_bed": "§cNenhuma Cama Médica livre por perto.",
+  "profession.medico.bed_cooldown": "§eHabilidade recarregando: %1$s segundos restantes.",
+  "profession.medico.bed_cooldown_ready": "§aSua habilidade de leito está pronta!",
+  "profession.medico.info.bed": "§7Habilidade: §a/medico bed§7 (recarga %1$s s)."
 } 

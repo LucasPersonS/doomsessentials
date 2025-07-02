@@ -57,6 +57,9 @@ public final class ManagedArea {
     @SerializedName("heal_players")
     private boolean healPlayers;
 
+    @SerializedName("radiation_damage")
+    private float radiationDamage;
+
     @SerializedName("entry_message")
     private String entryMessage;
 
@@ -92,6 +95,7 @@ public final class ManagedArea {
         this.disableFallDamage = false;
         this.preventHungerLoss = false;
         this.healPlayers = false;
+        this.radiationDamage = 0.0f;
         this.entryMessage = "";
         this.exitMessage = "";
     }
@@ -109,6 +113,7 @@ public final class ManagedArea {
         this.disableFallDamage = other.disableFallDamage;
         this.preventHungerLoss = other.preventHungerLoss;
         this.healPlayers = other.healPlayers;
+        this.radiationDamage = other.radiationDamage;
         this.entryMessage = other.entryMessage;
         this.exitMessage = other.exitMessage;
     }
@@ -235,6 +240,15 @@ public final class ManagedArea {
         this.exitMessage = exitMessage;
     }
 
+    // Radiation helpers ---------------------------------------------------
+    public float getRadiationDamage() {
+        return radiationDamage;
+    }
+
+    public void setRadiationDamage(float radiationDamage) {
+        this.radiationDamage = radiationDamage;
+    }
+
     public void write(FriendlyByteBuf buf) {
         buf.writeUtf(name);
         buf.writeEnum(type);
@@ -249,6 +263,7 @@ public final class ManagedArea {
         buf.writeBoolean(disableFallDamage);
         buf.writeBoolean(preventHungerLoss);
         buf.writeBoolean(healPlayers);
+        buf.writeFloat(radiationDamage);
         buf.writeUtf(entryMessage != null ? entryMessage : "");
         buf.writeUtf(exitMessage != null ? exitMessage : "");
     }
@@ -268,6 +283,7 @@ public final class ManagedArea {
         area.setDisableFallDamage(buf.readBoolean());
         area.setPreventHungerLoss(buf.readBoolean());
         area.setHealPlayers(buf.readBoolean());
+        area.setRadiationDamage(buf.readFloat());
         area.setEntryMessage(buf.readUtf());
         area.setExitMessage(buf.readUtf());
         return area;

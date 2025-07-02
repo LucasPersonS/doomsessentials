@@ -51,29 +51,36 @@ public class MedicKitItem extends Item {
    public ItemStack finishUsingItem(ItemStack stack, Level level, LivingEntity entity) {
       if (entity instanceof ServerPlayer player) {
          if (!level.isClientSide) {
-            ManagedArea area = AreaManager.get().getAreaAt(player.serverLevel(), player.blockPosition());
-            if (area != null && area.getType() == AreaType.SAFE) {
-               Player target = this.findNearestInjuredPlayer(player, 5.0);
-               if (target != null) {
-                  // TODO: Re-implement medicoHeal
-                  // InjuryHelper.medicoHeal(player, target);
-                  if (level instanceof ServerLevel) {
-                     ServerLevel serverLevel = (ServerLevel)level;
-                     serverLevel.sendParticles(ParticleTypes.HEART, target.getX(), target.getY() + 1.0, target.getZ(), 15, 0.5, 0.5, 0.5, 0.02);
-                  }
+            double range = org.lupz.doomsdayessentials.config.ProfessionConfig.MEDICO_KIT_RANGE.get();
+            int hearts = org.lupz.doomsdayessentials.config.ProfessionConfig.MEDICO_KIT_HEAL_HEARTS.get();
 
-                  level.playSound((Player)null, player.getX(), player.getY(), player.getZ(), SoundEvents.PLAYER_LEVELUP, SoundSource.PLAYERS, 1.0F, 1.5F);
-                  if (!player.getAbilities().instabuild) {
-                     stack.shrink(1);
-                  }
-               } else {
-                  player.sendSystemMessage(Component.translatable("item.medic_kit.no_target"));
-               }
-
-               return stack;
+            Player target = this.findNearestLowHealthAlly(player, range);
+            if (target == null) {
+                player.sendSystemMessage(Component.translatable("item.medic_kit.no_target"));
+                return stack;
             }
 
-            player.sendSystemMessage(Component.translatable("item.medic_kit.not_in_safezone"));
+            float healAmount = hearts * 2.0f; // hearts to health points
+            float newHealth = Math.min(target.getMaxHealth(), target.getHealth() + healAmount);
+            target.setHealth(newHealth);
+
+            target.addEffect(new net.minecraft.world.effect.MobEffectInstance(net.minecraft.world.effect.MobEffects.REGENERATION, 100, 0));
+
+            if (level instanceof ServerLevel serverLevel) {
+                serverLevel.sendParticles(ParticleTypes.HEART, target.getX(), target.getY() + 1.0, target.getZ(), 15, 0.5, 0.5, 0.5, 0.02);
+            }
+
+            level.playSound(null, target.getX(), target.getY(), target.getZ(), SoundEvents.PLAYER_LEVELUP, SoundSource.PLAYERS, 1.0F, 1.5F);
+
+            player.sendSystemMessage(Component.literal("§aAlvo curado!"));
+            if (target != player) {
+                target.sendSystemMessage(Component.literal("§aVocê foi curado por um médico!"));
+            }
+
+            if (!player.getAbilities().instabuild) {
+                stack.shrink(1);
+            }
+
             return stack;
          }
       }
@@ -106,6 +113,30 @@ public class MedicKitItem extends Item {
    }
 
    private Player findNearestInjuredPlayer(Player source, double range) {
+      Player nearest = null;
+      double nearestDist = Double.MAX_VALUE;
+      Iterator var7 = source.level().players().iterator();
+
+      while(var7.hasNext()) {
+         Player player = (Player)var7.next();
+         if (player != source && player.distanceToSqr(source) <= range * range) {
+            boolean isInjured = InjuryHelper.getCapability(player).map((cap) -> {
+               return cap.getInjuryLevel() > 0;
+            }).orElse(false);
+            if (isInjured) {
+               double dist = player.distanceToSqr(source);
+               if (dist < nearestDist) {
+                  nearestDist = dist;
+                  nearest = player;
+               }
+            }
+         }
+      }
+
+      return nearest;
+   }
+
+   private Player findNearestLowHealthAlly(Player source, double range) {
       Player nearest = null;
       double nearestDist = Double.MAX_VALUE;
       Iterator var7 = source.level().players().iterator();

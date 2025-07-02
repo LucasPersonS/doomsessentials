@@ -75,9 +75,19 @@ public class ProfissoesScreen extends AbstractContainerScreen<ProfissoesMenu> {
         return super.mouseClicked(mouseX, mouseY, button);
     }
 
-    // Prevent vanilla title text from drawing twice
     @Override
     protected void renderLabels(GuiGraphics guiGraphics, int mouseX, int mouseY) {
-        // no-op – we draw our own title in renderBg
+        // no-op; rely on vanilla tooltips when hovering items
+    }
+
+    @Override
+    public void render(GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick) {
+        this.renderBackground(guiGraphics);
+        super.render(guiGraphics, mouseX, mouseY, partialTick);
+
+        // Explicitly render tooltip for hovered slot (vanilla style)
+        if (this.hoveredSlot != null && this.hoveredSlot.hasItem()) {
+            guiGraphics.renderTooltip(this.font, this.hoveredSlot.getItem(), mouseX, mouseY);
+        }
     }
 } 

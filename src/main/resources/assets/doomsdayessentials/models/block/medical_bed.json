@@ -1,0 +1,9 @@
+{
+  "parent": "doomsdayessentials:custom/medical_bed",
+  "textures": {
+    "all": "doomsdayessentials:block/medical_bed",
+    "particle": "doomsdayessentials:block/medical_bed",
+    "0": "doomsdayessentials:block/medical_bed"
+  },
+  "render_type": "cutout_mipped"
+}

@@ -38,8 +38,8 @@ public final class ProfissaoManager {
     // ---------------------------------------------------------------------
 
     public static void setProfession(UUID playerUUID, String profession) {
-        if ("medico".equalsIgnoreCase(profession) && !canBecomeMedico()) {
-            EssentialsMod.LOGGER.info("Player {} tried to become a medico but the limit has been reached.", playerUUID);
+        if (!canBecome(profession)) {
+            EssentialsMod.LOGGER.info("Player {} tried to become a {} but the limit has been reached.", playerUUID, profession);
             return;
         }
         playerProfessions.put(playerUUID, profession);
@@ -59,16 +59,47 @@ public final class ProfissaoManager {
         return playerProfessions.containsKey(playerUUID);
     }
 
+    // ---------------------------------------------------------------------
+    // Limit helpers
+    // ---------------------------------------------------------------------
+
     /**
-     * True if there is room for another Medico according to the config limit.
+     * Generic limit checker for any registered profession.
+     * Returns true if there is room for another player of this profession
+     * or if the limit is set to 0 (unlimited).
      */
-    public static boolean canBecomeMedico() {
-        long medicoCount = playerProfessions.values().stream()
-                .filter(p -> "medico".equalsIgnoreCase(p))
+    public static boolean canBecome(String professionId) {
+        String id = professionId == null ? "" : professionId.toLowerCase();
+        int maxAllowed;
+        switch (id) {
+            case "medico" -> maxAllowed = ProfessionConfig.MEDICO_MAX_COUNT.get();
+            case "combatente" -> maxAllowed = ProfessionConfig.COMBATENTE_MAX_COUNT.get();
+            case "rastreador" -> maxAllowed = ProfessionConfig.RASTREADOR_MAX_COUNT.get();
+            default -> {
+                // No limit defined for unknown professions
+                return true;
+            }
+        }
+
+        if (maxAllowed == 0) return true; // Unlimited
+
+        long currentCount = playerProfessions.values().stream()
+                .filter(p -> id.equalsIgnoreCase(p))
                 .count();
-        int maxMedicos = ProfessionConfig.MEDICO_MAX_COUNT.get();
-        EssentialsMod.LOGGER.info("Current medico count: {}, Max allowed: {}", medicoCount, maxMedicos);
-        return medicoCount < maxMedicos;
+        EssentialsMod.LOGGER.info("Current {} count: {}, Max allowed: {}", id, currentCount, maxAllowed);
+        return currentCount < maxAllowed;
+    }
+
+    public static boolean canBecomeMedico() {
+        return canBecome("medico");
+    }
+
+    public static boolean canBecomeCombatente() {
+        return canBecome("combatente");
+    }
+
+    public static boolean canBecomeRastreador() {
+        return canBecome("rastreador");
     }
 
     // ---------------------------------------------------------------------

@@ -22,6 +22,8 @@ import net.minecraft.ChatFormatting;
 import com.mojang.brigadier.suggestion.SuggestionsBuilder;
 import java.util.concurrent.CompletableFuture;
 import com.mojang.brigadier.arguments.IntegerArgumentType;
+import net.minecraft.network.chat.ClickEvent;
+import net.minecraft.network.chat.MutableComponent;
 
 @Mod.EventBusSubscriber(modid = org.lupz.doomsdayessentials.EssentialsMod.MOD_ID, bus = Mod.EventBusSubscriber.Bus.FORGE)
 public class AreaCommand {
@@ -72,6 +74,7 @@ public class AreaCommand {
                                 b.suggest("disable_fall_damage");
                                 b.suggest("prevent_hunger_loss");
                                 b.suggest("heal_players");
+                                b.suggest("radiation_damage");
                                 b.suggest("entry_message");
                                 b.suggest("exit_message");
                                 return b.buildFuture();
@@ -108,6 +111,10 @@ public class AreaCommand {
                  "allow_flight", "disable_fall_damage", "prevent_hunger_loss", "heal_players" -> {
                 b.suggest("true");
                 b.suggest("false");
+            }
+            case "radiation_damage" -> {
+                b.suggest("2.0");
+                b.suggest("4.0");
             }
             case "entry_message", "exit_message" -> b.suggest("\"Welcome to the safezone!\"");
         }
@@ -165,8 +172,19 @@ public class AreaCommand {
                     Component.literal("DANGER").withStyle(ChatFormatting.RED) :
                     Component.literal("SAFE").withStyle(ChatFormatting.GREEN);
 
+            BlockPos c = new BlockPos((area.getPos1().getX()+area.getPos2().getX())/2,
+                                       (area.getPos1().getY()+area.getPos2().getY())/2,
+                                       (area.getPos1().getZ()+area.getPos2().getZ())/2);
+
+            MutableComponent tpBtn = Component.literal(" [TP]").withStyle(ChatFormatting.AQUA)
+                    .withStyle(style -> style.withClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND,
+                            "/tp @s " + c.getX() + " " + c.getY() + " " + c.getZ()))
+                            .withHoverEvent(new net.minecraft.network.chat.HoverEvent(net.minecraft.network.chat.HoverEvent.Action.SHOW_TEXT,
+                                    Component.literal("Clique para teleportar"))).withUnderlined(true));
+
             ctx.getSource().sendSuccess(() -> Component.literal("- ").withStyle(ChatFormatting.GRAY)
                     .append(Component.literal(area.getName()).withStyle(ChatFormatting.WHITE))
+                    .append(tpBtn)
                     .append(Component.literal(" (").withStyle(ChatFormatting.GRAY))
                     .append(typeComponent)
                     .append(Component.literal(")").withStyle(ChatFormatting.GRAY)), false);
@@ -287,6 +305,16 @@ public class AreaCommand {
                 area.setHealPlayers(Boolean.parseBoolean(valueStr));
                 success = true;
                 successMessage = "Player healing in '" + name + "' " + (area.isHealPlayers() ? "enabled" : "disabled") + ".";
+            }
+            case "radiation_damage" -> {
+                try {
+                    float dmg = Float.parseFloat(valueStr);
+                    area.setRadiationDamage(dmg);
+                    success = true;
+                    successMessage = "Radiation damage in '" + name + "' set to " + dmg + " HP per second.";
+                } catch (NumberFormatException ex) {
+                    ctx.getSource().sendFailure(Component.literal("Invalid number for radiation_damage").withStyle(ChatFormatting.RED));
+                }
             }
             case "entry_message" -> {
                 area.setEntryMessage(valueStr);

@@ -49,9 +49,12 @@ public class ClientCombatRenderHandler {
     private static final ResourceLocation COMBAT_ICON = ResourceLocation.fromNamespaceAndPath(EssentialsMod.MOD_ID, "textures/gui/combat_icon.png");
     private static final ResourceLocation DANGER_ZONE_TEXTURE = ResourceLocation.fromNamespaceAndPath(EssentialsMod.MOD_ID, "textures/gui/danger_zone.png");
     private static final ResourceLocation SAFE_ZONE_TEXTURE = ResourceLocation.fromNamespaceAndPath(EssentialsMod.MOD_ID, "textures/gui/safe_zone.png");
+    private static final ResourceLocation IN_COMBAT_ICON = ResourceLocation.fromNamespaceAndPath(EssentialsMod.MOD_ID, "textures/gui/incombat.png");
+    private static final ResourceLocation FREQUENCY_OVERLAY = ResourceLocation.fromNamespaceAndPath(EssentialsMod.MOD_ID, "textures/misc/frequencia_overlay.png");
 
     private static boolean wasInDangerZone = false;
     private static boolean wasInSafeArea = false;
+    private static boolean wasInFrequencyZone = false;
 
     private ClientCombatRenderHandler() {}
 
@@ -111,6 +114,7 @@ public class ClientCombatRenderHandler {
         boolean inSafe = currentArea != null && currentArea.getType() == AreaType.SAFE;
         boolean inCombat = ClientCombatState.isPlayerInCombat(mc.player.getUUID());
         long combatEndTime = ClientCombatState.getCombatEndTime(mc.player.getUUID());
+        boolean inFrequency = currentArea != null && currentArea.getType() == AreaType.FREQUENCY;
 
         GuiGraphics guiGraphics = event.getGuiGraphics();
         PoseStack poseStack = guiGraphics.pose();
@@ -120,31 +124,45 @@ public class ClientCombatRenderHandler {
         int screenHeight = event.getWindow().getGuiScaledHeight();
         Font font = mc.font;
 
-        // Render Combat Status & Timer
+        // Render In-combat HUD (icon + optional countdown)
         if (inCombat || inDanger) {
-            long remainingSeconds = (combatEndTime - System.currentTimeMillis()) / 1000;
-            Component combatText = Component.literal("ᴇᴍ ᴄᴏᴍʙᴀᴛᴇ").withStyle(ChatFormatting.BOLD, ChatFormatting.RED);
+            long remainingSeconds = Math.max(0, (combatEndTime - System.currentTimeMillis()) / 1000);
 
+            // Draw the "in-combat" banner smaller than its native resolution but keep the
+            // original aspect-ratio so the texture is not stretched.
+            int iconSrcW = 190;
+            int iconSrcH = 45;
+
+            // Decrease banner size when GUI scale option is 3 or higher (large UIs)
+            int guiScaleSetting = Minecraft.getInstance().options.guiScale().get(); // 0 = Auto
+            float scaleFactor = (guiScaleSetting >= 3 || guiScaleSetting == 0 && screenWidth < 700) ? 0.6F : 1.0F;
+
+            int iconW = Math.round(iconSrcW * scaleFactor);
+            int iconH = Math.round(iconSrcH * scaleFactor);
+
+            int xIcon = (screenWidth - iconW) / 2;
+            int yIcon = screenHeight - iconH - 50;
+
+            RenderSystem.setShaderTexture(0, IN_COMBAT_ICON);
+            guiGraphics.blit(IN_COMBAT_ICON, xIcon, yIcon, 0, 0,
+                            iconW, iconH, iconSrcW, iconSrcH);
+
+            // Draw countdown (in seconds) centred beneath the icon when applicable and not in danger zone
             if (remainingSeconds > 0 && !inDanger) {
-                // Only show timer when not in a danger zone
-                 Component timerText = Component.literal(" (").withStyle(ChatFormatting.RED)
-                     .append(Component.literal(String.valueOf(remainingSeconds)).withStyle(ChatFormatting.YELLOW))
-                     .append(Component.literal("s)").withStyle(ChatFormatting.RED));
-                combatText = combatText.copy().append(timerText);
+                Component timer = Component.literal(String.valueOf(remainingSeconds)).withStyle(ChatFormatting.YELLOW);
+                int w = font.width(timer);
+                guiGraphics.drawString(font, timer, (screenWidth - w) / 2, yIcon + iconH + 4, 0xFFFFFF, true);
             }
 
-            int textWidth = font.width(combatText);
-            int x = (screenWidth - textWidth) / 2;
-            int y = screenHeight - 59; // Position above the hotbar.
-            guiGraphics.drawString(font, combatText, x, y, 0xFFFFFF, true);
-
-            // Render combat icon
-            RenderSystem.setShaderTexture(0, COMBAT_ICON);
-            int iconX = x - 20;
-            int iconY = y - 2;
-            guiGraphics.blit(COMBAT_ICON, iconX, iconY, 0, 0, 16, 16, 16, 16);
+            // Draw small swords icon to left of hotbar when in direct combat (not just danger zone)
+            if (inCombat) {
+                int hudY = screenHeight - 32;
+                int hudX = screenWidth / 2 - 98; // same offset as vanilla status icons
+                RenderSystem.setShaderTexture(0, COMBAT_ICON);
+                guiGraphics.blit(COMBAT_ICON, hudX, hudY, 0, 0, 16, 16, 16, 16);
+            }
         } else if (inSafe) {
-            Component safeText = Component.literal("ᴠᴏᴄê ᴇѕᴛá ᴇᴍ ᴜᴍᴀ ᴢᴏɴᴀ ѕᴇɢᴜʀᴀ").withStyle(ChatFormatting.BOLD, ChatFormatting.GREEN);
+            Component safeText = Component.literal("ᴠᴏᴄê ᴇsᴛá ᴇᴍ ᴜᴍᴀ ᴢᴏɴᴀ ѕᴇɢᴜʀᴀ").withStyle(ChatFormatting.BOLD, ChatFormatting.GREEN);
             int textWidth = font.width(safeText);
             int x = (screenWidth - textWidth) / 2;
             int y = screenHeight - 59; // Position above the hotbar.
@@ -160,6 +178,22 @@ public class ClientCombatRenderHandler {
             }
         }
 
+        // Full-screen red overlay when inside a Frequency zone (if player is not immune)
+        if (inFrequency && !mc.player.hasEffect(org.lupz.doomsdayessentials.effect.ModEffects.FREQUENCY.get())) {
+            RenderSystem.disableDepthTest();
+            RenderSystem.depthMask(false);
+            RenderSystem.enableBlend();
+            RenderSystem.defaultBlendFunc();
+            // darker red with 40% opacity
+            RenderSystem.setShaderColor(0.6F, 0.0F, 0.0F, 0.4F);
+            RenderSystem.setShaderTexture(0, FREQUENCY_OVERLAY);
+            guiGraphics.blit(FREQUENCY_OVERLAY, 0, 0, 0, 0, screenWidth, screenHeight, 16, 16);
+            RenderSystem.setShaderColor(1.0F, 1.0F, 1.0F, 1.0F);
+            RenderSystem.disableBlend();
+            RenderSystem.depthMask(true);
+            RenderSystem.enableDepthTest();
+        }
+
         poseStack.popPose();
     }
 
@@ -173,7 +207,14 @@ public class ClientCombatRenderHandler {
     private void renderDangerZoneOverlay(GuiGraphics guiGraphics) {
         RenderSystem.enableBlend();
         int screenHeight = guiGraphics.guiHeight();
-        guiGraphics.blit(DANGER_ZONE_TEXTURE, 10, screenHeight - 64 - 5, 0, 0, 64, 64, 64, 64);
+
+        PoseStack stack = guiGraphics.pose();
+        stack.pushPose();
+        stack.translate(10, screenHeight - 96 - 5, 0);
+        stack.scale(1.5f, 1.5f, 1f);
+        RenderSystem.setShaderTexture(0, DANGER_ZONE_TEXTURE);
+        guiGraphics.blit(DANGER_ZONE_TEXTURE, 0, 0, 0, 0, 64, 64, 64, 64);
+        stack.popPose();
         RenderSystem.disableBlend();
     }
 
@@ -238,7 +279,15 @@ public class ClientCombatRenderHandler {
         }
         wasInSafeArea = nowInSafe;
         
-        // Particle spawning logic can be added here if desired, based on the example.
+        // Frequency zone entry sound
+        ManagedArea curArea = ClientCombatState.getPlayerArea(mc.player);
+        boolean nowInFreq = curArea != null && curArea.getType() == AreaType.FREQUENCY;
+        if (nowInFreq && !wasInFrequencyZone) {
+            playSound(org.lupz.doomsdayessentials.sound.ModSounds.FREQUENCIA1.get());
+        }
+        wasInFrequencyZone = nowInFreq;
+
+        // Particle spawning logic can be added here if desired.
     }
     
     private void playSound(SoundEvent sound) {

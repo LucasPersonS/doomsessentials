@@ -28,6 +28,7 @@ public final class ProfessionEvents {
         if (prof == null) return;
         switch (prof.toLowerCase()) {
             case "combatente" -> CombatenteProfession.applyBonuses(player);
+            case "rastreador" -> RastreadorProfession.applyBonuses(player);
             // Add future professions here
         }
     }

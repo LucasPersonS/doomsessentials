@@ -26,6 +26,9 @@ import net.minecraftforge.event.entity.EntityMobGriefingEvent;
 import org.lupz.doomsdayessentials.sound.ModSounds;
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerLevel;
+import org.lupz.doomsdayessentials.effect.ModEffects;
+import net.minecraft.world.effect.MobEffects;
+import net.minecraft.world.effect.MobEffectInstance;
 
 import java.util.Map;
 import java.util.UUID;
@@ -35,8 +38,8 @@ import java.util.HashMap;
 @Mod.EventBusSubscriber(bus = Mod.EventBusSubscriber.Bus.FORGE)
 public class AreaEvents {
 
-    private static final Map<UUID, ManagedArea> lastArea = new ConcurrentHashMap<>();
-    private static final Map<UUID, Boolean> flightGrantedByMod = new ConcurrentHashMap<>();
+    private static final Map<UUID, ManagedArea> lastArea = new HashMap<>();
+    private static final Map<UUID, Boolean> flightGrantedByMod = new HashMap<>();
 
     @SubscribeEvent
     public static void onPlayerTick(TickEvent.PlayerTickEvent e) {
@@ -75,8 +78,10 @@ public class AreaEvents {
                 }
                 flightGrantedByMod.remove(player.getUUID());
             }
-            // Trigger combat countdown if leaving a DANGER zone
-            if (from.getType() == AreaType.DANGER && (to == null || to.getType() != AreaType.DANGER)) {
+            // Trigger combat countdown if leaving a hazard zone (danger / frequency)
+            boolean fromHazard = from.getType() == AreaType.DANGER;
+            boolean toHazard = to != null && to.getType() == AreaType.DANGER;
+            if (fromHazard && !toHazard) {
                 CombatManager.get().tagPlayer(player);
             }
         }
@@ -106,6 +111,13 @@ public class AreaEvents {
             }
         }
         
+        // Radiation damage (once per second) unless player has the Frequency effect
+        if (area.getRadiationDamage() > 0) {
+            if (!player.hasEffect(ModEffects.FREQUENCY.get()) && player.tickCount % 20 == 0) {
+                player.hurt(player.damageSources().wither(), area.getRadiationDamage());
+            }
+        }
+        
         // Prevent hunger loss
         if (area.isPreventHungerLoss()) {
             if (player.getFoodData().getFoodLevel() < 20) {
@@ -113,6 +125,14 @@ public class AreaEvents {
             }
             if (player.getFoodData().getSaturationLevel() < 5.0f) {
                 player.getFoodData().setSaturation(5.0f);
+            }
+        }
+
+        // Darkness effect inside Frequency zones (unless immune)
+        if (area.getType() == AreaType.FREQUENCY) {
+            if (!player.hasEffect(ModEffects.FREQUENCY.get())) {
+                // Apply Darkness for 2 seconds (will be refreshed each tick)
+                player.addEffect(new MobEffectInstance(MobEffects.DARKNESS, 40, 0, false, false));
             }
         }
     }

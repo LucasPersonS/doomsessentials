@@ -15,6 +15,7 @@ import org.lupz.doomsdayessentials.injury.capability.InjuryCapability;
 import org.lupz.doomsdayessentials.injury.capability.InjuryCapabilityProvider;
 import org.lupz.doomsdayessentials.injury.network.InjuryNetwork;
 import org.lupz.doomsdayessentials.injury.network.UpdateHealingProgressPacket;
+import org.lupz.doomsdayessentials.professions.MedicalHelpManager;
 
 public class InjuryHelper {
 
@@ -61,8 +62,8 @@ public class InjuryHelper {
         if (EssentialsConfig.INJURY_SYSTEM_ENABLED.get()) {
             getCapability(player).ifPresent(cap -> {
                 if (cap.getInjuryLevel() > 0) {
+                    cap.setHealCooldown(cap.getHealCooldown() + 1);
                     int cooldown = cap.getHealCooldown();
-                    cap.setHealCooldown(cooldown + 1);
                     int healingTimeMinutes = EssentialsConfig.HEALING_BED_TIME_MINUTES.get();
                     int healingTimeTicks = healingTimeMinutes * 20 * 60;
 
@@ -76,12 +77,38 @@ public class InjuryHelper {
                         if (cooldown % 20 == 0) {
                             float progress = (float) cooldown / (float) healingTimeTicks;
                             InjuryNetwork.sendToPlayer(new UpdateHealingProgressPacket(progress), serverPlayer);
+
+                            // Send action bar with remaining time
+                            int secondsRemaining = (healingTimeTicks - cooldown) / 20;
+                            int minutes = secondsRemaining / 60;
+                            int secs = secondsRemaining % 60;
+                            Component bar = Component.literal(String.format("§eRecuperação: %02d:%02d", minutes, secs));
+                            serverPlayer.displayClientMessage(bar, true);
                         }
                     }
 
                     if (cooldown + 1 >= healingTimeTicks) {
                         healPlayer(player, 1);
                         cap.setHealCooldown(0);
+
+                        // If player fully healed, release from bed
+                        if (cap.getInjuryLevel() <= 0) {
+                            if (player.isSleeping()) {
+                                player.stopSleepInBed(true, true);
+                            }
+                            player.getPersistentData().remove("healingBedLock");
+                            player.getPersistentData().remove("healingBedX");
+                            player.getPersistentData().remove("healingBedY");
+                            player.getPersistentData().remove("healingBedZ");
+
+                            if (player instanceof ServerPlayer sp2) {
+                                InjuryNetwork.sendToPlayer(new UpdateHealingProgressPacket(-1f), sp2);
+                            }
+                        }
+
+                        if (player instanceof ServerPlayer sp) {
+                            InjuryNetwork.sendToPlayer(new org.lupz.doomsdayessentials.injury.network.UpdateInjuryLevelPacket(cap.getInjuryLevel()), sp);
+                        }
                     }
                 }
             });
@@ -94,6 +121,9 @@ public class InjuryHelper {
                 int oldLevel = cap.getInjuryLevel();
                 if (oldLevel > 0) {
                     int newLevel = cap.decrementInjuryLevel(amount);
+                    if (player instanceof ServerPlayer sp)
+                        InjuryNetwork.sendToPlayer(new org.lupz.doomsdayessentials.injury.network.UpdateInjuryLevelPacket(newLevel), sp);
+
                     if (newLevel <= 0) {
                         player.sendSystemMessage(Component.translatable("injury.healed.full"));
                     } else {
@@ -122,6 +152,13 @@ public class InjuryHelper {
                         healer.sendSystemMessage(Component.translatable("medico.heal.healer.partial", newLevel));
                     }
                     target.playSound(SoundEvents.PLAYER_LEVELUP, 1.0F, 1.5F);
+
+                    java.util.UUID medicoUuid = MedicalHelpManager.completeRequest(target.getUUID());
+                    if (medicoUuid != null && healer.getUUID().equals(medicoUuid)) {
+                        healer.getPersistentData().remove("medicoHelpTarget");
+                        healer.sendSystemMessage(Component.literal("§aChamado concluído!"));
+                        target.sendSystemMessage(Component.literal("§aVocê foi atendido pelo médico."));
+                    }
                 }
             });
         }

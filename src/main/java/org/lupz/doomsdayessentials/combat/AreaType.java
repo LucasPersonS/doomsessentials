@@ -8,7 +8,8 @@ package org.lupz.doomsdayessentials.combat;
  */
 public enum AreaType {
     DANGER,
-    SAFE;
+    SAFE,
+    FREQUENCY;
 
     public boolean isDanger() {
         return this == DANGER;
