@@ -2,6 +2,7 @@ package org.lupz.doomsdayessentials.professions;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import net.minecraftforge.server.ServerLifecycleHooks;
 import org.lupz.doomsdayessentials.EssentialsMod;
 import org.lupz.doomsdayessentials.config.EssentialsConfig;
 
@@ -39,7 +40,7 @@ public final class ProfissaoManager {
 
     public static void setProfession(UUID playerUUID, String profession) {
         if (!canBecome(profession)) {
-            net.minecraft.server.level.ServerPlayer player = net.minecraft.server.MinecraftServer.getInstance().getPlayerList().getPlayer(playerUUID);
+            net.minecraft.server.level.ServerPlayer player = ServerLifecycleHooks.getCurrentServer().getPlayerList().getPlayer(playerUUID);
             if (player != null) {
                 player.sendSystemMessage(net.minecraft.network.chat.Component.literal("§cO limite para a profissão " + profession + " foi atingido."));
             }

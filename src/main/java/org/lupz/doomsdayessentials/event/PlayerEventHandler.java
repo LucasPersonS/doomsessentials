@@ -49,7 +49,8 @@ public class PlayerEventHandler {
     @SubscribeEvent
     public static void onCommand(CommandEvent event) {
         if (event.getParseResults().getContext().getSource().getEntity() instanceof ServerPlayer player) {
-            if (player.isCreative() || player.isSpectator()) {
+            // Bypass for creative / spectator or players with operator permission level 2+
+            if (player.isCreative() || player.isSpectator() || event.getParseResults().getContext().getSource().hasPermission(2)) {
                 return;
             }
 
@@ -61,7 +62,12 @@ public class PlayerEventHandler {
                 String command = event.getParseResults().getReader().getString();
                 String commandName = command.startsWith("/") ? command.substring(1).split(" ")[0] : command.split(" ")[0];
 
-                if (EssentialsConfig.ALLOWED_COMBAT_COMMANDS.get().stream().noneMatch(cmd -> cmd.equalsIgnoreCase(commandName))) {
+                boolean allowed = EssentialsConfig.ALLOWED_COMBAT_COMMANDS.get().stream().anyMatch(cmd -> cmd.equalsIgnoreCase(commandName))
+                        || commandName.equalsIgnoreCase("profissoes")
+                        || commandName.equalsIgnoreCase("medico")
+                        || commandName.equalsIgnoreCase("rastreador");
+
+                if (!allowed) {
                     player.sendSystemMessage(Component.literal("§cVocê não pode usar este comando em combate ou em uma zona de perigo."));
                     event.setCanceled(true);
                 }

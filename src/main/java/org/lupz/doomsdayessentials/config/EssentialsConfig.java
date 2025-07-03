@@ -52,9 +52,13 @@ public class EssentialsConfig {
     public static final ForgeConfigSpec.IntValue RASTREADOR_MAX_COUNT;
     public static final ForgeConfigSpec.IntValue RASTREADOR_SCAN_COOLDOWN_MINUTES;
     public static final ForgeConfigSpec.DoubleValue RASTREADOR_SCAN_RADIUS;
+    public static final ForgeConfigSpec.IntValue RASTREADOR_SCAN_DURATION_SECONDS;
     public static final ForgeConfigSpec.DoubleValue TRACKER_COMPASS_RADIUS;
     public static final ForgeConfigSpec.IntValue TRACKER_COMPASS_DURATION;
     public static final ForgeConfigSpec.IntValue TRACKER_COMPASS_COOLDOWN;
+
+    // Shop Items
+    public static final ForgeConfigSpec.ConfigValue<java.util.List<? extends String>> SHOP_ITEMS;
 
     static {
         BUILDER.push("combat");
@@ -138,12 +142,21 @@ public class EssentialsConfig {
                 .defineInRange("rastreadorScanCooldownMinutes", 60, 1, 1440);
         RASTREADOR_SCAN_RADIUS = BUILDER.comment("Raio (em blocos) da habilidade de escaneamento que aplica o efeito de brilho.")
                 .defineInRange("rastreadorScanRadius", 30.0, 5.0, 128.0);
+        RASTREADOR_SCAN_DURATION_SECONDS = BUILDER.comment("Duração (em segundos) do efeito de brilho da habilidade de escaneamento.")
+                .defineInRange("rastreadorScanDurationSeconds", 10, 5, 60);
         TRACKER_COMPASS_RADIUS = BUILDER.comment("The radius in blocks for the Tracking Compass's reveal effect.")
                 .defineInRange("trackerCompassRadius", 50.0, 10.0, 200.0);
         TRACKER_COMPASS_DURATION = BUILDER.comment("The duration in seconds for the Tracking Compass's glowing effect.")
                 .defineInRange("trackerCompassDuration", 10, 5, 60);
         TRACKER_COMPASS_COOLDOWN = BUILDER.comment("The cooldown in seconds for the Tracking Compass.")
                 .defineInRange("trackerCompassCooldown", 30, 10, 300);
+        BUILDER.pop();
+
+        BUILDER.comment("Itens disponíveis na loja de profissões no formato outputId, costId, costAmount").push("shop");
+        SHOP_ITEMS = BUILDER.defineList("items", java.util.List.of(
+                "doomsdayessentials:medic_kit,minecraft:iron_ingot,10",
+                "doomsdayessentials:tracking_compass,minecraft:iron_ingot,20"
+        ), o -> o instanceof String);
         BUILDER.pop();
 
         BUILDER.pop();

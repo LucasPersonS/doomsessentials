@@ -180,9 +180,9 @@ public class AreaEvents {
     }
 
     @SubscribeEvent
-    public static void onExplosion(ExplosionEvent.Start event) {
+    public static void onExplosion(ExplosionEvent.Detonate event) {
         if (event.getLevel() instanceof ServerLevel level) {
-            // We can't just check the explosion's origin. We need to check every block.
+            // Remove any blocks that are inside an area with prevent_explosions enabled
             event.getExplosion().getToBlow().removeIf(blockPos -> {
                 ManagedArea area = AreaManager.get().getAreaAt(level, blockPos);
                 return area != null && area.isPreventExplosions();

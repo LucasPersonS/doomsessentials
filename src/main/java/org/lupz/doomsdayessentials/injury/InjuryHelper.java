@@ -20,6 +20,7 @@ import org.lupz.doomsdayessentials.injury.network.UpdateInjuryLevelPacket;
 import org.lupz.doomsdayessentials.professions.MedicalHelpManager;
 import org.lupz.doomsdayessentials.block.ModBlocks;
 import net.minecraft.core.Direction;
+import net.minecraft.core.BlockPos;
 import net.minecraft.world.level.block.state.BlockState;
 import org.lupz.doomsdayessentials.block.MedicalBedBlock;
 
@@ -67,12 +68,11 @@ public class InjuryHelper {
         getCapability(player).ifPresent(cap -> {
             if (!cap.isDowned()) return;
             cap.setDowned(false, null);
-            cap.setInjuryLevel(0);
             player.clearFire();
             player.removeAllEffects();
             if (player instanceof ServerPlayer sp) {
                 InjuryNetwork.sendToPlayer(new UpdateDownedStatePacket(false, 0), sp);
-                InjuryNetwork.sendToPlayer(new UpdateInjuryLevelPacket(0), sp);
+                InjuryNetwork.sendToPlayer(new UpdateInjuryLevelPacket(cap.getInjuryLevel()), sp);
             }
         });
     }

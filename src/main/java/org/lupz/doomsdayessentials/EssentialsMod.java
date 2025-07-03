@@ -88,6 +88,7 @@ public class EssentialsMod {
             event.enqueueWork(() -> {
                 ClientCombatRenderHandler.init();
                 MenuScreens.register(ProfessionMenuTypes.PROFISSOES_MENU.get(), ProfissoesScreen::new);
+                MenuScreens.register(ProfessionMenuTypes.SHOP_MENU.get(), org.lupz.doomsdayessentials.professions.menu.ShopScreen::new);
             });
         }
     }

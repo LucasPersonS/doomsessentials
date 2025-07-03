@@ -65,14 +65,17 @@
   "profession.combatente.gui.lore3": "§fBônus Passivos:",
   "profession.combatente.gui.lore4": "§a- Vitalidade Aumentada (+5 corações).",
   "profession.combatente.gui.lore5": "§a- Agilidade em Combate (Velocidade I).",
+  "profession.combatente.gui.lore6": "§a- Resistência a danos aumentada.",
+  "profession.combatente.become": "§aVocê agora é um §eCombatente§a! Use seus bônus para se destacar em qualquer batalha.",
 
   "profession.rastreador.gui.name": "§bRASTREADOR",
   "profession.rastreador.gui.lore1": "§7Um caçador silencioso que espreita nas sombras,",
   "profession.rastreador.gui.lore2": "§7revelando a posição de inimigos próximos.",
   "profession.rastreador.gui.lore3": "§fHabilidades:",
   "profession.rastreador.gui.lore4": "§a- §bVisão Noturna§a passiva.",
-  "profession.rastreador.gui.lore5": "§a- §b/rastreador glow§a: Revela inimigos próximos.",
+  "profession.rastreador.gui.lore5": "§a- §bRastreador§a: Revela inimigos próximos com uma bússola.",
   "profession.rastreador.gui.lore6": "§a- Recebe uma §bBússola de Rastreador§a.",
+  "profession.rastreador.become": "§aVocê agora é um §eRastreador§a! Use sua bússola para revelar inimigos próximos.",
 
   "item.tracking_compass.not_tracker": "§cApenas Rastreadores podem usar este item.",
   "profession.change.denied": "§cVocê não pode alterar sua profissão.",
@@ -120,5 +123,10 @@
   "medico.heal.healer.full": "§aVocê curou completamente o seu alvo.",
   "medico.heal.target.partial": "§aO médico reduziu seu nível de ferimento para §e%d§a.",
   "medico.heal.healer.partial": "§aVocê reduziu o nível de ferimento do alvo para §e%d§a.",
-  "injury.increased": "§cSeu nível de ferimento aumentou para §e%d§c."
+  "injury.increased": "§cSeu nível de ferimento aumentou para §e%d§c.",
+  "profession.leave": "§7Você deixou sua profissão.",
+  "item.doomsdayessentials.medic_kit.desc1": "Kit de primeiros socorros para tratamento de emergência.",
+  "item.doomsdayessentials.medic_kit.desc2": "Ressuscita aliados abatidos ou cura jogadores em área próxima.",
+  "item.doomsdayessentials.tracking_compass.desc1": "Ferramenta do Rastreador para revelar inimigos próximos.",
+  "item.doomsdayessentials.tracking_compass.desc2": "Tempo de recarga só aplica quando alguém é revelado."
 } 

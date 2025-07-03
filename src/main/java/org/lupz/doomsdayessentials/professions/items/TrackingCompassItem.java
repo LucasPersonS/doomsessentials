@@ -51,6 +51,5 @@ public class TrackingCompassItem extends Item implements Vanishable {
         super.appendHoverText(stack, level, tooltip, flag);
         tooltip.add(Component.translatable("item.doomsdayessentials.tracking_compass.desc1").withStyle(ChatFormatting.GRAY));
         tooltip.add(Component.translatable("item.doomsdayessentials.tracking_compass.desc2").withStyle(ChatFormatting.DARK_GREEN));
-        tooltip.add(Component.literal("§7Use o Compasso para revelar jogadores próximos."));
     }
 } 

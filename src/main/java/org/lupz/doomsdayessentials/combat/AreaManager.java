@@ -34,6 +34,7 @@ import java.util.stream.Collectors;
  */
 public class AreaManager {
 
+    private static final Codec<Map<String, ManagedArea>> AREAS_CODEC = Codec.unboundedMap(Codec.STRING, ManagedArea.CODEC);
     private static final AreaManager INSTANCE = new AreaManager();
 
     public static AreaManager get() {
@@ -47,7 +48,6 @@ public class AreaManager {
     private final Map<ResourceKey<Level>, List<ManagedArea>> areasByDimension = new ConcurrentHashMap<>();
     private final Map<String, ManagedArea> areasByName = new ConcurrentHashMap<>();
 
-    private static final Codec<Map<String, ManagedArea>> AREAS_CODEC = Codec.unboundedMap(Codec.STRING, ManagedArea.CODEC);
     private final Path saveFile;
     private final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
 

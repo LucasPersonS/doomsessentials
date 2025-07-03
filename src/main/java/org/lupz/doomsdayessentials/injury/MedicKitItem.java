@@ -54,18 +54,20 @@ public class MedicKitItem extends Item {
          if (!level.isClientSide) {
             double range = EssentialsConfig.MEDIC_HEAL_RADIUS.get();
             int hearts = EssentialsConfig.MEDIC_HEAL_AMOUNT.get().intValue();
-            float healAmount = hearts; // Convert hearts to half-hearts
+            float healAmount = hearts; // hearts already half-hearts in config
+
+            java.util.concurrent.atomic.AtomicBoolean anyHealed = new java.util.concurrent.atomic.AtomicBoolean(false);
 
             AABB area = new AABB(player.blockPosition()).inflate(range);
             level.getEntitiesOfClass(Player.class, area).forEach(p -> {
-                if (p != player && player.distanceToSqr(p) <= range * range) { // Check spherical radius & not self
+                if (player.distanceToSqr(p) <= range * range) { // Check spherical radius
                     InjuryHelper.getCapability(p).ifPresent(cap -> {
                         boolean healed = false;
-                        if(cap.isDowned()) {
+                        if (cap.isDowned()) {
                             cap.setDowned(false, null);
                             cap.setDownedUntil(0L);
                             InjuryEvents.clearDownedSource(p.getUUID());
-                            p.setHealth(p.getMaxHealth() * 0.5f); // Restore to half health
+                            p.setHealth(Math.max(p.getMaxHealth() * 0.5f, 6f)); // At least 3 hearts
                             p.setPose(net.minecraft.world.entity.Pose.STANDING);
                             p.sendSystemMessage(Component.translatable("item.doomsdayessentials.medic_kit.revived_by_medic", player.getDisplayName()).withStyle(ChatFormatting.GREEN));
                             InjuryNetwork.sendToPlayer(new UpdateDownedStatePacket(false, 0L), (ServerPlayer) p);
@@ -74,25 +76,32 @@ public class MedicKitItem extends Item {
                         } else if (p.getHealth() < p.getMaxHealth()) {
                             float newHealth = Math.min(p.getMaxHealth(), p.getHealth() + healAmount);
                             p.setHealth(newHealth);
+                            // Optional regeneration effect – 10s Regen I
+                            p.addEffect(new net.minecraft.world.effect.MobEffectInstance(net.minecraft.world.effect.MobEffects.REGENERATION, 200, 0));
                             player.sendSystemMessage(Component.translatable("item.doomsdayessentials.medic_kit.healed_player", p.getDisplayName()).withStyle(ChatFormatting.GREEN));
                             healed = true;
                         }
 
                         if (healed) {
+                            anyHealed.set(true);
                             p.sendSystemMessage(Component.translatable("item.doomsdayessentials.medic_kit.healed_by_medic", player.getDisplayName()).withStyle(ChatFormatting.GREEN));
                         }
                     });
                 }
             });
 
-            if (level instanceof ServerLevel serverLevel) {
-                serverLevel.sendParticles(ParticleTypes.HEART, player.getX(), player.getY() + 1.0, player.getZ(), 15, 0.5, 0.5, 0.5, 0.02);
-            }
+            if (anyHealed.get()) {
+                if (level instanceof ServerLevel serverLevel) {
+                    serverLevel.sendParticles(ParticleTypes.HEART, player.getX(), player.getY() + 1.0, player.getZ(), 15, 0.5, 0.5, 0.5, 0.02);
+                }
 
-            level.playSound(null, player.getX(), player.getY(), player.getZ(), SoundEvents.PLAYER_LEVELUP, SoundSource.PLAYERS, 1.0F, 1.5F);
+                level.playSound(null, player.getX(), player.getY(), player.getZ(), SoundEvents.PLAYER_LEVELUP, SoundSource.PLAYERS, 1.0F, 1.5F);
 
-            if (!player.getAbilities().instabuild) {
-                stack.shrink(1);
+                if (!player.getAbilities().instabuild) {
+                    stack.shrink(1);
+                }
+            } else {
+                player.sendSystemMessage(Component.translatable("item.medic_kit.no_target").withStyle(ChatFormatting.YELLOW));
             }
 
             return stack;

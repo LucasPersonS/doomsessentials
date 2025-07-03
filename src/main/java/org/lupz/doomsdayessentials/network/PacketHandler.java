@@ -9,6 +9,7 @@ import org.lupz.doomsdayessentials.killfeed.network.packet.KillFeedPacket;
 import org.lupz.doomsdayessentials.network.packet.s2c.SyncAreasPacket;
 import org.lupz.doomsdayessentials.network.packet.s2c.SyncCombatStatePacket;
 import org.lupz.doomsdayessentials.professions.network.SelectProfessionPacket;
+import org.lupz.doomsdayessentials.professions.network.BuyShopItemPacket;
 
 public class PacketHandler {
 
@@ -45,6 +46,12 @@ public class PacketHandler {
                 .encoder(SelectProfessionPacket::encode)
                 .decoder(SelectProfessionPacket::decode)
                 .consumerMainThread(SelectProfessionPacket::handle)
+                .add();
+
+        CHANNEL.messageBuilder(BuyShopItemPacket.class, index++, NetworkDirection.PLAY_TO_SERVER)
+                .encoder(BuyShopItemPacket::encode)
+                .decoder(BuyShopItemPacket::decode)
+                .consumerMainThread(BuyShopItemPacket::handle)
                 .add();
     }
 } 

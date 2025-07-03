@@ -20,6 +20,10 @@ public final class ProfessionMenuTypes {
             "profissoes_menu",
             () -> IForgeMenuType.create((windowId, inv, data) -> new ProfissoesMenu(windowId, inv, data)));
 
+    public static final RegistryObject<MenuType<org.lupz.doomsdayessentials.professions.menu.ShopMenu>> SHOP_MENU = MENUS.register(
+            "shop_menu",
+            () -> IForgeMenuType.create((windowId, inv, data) -> new org.lupz.doomsdayessentials.professions.menu.ShopMenu(windowId, inv)));
+
     private ProfessionMenuTypes() {}
 
     public static void register(IEventBus eventBus) {

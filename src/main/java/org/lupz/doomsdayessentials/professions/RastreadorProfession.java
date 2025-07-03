@@ -87,6 +87,7 @@ public final class RastreadorProfession {
         double radius = EssentialsConfig.RASTREADOR_SCAN_RADIUS.get();
         int duration = EssentialsConfig.RASTREADOR_SCAN_DURATION_SECONDS.get() * 20;
 
+        final boolean[] found = {false};
         player.getCapability(TrackerCapabilityProvider.TRACKER_CAPABILITY).ifPresent(cap -> {
             List<ServerPlayer> nearbyPlayers = player.level().getEntitiesOfClass(ServerPlayer.class, player.getBoundingBox().inflate(radius),
                     p -> p != player && !cap.isWhitelisted(p.getUUID()));
@@ -98,12 +99,16 @@ public final class RastreadorProfession {
                     target.addEffect(new MobEffectInstance(MobEffects.GLOWING, duration, 0));
                 }
                 player.sendSystemMessage(Component.literal("Revelados " + nearbyPlayers.size() + " jogadores próximos!").withStyle(ChatFormatting.GREEN));
+                found[0] = true;
             }
         });
 
-        // Set cooldown from config
-        player.getPersistentData().putInt(TAG_GLOW_COOLDOWN, EssentialsConfig.RASTREADOR_SCAN_COOLDOWN_MINUTES.get() * 1200);
-        return true;
+        if (found[0]) {
+            // Set cooldown from config only when something was found
+            player.getPersistentData().putInt(TAG_GLOW_COOLDOWN, EssentialsConfig.RASTREADOR_SCAN_COOLDOWN_MINUTES.get() * 1200);
+        }
+
+        return found[0];
     }
 
     public static void tickTracker(Player player) {

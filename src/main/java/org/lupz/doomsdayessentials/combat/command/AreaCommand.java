@@ -256,82 +256,70 @@ public class AreaCommand {
             return 0;
         }
 
-        boolean success = false;
         String successMessage = "";
 
         switch (flagName) {
             case "prevent_pvp" -> {
                 area.setPreventPvp(Boolean.parseBoolean(valueStr));
-                success = true;
-                successMessage = "PvP protection in '" + name + "' " + (area.isPreventPvp() ? "enabled" : "disabled") + ".";
+                successMessage = "PvP prevention for '" + name + "' set to: " + valueStr;
             }
             case "prevent_explosions" -> {
                 area.setPreventExplosions(Boolean.parseBoolean(valueStr));
-                success = true;
-                successMessage = "Explosion protection in '" + name + "' " + (area.isPreventExplosions() ? "enabled" : "disabled") + ".";
+                successMessage = "Explosion prevention for '" + name + "' set to: " + valueStr;
             }
             case "prevent_mob_griefing" -> {
                 area.setPreventMobGriefing(Boolean.parseBoolean(valueStr));
-                success = true;
-                successMessage = "Mob griefing protection in '" + name + "' " + (area.isPreventMobGriefing() ? "enabled" : "disabled") + ".";
+                successMessage = "Mob griefing prevention for '" + name + "' set to: " + valueStr;
             }
             case "prevent_block_modification" -> {
                 area.setPreventBlockModification(Boolean.parseBoolean(valueStr));
-                success = true;
-                successMessage = "Block modification protection in '" + name + "' " + (area.isPreventBlockModification() ? "enabled" : "disabled") + ".";
+                successMessage = "Block modification prevention for '" + name + "' set to: " + valueStr;
             }
             case "allow_flight" -> {
                 area.setAllowFlight(Boolean.parseBoolean(valueStr));
-                success = true;
-                successMessage = "Flight in '" + name + "' " + (area.isAllowFlight() ? "allowed" : "disallowed") + ".";
+                successMessage = "Flight for '" + name + "' set to: " + valueStr;
             }
             case "disable_fall_damage" -> {
                 area.setDisableFallDamage(Boolean.parseBoolean(valueStr));
-                success = true;
-                successMessage = "Fall damage in '" + name + "' " + (area.isDisableFallDamage() ? "disabled" : "enabled") + ".";
+                successMessage = "Fall damage for '" + name + "' set to: " + valueStr;
             }
             case "prevent_hunger_loss" -> {
                 area.setPreventHungerLoss(Boolean.parseBoolean(valueStr));
-                success = true;
-                successMessage = "Hunger loss in '" + name + "' " + (area.isPreventHungerLoss() ? "prevented" : "allowed") + ".";
+                successMessage = "Hunger loss for '" + name + "' set to: " + valueStr;
             }
             case "heal_players" -> {
                 area.setHealPlayers(Boolean.parseBoolean(valueStr));
-                success = true;
-                successMessage = "Player healing in '" + name + "' " + (area.isHealPlayers() ? "enabled" : "disabled") + ".";
+                successMessage = "Player healing for '" + name + "' set to: " + valueStr;
             }
             case "radiation_damage" -> {
                 try {
-                    float dmg = Float.parseFloat(valueStr);
-                    area.setRadiationDamage(dmg);
-                    success = true;
-                    successMessage = "Radiation damage in '" + name + "' set to " + dmg + " HP per second.";
-                } catch (NumberFormatException ex) {
-                    ctx.getSource().sendFailure(Component.literal("Invalid number for radiation_damage").withStyle(ChatFormatting.RED));
+                    float damage = Float.parseFloat(valueStr);
+                    area.setRadiationDamage(damage);
+                    successMessage = "Radiation damage for '" + name + "' set to: " + damage;
+                } catch (NumberFormatException e) {
+                    ctx.getSource().sendFailure(Component.literal("Invalid float value.").withStyle(ChatFormatting.RED));
+                    return 0;
                 }
             }
             case "entry_message" -> {
                 area.setEntryMessage(valueStr);
-                success = true;
                 successMessage = "Entry message for '" + name + "' set to: " + valueStr;
             }
             case "exit_message" -> {
                 area.setExitMessage(valueStr);
-                success = true;
                 successMessage = "Exit message for '" + name + "' set to: " + valueStr;
+            }
+            default -> {
+                ctx.getSource().sendFailure(Component.literal("Unknown flag '" + flagName + "'.").withStyle(ChatFormatting.RED));
+                return 0;
             }
         }
 
-        if (success) {
-            final String finalMessage = successMessage;
-            ctx.getSource().sendSuccess(() -> Component.literal(finalMessage).withStyle(ChatFormatting.GREEN), true);
-            AreaManager.get().saveAreas();
-            AreaManager.get().broadcastAreaUpdate();
-            return 1;
-        } else {
-            ctx.getSource().sendFailure(Component.literal("Unknown flag '" + flagName + "'.").withStyle(ChatFormatting.RED));
-            return 0;
-        }
+        final String finalMessage = successMessage;
+        AreaManager.get().saveAreas();
+        AreaManager.get().broadcastAreaUpdate();
+        ctx.getSource().sendSuccess(() -> Component.literal(finalMessage).withStyle(ChatFormatting.GREEN), true);
+        return 1;
     }
 
     private static int expandArea(CommandContext<CommandSourceStack> ctx) {
