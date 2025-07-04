@@ -1,0 +1,8 @@
+{
+  "variants": {
+    "facing=north": { "model": "doomsdayessentials:block/totem_block" },
+    "facing=south": { "model": "doomsdayessentials:block/totem_block", "y": 180 },
+    "facing=west": { "model": "doomsdayessentials:block/totem_block", "y": 270 },
+    "facing=east": { "model": "doomsdayessentials:block/totem_block", "y": 90 }
+  }
+} 

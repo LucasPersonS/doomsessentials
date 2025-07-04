@@ -33,12 +33,30 @@ public class CombatManager {
     private final Map<UUID, Integer> playersInCombat = new ConcurrentHashMap<>();
     private final Set<UUID> combatLoggers = ConcurrentHashMap.newKeySet();
 
+    // Players that opted-in to permanent combat mode via /combat activate
+    private final Set<UUID> alwaysActive = ConcurrentHashMap.newKeySet();
+
     private CombatManager() {
         MinecraftForge.EVENT_BUS.register(this);
     }
 
     public boolean isInCombat(UUID uuid) {
-        return playersInCombat.containsKey(uuid);
+        return alwaysActive.contains(uuid) || playersInCombat.containsKey(uuid);
+    }
+
+    public boolean isAlwaysActive(UUID uuid) {
+        return alwaysActive.contains(uuid);
+    }
+
+    public void setAlwaysActive(UUID uuid, boolean active) {
+        if (active) {
+            alwaysActive.add(uuid);
+            // Store -1 sentinel so client knows it's permanent and hides countdown
+            playersInCombat.put(uuid, -1);
+        } else {
+            alwaysActive.remove(uuid);
+            playersInCombat.remove(uuid);
+        }
     }
 
     public int getRemainingTicks(UUID uuid) {
@@ -46,7 +64,11 @@ public class CombatManager {
     }
 
     public void tagPlayer(ServerPlayer player) {
-        playersInCombat.put(player.getUUID(), getDurationTicks());
+        if (alwaysActive.contains(player.getUUID())) {
+            playersInCombat.put(player.getUUID(), -1);
+        } else {
+            playersInCombat.put(player.getUUID(), getDurationTicks());
+        }
         // No longer sends a direct packet, state is synced in onServerTick
     }
 
@@ -112,6 +134,12 @@ public class CombatManager {
                 }
             }
 
+            if (alwaysActive.contains(uuid)) {
+                // Maintain sentinel -1
+                playersInCombat.put(uuid, -1);
+                continue;
+            }
+
             if (inDangerZone) {
                 // Forcefully reset the combat timer to the max value each tick.
                 playersInCombat.put(uuid, getDurationTicks());
@@ -121,7 +149,7 @@ public class CombatManager {
             }
         }
 
-        playersInCombat.entrySet().removeIf(e -> e.getValue() <= 0);
+        playersInCombat.entrySet().removeIf(e -> !alwaysActive.contains(e.getKey()) && e.getValue() <= 0);
 
         // Broadcast the updated combat state to all players
         PacketHandler.CHANNEL.send(net.minecraftforge.network.PacketDistributor.ALL.noArg(), new SyncCombatStatePacket(playersInCombat));

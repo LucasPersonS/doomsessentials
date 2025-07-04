@@ -154,8 +154,9 @@ public class EssentialsConfig {
 
         BUILDER.comment("Itens disponíveis na loja de profissões no formato outputId, costId, costAmount").push("shop");
         SHOP_ITEMS = BUILDER.defineList("items", java.util.List.of(
-                "doomsdayessentials:medic_kit,minecraft:iron_ingot,10",
-                "doomsdayessentials:tracking_compass,minecraft:iron_ingot,20"
+                "doomsdayessentials:medic_kit,apocalypsenow:scrapmetal,24",
+                "doomsdayessentials:tracking_compass,apocalypsenow:scrap_metal,20",
+                "doomsdayessentials:medical_bed,apocalypsenow:scrap_metal,100"
         ), o -> o instanceof String);
         BUILDER.pop();
 

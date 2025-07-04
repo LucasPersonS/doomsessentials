@@ -15,10 +15,20 @@ import org.lupz.doomsdayessentials.injury.capability.InjuryCapability;
 import org.lupz.doomsdayessentials.injury.network.InjuryNetwork;
 import org.lupz.doomsdayessentials.injury.network.UpdateInjuryLevelPacket;
 
+@net.minecraftforge.fml.common.Mod.EventBusSubscriber(modid = org.lupz.doomsdayessentials.EssentialsMod.MOD_ID, bus = net.minecraftforge.fml.common.Mod.EventBusSubscriber.Bus.FORGE)
 public class InjuryCommands {
 
+    // ---------------------------------------------------------------------
+    // Command registration lifecycle
+    // ---------------------------------------------------------------------
+
+    @net.minecraftforge.eventbus.api.SubscribeEvent
+    public static void onRegisterCommands(net.minecraftforge.event.RegisterCommandsEvent event) {
+        register(event.getDispatcher());
+    }
+
     public static void register(CommandDispatcher<CommandSourceStack> dispatcher) {
-        dispatcher.register(Commands.literal("injury")
+        dispatcher.register(Commands.literal("machucado")
                 .requires(src -> src.hasPermission(2))
                 .then(Commands.literal("set")
                         .then(Commands.argument("player", EntityArgument.player())

@@ -77,6 +77,7 @@ public class AreaCommand {
                                 b.suggest("radiation_damage");
                                 b.suggest("entry_message");
                                 b.suggest("exit_message");
+                                b.suggest("open_windows");
                                 return b.buildFuture();
                             })
                             .then(Commands.argument("value", StringArgumentType.greedyString())
@@ -117,6 +118,7 @@ public class AreaCommand {
                 b.suggest("4.0");
             }
             case "entry_message", "exit_message" -> b.suggest("\"Welcome to the safezone!\"");
+            case "open_windows" -> b.suggest("09:00-10:00 16:00-17:00");
         }
         return b.buildFuture();
     }
@@ -308,6 +310,26 @@ public class AreaCommand {
             case "exit_message" -> {
                 area.setExitMessage(valueStr);
                 successMessage = "Exit message for '" + name + "' set to: " + valueStr;
+            }
+            case "open_windows" -> {
+                try {
+                    java.util.List<org.lupz.doomsdayessentials.combat.ManagedArea.TimeWindow> wins = new java.util.ArrayList<>();
+                    if (!valueStr.equalsIgnoreCase("none")) {
+                        String[] tokens = valueStr.trim().split("\\s+");
+                        for (String token : tokens) {
+                            String[] parts = token.split("-");
+                            if (parts.length != 2) throw new java.time.format.DateTimeParseException("Bad window", token, 0);
+                            java.time.LocalTime start = java.time.LocalTime.parse(parts[0]);
+                            java.time.LocalTime end   = java.time.LocalTime.parse(parts[1]);
+                            wins.add(new org.lupz.doomsdayessentials.combat.ManagedArea.TimeWindow(start, end));
+                        }
+                    }
+                    area.setOpenWindows(wins);
+                    successMessage = "Open windows for '" + name + "' updated (" + wins.size() + " windows).";
+                } catch (java.time.format.DateTimeParseException ex) {
+                    ctx.getSource().sendFailure(net.minecraft.network.chat.Component.literal("Invalid time window format. Use HH:mm-HH:mm separated by spaces, or 'none' to clear.").withStyle(net.minecraft.ChatFormatting.RED));
+                    return 0;
+                }
             }
             default -> {
                 ctx.getSource().sendFailure(Component.literal("Unknown flag '" + flagName + "'.").withStyle(ChatFormatting.RED));

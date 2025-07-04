@@ -22,13 +22,21 @@ public final class ShopUtil {
         Map<String, Entry> map = new HashMap<>();
         for (String line : EssentialsConfig.SHOP_ITEMS.get()) {
             String[] parts = line.split(",");
-            if (parts.length != 3) continue;
             try {
-                ResourceLocation output = new ResourceLocation(parts[0]);
-                ResourceLocation cost = new ResourceLocation(parts[1]);
-                int costCount = Integer.parseInt(parts[2]);
-                String alias = output.getPath();
-                map.put(alias, new Entry(output, 1, cost, costCount));
+                if (parts.length == 3) {
+                    // Legacy format: outputId,costId,costCount (output count =1)
+                    ResourceLocation output = new ResourceLocation(parts[0]);
+                    ResourceLocation cost = new ResourceLocation(parts[1]);
+                    int costCount = Integer.parseInt(parts[2]);
+                    map.put(output.getPath(), new Entry(output, 1, cost, costCount));
+                } else if (parts.length == 4) {
+                    // New format: outputId,outputCount,costId,costCount
+                    ResourceLocation output = new ResourceLocation(parts[0]);
+                    int outputCount = Integer.parseInt(parts[1]);
+                    ResourceLocation cost = new ResourceLocation(parts[2]);
+                    int costCount = Integer.parseInt(parts[3]);
+                    map.put(output.getPath(), new Entry(output, outputCount, cost, costCount));
+                }
             } catch (Exception ignored) {
             }
         }

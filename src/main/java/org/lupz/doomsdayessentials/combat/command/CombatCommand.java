@@ -45,6 +45,60 @@ public class CombatCommand {
                                             .append(Component.literal(" players").withStyle(ChatFormatting.GREEN)), true);
                                     return players.size();
                                 })))
+                .then(Commands.literal("activate")
+                        .executes(ctx -> {
+                            // If the command source is NOT a player (e.g., server console or command block), apply to all players
+                            if (ctx.getSource().getEntity() == null) {
+                                var server = net.minecraftforge.server.ServerLifecycleHooks.getCurrentServer();
+                                if (server == null) {
+                                    return 0;
+                                }
+                                var players = server.getPlayerList().getPlayers();
+                                players.forEach(p -> CombatManager.get().setAlwaysActive(p.getUUID(), true));
+                                int count = players.size();
+                                ctx.getSource().sendSuccess(() -> Component.literal("Modo de combate permanente ativado para ")
+                                        .append(Component.literal(String.valueOf(count)).withStyle(ChatFormatting.WHITE))
+                                        .append(Component.literal(" jogadores.").withStyle(ChatFormatting.GREEN)), true);
+                                return count;
+                            }
+
+                            // Existing behaviour: toggle permanent combat mode for the executing player
+                            ServerPlayer player = ctx.getSource().getPlayerOrException();
+                            boolean currently = CombatManager.get().isAlwaysActive(player.getUUID());
+
+                            // If the player is trying to *deactivate* permanent combat mode, require SAFE zone.
+                            if (currently) {
+                                var area = org.lupz.doomsdayessentials.combat.AreaManager.get()
+                                        .getAreaAt(player.serverLevel(), player.blockPosition());
+                                if (area == null || area.getType() != org.lupz.doomsdayessentials.combat.AreaType.SAFE) {
+                                    player.sendSystemMessage(Component.literal("§cVocê precisa estar em uma zona segura para desativar o modo de combate permanente."));
+                                    return 0;
+                                }
+                            }
+
+                            CombatManager.get().setAlwaysActive(player.getUUID(), !currently);
+                            Component msg = Component.literal("Modo de combate permanente ")
+                                    .append(Component.literal(!currently ? "ativado" : "desativado").withStyle(!currently ? ChatFormatting.GREEN : ChatFormatting.RED));
+                            ctx.getSource().sendSuccess(() -> msg, false);
+                            return 1;
+                        })
+                        // Admin shortcut: /combat activate all – enable permanent combat for every online player
+                        .then(Commands.literal("all")
+                                .requires(src -> src.hasPermission(2))
+                                .executes(ctx -> {
+                                    var server = ctx.getSource().getServer();
+                                    if (server == null) return 0;
+                                    var cm = CombatManager.get();
+                                    long count = server.getPlayerList().getPlayers().stream()
+                                            .filter(p -> !cm.isAlwaysActive(p.getUUID()))
+                                            .peek(p -> cm.setAlwaysActive(p.getUUID(), true))
+                                            .count();
+                                    ctx.getSource().sendSuccess(() -> Component.literal("Modo de combate permanente ativado para ")
+                                            .append(Component.literal(String.valueOf(count)).withStyle(ChatFormatting.WHITE))
+                                            .append(Component.literal(" jogadores.").withStyle(ChatFormatting.GREEN)), true);
+                                    return (int) count;
+                                }))
+                )
                 .then(Commands.literal("check")
                         .then(Commands.argument("target", EntityArgument.player())
                                 .executes(ctx -> {

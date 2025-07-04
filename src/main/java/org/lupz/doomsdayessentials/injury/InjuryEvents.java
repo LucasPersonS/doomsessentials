@@ -23,6 +23,7 @@ import org.lupz.doomsdayessentials.injury.capability.InjuryCapabilityProvider;
 import org.lupz.doomsdayessentials.injury.network.InjuryNetwork;
 import org.lupz.doomsdayessentials.injury.network.UpdateInjuryLevelPacket;
 import net.minecraft.world.damagesource.DamageSource;
+import net.minecraftforge.eventbus.api.EventPriority;
 
 @EventBusSubscriber(modid = EssentialsMod.MOD_ID, bus = EventBusSubscriber.Bus.FORGE)
 public class InjuryEvents {
@@ -81,7 +82,8 @@ public class InjuryEvents {
 
                // Validate conditions
                if (target == null || !InjuryHelper.getCapability(target).map(InjuryCapability::isDowned).orElse(false)
-                       || reviver.distanceToSqr(target) > 9) {
+                       || reviver.distanceToSqr(target) > 9
+                       || !reviver.isUsingItem()) { // Stop if player released right-click
                   reviveProgress.remove(reviver.getUUID());
                   reviver.sendSystemMessage(net.minecraft.network.chat.Component.literal("§cReanimação cancelada."));
                } else {
@@ -112,8 +114,15 @@ public class InjuryEvents {
       }
    }
 
-   @SubscribeEvent
+   // Run at the very beginning so other mods never see the (now-cancelled) death
+   // and therefore don't spawn 'ghost' corpses/items. Skips if someone else has
+   // already cancelled it for safety.
+   @SubscribeEvent(priority = EventPriority.HIGHEST)
    public static void onPlayerDeath(LivingDeathEvent event) {
+      if (event.isCanceled()) {
+         return;
+      }
+
       if (event.getEntity().level().isClientSide || !(event.getEntity() instanceof ServerPlayer player)) {
          return;
       }
@@ -127,8 +136,19 @@ public class InjuryEvents {
          return;
       }
 
-      // If the player is already downed, ignore normal death logic. It'll be handled elsewhere.
+      // If the player is already downed this is the finishing blow handled by our system.
+      // Cancel vanilla death to avoid duplicate messages and process the kill ourselves.
       if (InjuryHelper.getCapability(player).map(InjuryCapability::isDowned).orElse(false)) {
+         event.setCanceled(true);
+         killPlayer(player, event.getSource());
+         // Mark that we've already sent a death message for this forced-death sequence
+         player.getPersistentData().putBoolean("doomsessentials_death_msg", true);
+         return;
+      }
+
+      // If this death is part of a forced sequence and a message was already sent, cancel to avoid duplicates
+      if (player.getPersistentData().getBoolean("doomsessentials_death_msg")) {
+         event.setCanceled(true);
          return;
       }
 
@@ -150,13 +170,25 @@ public class InjuryEvents {
       }
 
       InjuryHelper.getCapability(player).ifPresent(cap -> {
+         // (early lethal-to-downed conversion removed; handled in onPlayerDeath now)
+
          if (cap.isDowned()) {
             if (player.getPersistentData().contains("doomsessentials_force_death")) {
                return;
             }
-            // Any damage taken while downed is fatal, preserving attacker info
-            killPlayer(player, event.getSource());
+            // Instead of instant death, subtract from the configurable downed health pool.
+            float remaining = cap.getDownedHealth() - event.getAmount();
+            cap.setDownedHealth(remaining);
+
+            // Cancel the actual damage so we control the finishing blow logic
             event.setCanceled(true);
+
+            if (remaining <= 0.0f) {
+               // Health pool depleted – finalize the player preserving attacker info
+               killPlayer(player, event.getSource());
+            } else {
+               // Optional: you could add feedback here (sound/particles) to indicate progress
+            }
          }
       });
    }
@@ -172,6 +204,8 @@ public class InjuryEvents {
 
          InjuryHelper.revivePlayer(player);
          player.getPersistentData().remove("doomsessentials_force_death");
+         player.getPersistentData().remove("doomsessentials_already_killed");
+         player.getPersistentData().remove("doomsessentials_death_msg"); // clear duplicate-message flag on respawn
 
          // Force-restore the injury level from persistent data
          if (player instanceof ServerPlayer serverPlayer) {
@@ -277,9 +311,15 @@ public class InjuryEvents {
    }
 
    public static void killPlayer(ServerPlayer player, @javax.annotation.Nullable DamageSource originalSource) {
-      // Prevent recursive calls
-      if (player.getPersistentData().getBoolean("doomsessentials_force_death")) {
+      // Prevent recursive calls or duplicate death handling
+      if (player.getPersistentData().getBoolean("doomsessentials_force_death") ||
+          player.getPersistentData().getBoolean("doomsessentials_already_killed")) {
          return;
+      }
+
+      // If the player is already in the process of dying / has zero health, avoid triggering a second death.
+      if (player.isDeadOrDying()) {
+          return;
       }
 
       InjuryHelper.getCapability(player).ifPresent(cap -> {
@@ -287,16 +327,22 @@ public class InjuryEvents {
             // Clear downed flag first to avoid loops
             cap.setDowned(false, null);
 
-            // Mark intentional kill to bypass downing logic
+            // Mark intentional kill and remember we've processed the kill to avoid duplicate messages
             player.getPersistentData().putBoolean("doomsessentials_force_death", true);
+            player.getPersistentData().putBoolean("doomsessentials_already_killed", true);
 
             DamageSource src = originalSource != null ? originalSource : player.damageSources().fellOutOfWorld();
 
-            // Increment injury level *before* the actual death so it is copied correctly to the new player instance
-            boolean pvpOnly = EssentialsConfig.INJURY_PVP_ONLY.get();
-            boolean causedByPlayer = src.getEntity() instanceof Player && src.getEntity() != player;
-            if (!pvpOnly || causedByPlayer) {
-               InjuryHelper.incrementInjuryLevel(player);
+            // Avoid double-counting deaths: process injury increment only once per death sequence.
+            if (!player.getPersistentData().getBoolean("doomsessentials_injury_processed")) {
+               player.getPersistentData().putBoolean("doomsessentials_injury_processed", true);
+
+               // Increment injury level *before* the actual death so it is copied correctly to the new player instance
+               boolean pvpOnly = EssentialsConfig.INJURY_PVP_ONLY.get();
+               boolean causedByPlayer = src.getEntity() instanceof Player && src.getEntity() != player;
+               if (!pvpOnly || causedByPlayer) {
+                  InjuryHelper.incrementInjuryLevel(player);
+               }
             }
 
             // Persist the injury level through persistent data in case Clone event fails
@@ -352,7 +398,12 @@ public class InjuryEvents {
 
       InjuryHelper.getCapability(target).ifPresent(cap -> {
          if (cap.isDowned()) {
-            reviveProgress.put(reviver.getUUID(), new ReviveData(target.getUUID()));
+            // Begin revive process and remember which hand is being used
+            reviveProgress.put(reviver.getUUID(), new ReviveData(target.getUUID(), event.getHand()));
+            // Force the server to start tracking the right-click "use" action so we can detect release
+            if (reviver instanceof net.minecraft.server.level.ServerPlayer sp) {
+               sp.startUsingItem(event.getHand());
+            }
             reviver.sendSystemMessage(net.minecraft.network.chat.Component.literal("§eReanimando " + target.getDisplayName().getString() + "..."));
             event.setCanceled(true); // Prevent other interactions
          }
@@ -391,10 +442,12 @@ public class InjuryEvents {
 
    private static class ReviveData {
       private final UUID targetUUID;
+      private final net.minecraft.world.InteractionHand hand;
       private int ticks;
 
-      private ReviveData(UUID targetUUID) {
+      private ReviveData(UUID targetUUID, net.minecraft.world.InteractionHand hand) {
          this.targetUUID = targetUUID;
+         this.hand = hand;
          this.ticks = 0;
       }
 

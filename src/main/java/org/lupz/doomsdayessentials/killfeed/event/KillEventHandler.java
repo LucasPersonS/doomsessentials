@@ -17,13 +17,14 @@ import org.lupz.doomsdayessentials.EssentialsMod;
 import org.lupz.doomsdayessentials.killfeed.network.packet.KillFeedPacket;
 import org.lupz.doomsdayessentials.network.PacketHandler;
 import net.minecraftforge.network.PacketDistributor;
+import net.minecraftforge.eventbus.api.EventPriority;
 
 import java.util.UUID;
 
 @Mod.EventBusSubscriber(modid = EssentialsMod.MOD_ID)
 public class KillEventHandler {
 
-    @SubscribeEvent
+    @SubscribeEvent(priority = EventPriority.LOWEST)
     public static void onLivingDeath(LivingDeathEvent event) {
         if (event.isCanceled()) {
             return;
@@ -66,6 +67,16 @@ public class KillEventHandler {
                     if (key != null) {
                         weaponId = key.toString();
                     }
+               // BEGIN NEW BLOCK: fallback to GunId if display name looks generic
+                    String descId = weapon.getItem().getDescriptionId();
+                    boolean genericName = weaponName.equals(descId) || weaponName.equalsIgnoreCase("Gun") || weaponName.startsWith("item.");
+                    if (genericName && weapon.hasTag() && weapon.getTag().contains("GunId", net.minecraft.nbt.Tag.TAG_STRING)) {
+                        String gunId = weapon.getTag().getString("GunId");
+                        if (!gunId.isEmpty()) {
+                            weaponName = formatGunId(gunId);
+                        }
+                    }
+                    // END NEW BLOCK
                 } else {
                     weaponName = "Fists";
                 }
@@ -90,5 +101,16 @@ public class KillEventHandler {
         
         KillFeedPacket packet = new KillFeedPacket(killerUUID, killerName, victimUUID, victimName, weaponName, weaponId, killerTypeId != null ? killerTypeId : victimTypeId);
         PacketHandler.CHANNEL.send(PacketDistributor.ALL.noArg(), packet);
+    }
+
+    private static String formatGunId(String gunId) {
+        // Replace underscores with spaces and capitalize words
+        String[] parts = gunId.replace('_', ' ').split(" ");
+        StringBuilder sb = new StringBuilder();
+        for (String part : parts) {
+            if (part.isEmpty()) continue;
+            sb.append(Character.toUpperCase(part.charAt(0))).append(part.substring(1)).append(" ");
+        }
+        return sb.toString().trim();
     }
 } 

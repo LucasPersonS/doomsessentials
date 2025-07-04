@@ -20,4 +20,17 @@ public class InjuryClientState {
         isDowned = downed;
         downedUntil = until;
     }
+
+    public static void updateDownedState(boolean downed, long until) {
+        setDowned(downed, until);
+        // Safely update the client screen depending on the new state
+        net.minecraft.client.Minecraft mc = net.minecraft.client.Minecraft.getInstance();
+        if (downed) {
+            // Open the Downed screen
+            mc.setScreen(new org.lupz.doomsdayessentials.injury.client.DownedScreen());
+        } else if (mc.screen instanceof org.lupz.doomsdayessentials.injury.client.DownedScreen) {
+            // Close the Downed screen if it was open
+            mc.setScreen(null);
+        }
+    }
 } 

@@ -46,8 +46,16 @@ public class ClientCombatState {
             return 0;
         }
         int ticksRemaining = playersInCombat.get(playerUUID);
+        if (ticksRemaining < 0) {
+            return 0; // permanent combat, treat as no countdown
+        }
         long msRemaining = (long) (ticksRemaining / 20.0 * 1000);
         return lastCombatSyncTime + msRemaining;
+    }
+
+    public static boolean isPlayerAlwaysActive(UUID uuid) {
+        Integer v = playersInCombat.get(uuid);
+        return v != null && v < 0;
     }
 
     public static ManagedArea getPlayerArea(Player player) {
@@ -56,10 +64,25 @@ public class ClientCombatState {
         if (areasInDim == null) {
             return null;
         }
-        return areasInDim.stream()
-                .filter(area -> area.contains(player.blockPosition()))
-                .findFirst()
-                .orElse(null);
+        ManagedArea best = null;
+        int bestPriority = Integer.MAX_VALUE;
+        for (ManagedArea area : areasInDim) {
+            if (!area.contains(player.blockPosition())) continue;
+            if (!area.isCurrentlyOpen()) continue;
+            int prio;
+            switch (area.getType()) {
+                case DANGER -> prio = 0;
+                case SAFE -> prio = 1;
+                case FREQUENCY -> prio = 2;
+                case NEUTRAL -> prio = 3;
+                default -> prio = 4;
+            }
+            if (prio < bestPriority) {
+                bestPriority = prio;
+                best = area;
+            }
+        }
+        return best;
     }
 
     public static boolean isInDangerArea() {

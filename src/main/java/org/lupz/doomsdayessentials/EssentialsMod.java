@@ -32,6 +32,8 @@ import org.lupz.doomsdayessentials.professions.items.ProfessionItems;
 import org.lupz.doomsdayessentials.professions.menu.ProfessionMenuTypes;
 import org.lupz.doomsdayessentials.professions.menu.ProfissoesScreen;
 import org.lupz.doomsdayessentials.sound.ModSounds;
+import org.lupz.doomsdayessentials.guild.GuildConfig;
+import org.lupz.doomsdayessentials.guild.command.OrganizacaoCommand;
 import org.slf4j.Logger;
 
 @Mod(EssentialsMod.MOD_ID)
@@ -54,9 +56,25 @@ public class EssentialsMod {
 
         // Register Configs
         ModLoadingContext.get().registerConfig(ModConfig.Type.COMMON, EssentialsConfig.SPEC, MOD_ID + "-essentials.toml");
+        // Guild / Organizacao config
+        ModLoadingContext.get().registerConfig(ModConfig.Type.COMMON, GuildConfig.SPEC, MOD_ID + "-guilds.toml");
 
         // Register ourselves for server and other game events we are interested in
         MinecraftForge.EVENT_BUS.register(this);
+
+        // Force class loading to ensure EventBusSubscriber is registered
+        try {
+            Class.forName("org.lupz.doomsdayessentials.guild.command.OrganizacaoCommand");
+            Class.forName("org.lupz.doomsdayessentials.combat.command.AreaCommand");
+            Class.forName("org.lupz.doomsdayessentials.combat.command.CombatCommand");
+            Class.forName("org.lupz.doomsdayessentials.command.SoundCommand");
+            Class.forName("org.lupz.doomsdayessentials.command.DoomsHelpCommand");
+            Class.forName("org.lupz.doomsdayessentials.command.AirdropCommand");
+            Class.forName("org.lupz.doomsdayessentials.injury.InjuryCommands");
+            Class.forName("org.lupz.doomsdayessentials.professions.commands.ProfessionCommandsRegister");
+        } catch (ClassNotFoundException e) {
+            LOGGER.error("Failed to load command class", e);
+        }
     }
 
     private void commonSetup(final FMLCommonSetupEvent event) {
@@ -70,15 +88,6 @@ public class EssentialsMod {
 
     @SubscribeEvent
     public void onServerStarting(ServerStartingEvent event) {
-        AreaCommand.register(event.getServer().getCommands().getDispatcher());
-        CombatCommand.register(event.getServer().getCommands().getDispatcher());
-        SoundCommand.register(event.getServer().getCommands().getDispatcher());
-        DoomsHelpCommand.register(event.getServer().getCommands().getDispatcher());
-        InjuryCommands.register(event.getServer().getCommands().getDispatcher());
-
-        org.lupz.doomsdayessentials.professions.commands.ProfissoesCommand.register(event.getServer().getCommands().getDispatcher());
-        org.lupz.doomsdayessentials.professions.commands.MedicoCommand.register(event.getServer().getCommands().getDispatcher());
-        org.lupz.doomsdayessentials.professions.commands.RastreadorCommand.register(event.getServer().getCommands().getDispatcher());
     }
 
     @Mod.EventBusSubscriber(modid = MOD_ID, bus = Mod.EventBusSubscriber.Bus.MOD, value = Dist.CLIENT)

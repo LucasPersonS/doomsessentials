@@ -12,6 +12,10 @@ import net.minecraftforge.registries.ForgeRegistries;
 import net.minecraftforge.registries.RegistryObject;
 import org.lupz.doomsdayessentials.EssentialsMod;
 import org.lupz.doomsdayessentials.item.ModItems;
+import org.lupz.doomsdayessentials.block.TotemBlock;
+import org.lupz.doomsdayessentials.block.TotemTopBlock;
+import org.lupz.doomsdayessentials.block.ReinforcedBlock;
+import org.lupz.doomsdayessentials.block.ReinforcedBlockEntity;
 
 import java.util.function.Supplier;
 
@@ -28,12 +32,33 @@ public final class ModBlocks {
     public static final RegistryObject<Block> MEDICAL_BED = registerBlock("medical_bed",
             () -> new MedicalBedBlock(BlockBehaviour.Properties.copy(Blocks.WHITE_WOOL).noOcclusion()));
 
+    public static final RegistryObject<Block> TOTEM_BLOCK = registerBlock("totem_block",
+            () -> new TotemBlock(BlockBehaviour.Properties.copy(Blocks.OAK_PLANKS).strength(2.5F).noOcclusion()));
+
+    // Upper part of the totem – no item form
+    public static final RegistryObject<Block> TOTEM_BLOCK_TOP = BLOCKS.register("totem_block_top",
+            () -> new TotemTopBlock(BlockBehaviour.Properties.copy(Blocks.OAK_PLANKS).strength(2.5F).noOcclusion()));
+
+    // Reinforced construction blocks
+    public static final RegistryObject<Block> REINFORCED_STONE = registerBlock("reinforced_stone",
+            () -> new ReinforcedBlock(BlockBehaviour.Properties.copy(Blocks.STONE).strength(-1.0F, 3600000.0F)));
+
+    public static final RegistryObject<Block> PRIMAL_STEEL_BLOCK = registerBlock("primal_steel_block",
+            () -> new ReinforcedBlock(BlockBehaviour.Properties.copy(Blocks.IRON_BLOCK).strength(-1.0F, 3600000.0F)));
+
+    public static final RegistryObject<Block> MOLTEN_STEEL_BLOCK = registerBlock("molten_steel_block",
+            () -> new ReinforcedBlock(BlockBehaviour.Properties.copy(Blocks.NETHERITE_BLOCK).strength(-1.0F, 3600000.0F)));
+
     public static final DeferredRegister<BlockEntityType<?>> BLOCK_ENTITIES =
             DeferredRegister.create(ForgeRegistries.BLOCK_ENTITY_TYPES, EssentialsMod.MOD_ID);
 
     public static final RegistryObject<BlockEntityType<MedicalBedBlockEntity>> MEDICAL_BED_BLOCK_ENTITY =
             BLOCK_ENTITIES.register("medical_bed_block_entity", () ->
                     BlockEntityType.Builder.of(MedicalBedBlockEntity::new, MEDICAL_BED.get()).build(null));
+
+    public static final RegistryObject<BlockEntityType<ReinforcedBlockEntity>> REINFORCED_BLOCK_ENTITY =
+            BLOCK_ENTITIES.register("reinforced_block_entity", () ->
+                    BlockEntityType.Builder.of(ReinforcedBlockEntity::new, REINFORCED_STONE.get(), PRIMAL_STEEL_BLOCK.get(), MOLTEN_STEEL_BLOCK.get()).build(null));
 
     private static <T extends Block> RegistryObject<T> registerBlock(String name, Supplier<T> block) {
         RegistryObject<T> toReturn = BLOCKS.register(name, block);

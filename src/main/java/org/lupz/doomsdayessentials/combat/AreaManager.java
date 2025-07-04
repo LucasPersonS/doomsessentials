@@ -79,21 +79,38 @@ public class AreaManager {
     }
 
     public void addArea(@NotNull ManagedArea area) {
+        // Remove any existing area with the same name first to avoid duplicates in the dimension list.
+        deleteArea(area.getName());
+
         areasByName.put(area.getName().toLowerCase(), area);
-        areasByDimension.computeIfAbsent(area.getDimension(), k -> new ArrayList<>()).add(area);
+        areasByDimension.computeIfAbsent(area.getDimension(), k -> new java.util.ArrayList<>()).add(area);
         saveAreas();
         broadcastAreaUpdate();
     }
 
     public boolean deleteArea(String name) {
-        ManagedArea removed = areasByName.remove(name.toLowerCase());
+        String key = name.toLowerCase();
+        ManagedArea removed = areasByName.remove(key);
+        boolean removedSomething = removed != null;
+
+        // If we had a direct match in the name map, remove *all* matching areas from the dimension list
         if (removed != null) {
-            areasByDimension.getOrDefault(removed.getDimension(), new ArrayList<>()).remove(removed);
+            java.util.List<ManagedArea> list = areasByDimension.get(removed.getDimension());
+            if (list != null) {
+                removedSomething |= list.removeIf(a -> a.getName().equalsIgnoreCase(name));
+            }
+        } else {
+            // Fallback – iterate every dimension list looking for matching names (handles rare desyncs)
+            for (java.util.List<ManagedArea> list : areasByDimension.values()) {
+                removedSomething |= list.removeIf(a -> a.getName().equalsIgnoreCase(name));
+            }
+        }
+
+        if (removedSomething) {
             saveAreas();
             broadcastAreaUpdate();
-            return true;
         }
-        return false;
+        return removedSomething;
     }
 
     public ManagedArea getAreaAt(ServerLevel level, BlockPos pos) {
@@ -102,10 +119,54 @@ public class AreaManager {
         if (areasInDim == null) {
             return null;
         }
-        return areasInDim.stream()
-                .filter(a -> a.contains(pos))
-                .findFirst()
-                .orElse(null);
+        // If multiple areas overlap, choose according to precedence: DANGER > SAFE > FREQUENCY > NEUTRAL.
+        ManagedArea best = null;
+        int bestPriority = Integer.MAX_VALUE;
+        for (ManagedArea area : areasInDim) {
+            if (!area.contains(pos) || !area.isCurrentlyOpen()) continue;
+            int prio = switch (area.getType()) {
+                case DANGER -> 0;
+                case SAFE -> 1;
+                case FREQUENCY -> 2;
+                case NEUTRAL -> 3;
+                default -> 4;
+            };
+
+            if (prio < bestPriority) {
+                bestPriority = prio;
+                best = area;
+            }
+        }
+        return best;
+    }
+
+    /**
+     * Same as {@link #getAreaAt(ServerLevel, BlockPos)} but ignores opening-hours
+     * restrictions – it will return the matching area even if it is currently
+     * closed.
+     */
+    public ManagedArea getAreaAtIncludingClosed(ServerLevel level, BlockPos pos) {
+        ResourceKey<Level> dim = level.dimension();
+        List<ManagedArea> areasInDim = areasByDimension.get(dim);
+        if (areasInDim == null) return null;
+
+        ManagedArea best = null;
+        int bestPriority = Integer.MAX_VALUE;
+        for (ManagedArea area : areasInDim) {
+            if (!area.contains(pos)) continue;
+            int prio = switch (area.getType()) {
+                case DANGER -> 0;
+                case SAFE -> 1;
+                case FREQUENCY -> 2;
+                case NEUTRAL -> 3;
+                default -> 4;
+            };
+            if (prio < bestPriority) {
+                bestPriority = prio;
+                best = area;
+            }
+        }
+        return best;
     }
 
     public void broadcastAreaUpdate() {

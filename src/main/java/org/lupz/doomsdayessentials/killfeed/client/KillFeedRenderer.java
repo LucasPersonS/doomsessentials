@@ -130,6 +130,20 @@ public class KillFeedRenderer {
                 ResourceLocation gunIconRL = ResourceLocation.fromNamespaceAndPath(gunNamespace, "textures/item/guns/" + gunPath + ".png");
                 ResourceManager rm = mc.getResourceManager();
                 boolean hasTex = rm.getResource(gunIconRL).isPresent();
+                if (!hasTex) {
+                    // fallback to textures/item/<gun>.png (common in some packs)
+                    gunIconRL = ResourceLocation.fromNamespaceAndPath(gunNamespace, "textures/item/" + gunPath + ".png");
+                    hasTex = rm.getResource(gunIconRL).isPresent();
+                }
+                // NEW: also check common TaCZ HUD icon folders
+                if (!hasTex) {
+                    gunIconRL = ResourceLocation.fromNamespaceAndPath(gunNamespace, "textures/gun/hud/" + gunPath + ".png");
+                    hasTex = rm.getResource(gunIconRL).isPresent();
+                }
+                if (!hasTex) {
+                    gunIconRL = ResourceLocation.fromNamespaceAndPath(gunNamespace, "textures/gun/" + gunPath + ".png");
+                    hasTex = rm.getResource(gunIconRL).isPresent();
+                }
 
                 if (hasTex) {
                     RenderSystem.setShaderColor(1.0f, 1.0f, 1.0f, alpha);
@@ -138,8 +152,10 @@ public class KillFeedRenderer {
                     RenderSystem.disableBlend();
                     RenderSystem.setShaderColor(1.0f, 1.0f, 1.0f, 1.0f);
                 } else {
-                    ItemStack fallbackSword = new ItemStack(Items.IRON_SWORD);
-                    guiGraphics.renderItem(fallbackSword, currentX, y + (ySize - iconSize) / 2);
+                    // try render the gun item itself
+                    Item gunItem = ForgeRegistries.ITEMS.getValue(ResourceLocation.parse(gunNamespace+":"+gunPath));
+                    ItemStack stack = gunItem != null ? new ItemStack(gunItem) : new ItemStack(Items.IRON_SWORD);
+                    guiGraphics.renderItem(stack, currentX, y + (ySize - iconSize) / 2);
                 }
 
                 currentX += gunWidth;

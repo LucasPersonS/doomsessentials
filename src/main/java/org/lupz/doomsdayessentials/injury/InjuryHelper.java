@@ -57,7 +57,13 @@ public class InjuryHelper {
             if (cap.isDowned()) return;
             long downedUntil = System.currentTimeMillis() + (long)EssentialsConfig.DOWNED_BLEED_OUT_SECONDS.get() * 1000;
             cap.setDowned(true, attacker != null ? attacker.getUUID() : null);
+            // Initialize the remaining health a downed player can take before being finished off
+            cap.setDownedHealth((float) EssentialsConfig.DOWNED_HEALTH_POOL.get().doubleValue());
             cap.setDownedUntil(downedUntil);
+            // Cancel the automatic vanilla death statistic that was already awarded
+            if (player instanceof net.minecraft.server.level.ServerPlayer sp) {
+                sp.awardStat(net.minecraft.stats.Stats.CUSTOM.get(net.minecraft.stats.Stats.DEATHS), -1);
+            }
             if (player instanceof ServerPlayer sp) {
                 InjuryNetwork.sendToPlayer(new UpdateDownedStatePacket(true, downedUntil), sp);
             }

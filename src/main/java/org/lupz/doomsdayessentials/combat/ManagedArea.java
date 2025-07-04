@@ -8,6 +8,10 @@ import net.minecraft.world.level.Level;
 import org.jetbrains.annotations.NotNull;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.core.registries.Registries;
+import java.time.LocalTime;
+import java.time.ZoneId;
+import java.util.Collections;
+import java.util.List;
 
 /**
  * Immutable definition of a rectangular combat area in a specific dimension.
@@ -36,6 +40,24 @@ public final class ManagedArea {
     private String entryMessage;
     private String exitMessage;
 
+    private List<TimeWindow> openWindows;
+
+    public record TimeWindow(LocalTime start, LocalTime end) {
+        public boolean isActive(LocalTime now) {
+            if (start.equals(end)) return true; // 24h window
+            if (start.isBefore(end)) {
+                return !now.isBefore(start) && now.isBefore(end);
+            } else { // wraps midnight
+                return !now.isBefore(start) || now.isBefore(end);
+            }
+        }
+
+        public static final Codec<TimeWindow> CODEC = RecordCodecBuilder.create(instance -> instance.group(
+                Codec.STRING.fieldOf("start").forGetter(tw -> tw.start.toString()),
+                Codec.STRING.fieldOf("end").forGetter(tw -> tw.end.toString())
+        ).apply(instance, (s, e) -> new TimeWindow(LocalTime.parse(s), LocalTime.parse(e))));
+    }
+
     public ManagedArea(@NotNull String name,
                        @NotNull AreaType type,
                        @NotNull ResourceKey<Level> dimension,
@@ -51,7 +73,8 @@ public final class ManagedArea {
                        boolean healPlayers,
                        float radiationDamage,
                        String entryMessage,
-                       String exitMessage) {
+                       String exitMessage,
+                       List<TimeWindow> openWindows) {
         this.name = name;
         this.type = type;
         this.dimension = dimension;
@@ -78,6 +101,28 @@ public final class ManagedArea {
         this.radiationDamage = radiationDamage;
         this.entryMessage = entryMessage;
         this.exitMessage = exitMessage;
+        this.openWindows = openWindows != null ? new java.util.ArrayList<>(openWindows) : new java.util.ArrayList<>();
+    }
+
+    public ManagedArea(@NotNull String name,
+                       @NotNull AreaType type,
+                       @NotNull ResourceKey<Level> dimension,
+                       @NotNull BlockPos pos1,
+                       @NotNull BlockPos pos2,
+                       boolean preventPvp,
+                       boolean preventExplosions,
+                       boolean preventMobGriefing,
+                       boolean preventBlockModification,
+                       boolean allowFlight,
+                       boolean disableFallDamage,
+                       boolean preventHungerLoss,
+                       boolean healPlayers,
+                       float radiationDamage,
+                       String entryMessage,
+                       String exitMessage) {
+        this(name, type, dimension, pos1, pos2, preventPvp, preventExplosions, preventMobGriefing, preventBlockModification,
+                allowFlight, disableFallDamage, preventHungerLoss, healPlayers, radiationDamage, entryMessage, exitMessage,
+                Collections.emptyList());
     }
 
     public ManagedArea(@NotNull String name,
@@ -85,7 +130,7 @@ public final class ManagedArea {
                        @NotNull ResourceKey<Level> dimension,
                        @NotNull BlockPos pos1,
                        @NotNull BlockPos pos2) {
-        this(name, type, dimension, pos1, pos2, false, false, false, false, false, false, false, false, 0.0f, "", "");
+        this(name, type, dimension, pos1, pos2, false, false, false, false, false, false, false, false, 0.0f, "", "", Collections.emptyList());
     }
 
     /**
@@ -96,7 +141,7 @@ public final class ManagedArea {
                 other.preventPvp, other.preventExplosions, other.preventMobGriefing,
                 other.preventBlockModification, other.allowFlight, other.disableFallDamage,
                 other.preventHungerLoss, other.healPlayers, other.radiationDamage,
-                other.entryMessage, other.exitMessage);
+                other.entryMessage, other.exitMessage, other.openWindows);
     }
 
     public static final Codec<ManagedArea> CODEC = RecordCodecBuilder.create(instance ->
@@ -116,8 +161,9 @@ public final class ManagedArea {
                     Codec.BOOL.optionalFieldOf("heal_players", false).forGetter(ManagedArea::isHealPlayers),
                     Codec.FLOAT.optionalFieldOf("radiation_damage", 0.0f).forGetter(ManagedArea::getRadiationDamage),
                     Codec.STRING.optionalFieldOf("entry_message", "").forGetter(ManagedArea::getEntryMessage),
-                    Codec.STRING.optionalFieldOf("exit_message", "").forGetter(ManagedArea::getExitMessage)
-            ).apply(instance, ManagedArea::new)
+                    TimeWindow.CODEC.listOf().optionalFieldOf("open_windows", Collections.emptyList()).forGetter(ManagedArea::getOpenWindows)
+            ).apply(instance, (name, type, dim, p1, p2, pp, pe, pmg, pbm, af, dfd, phl, hp, rd, em, ow) ->
+                    new ManagedArea(name, type, dim, p1, p2, pp, pe, pmg, pbm, af, dfd, phl, hp, rd, em, "", ow))
     );
 
     // ------------------------------------------------------------------------
@@ -251,6 +297,24 @@ public final class ManagedArea {
         this.radiationDamage = radiationDamage;
     }
 
+    public List<TimeWindow> getOpenWindows() {
+        return openWindows;
+    }
+
+    public boolean isCurrentlyOpen() {
+        if (openWindows.isEmpty()) return true;
+        LocalTime now = LocalTime.now(ZoneId.of("America/Sao_Paulo"));
+        return openWindows.stream().anyMatch(w -> w.isActive(now));
+    }
+
+    /**
+     * Replaces the opening-hours windows for this area. Callers may pass an empty list to make the area
+     * always-open again.
+     */
+    public void setOpenWindows(java.util.List<TimeWindow> windows) {
+        this.openWindows = windows != null ? new java.util.ArrayList<>(windows) : new java.util.ArrayList<>();
+    }
+
     public void write(FriendlyByteBuf buf) {
         buf.writeUtf(name);
         buf.writeEnum(type);
@@ -267,7 +331,11 @@ public final class ManagedArea {
         buf.writeBoolean(healPlayers);
         buf.writeFloat(radiationDamage);
         buf.writeUtf(entryMessage != null ? entryMessage : "");
-        buf.writeUtf(exitMessage != null ? exitMessage : "");
+        buf.writeInt(openWindows.size());
+        for (TimeWindow tw : openWindows) {
+            buf.writeUtf(tw.start().toString());
+            buf.writeUtf(tw.end().toString());
+        }
     }
 
     public static ManagedArea read(FriendlyByteBuf buf) {
@@ -276,18 +344,29 @@ public final class ManagedArea {
         ResourceKey<Level> dimension = buf.readResourceKey(Registries.DIMENSION);
         BlockPos pos1 = buf.readBlockPos();
         BlockPos pos2 = buf.readBlockPos();
-        ManagedArea area = new ManagedArea(name, type, dimension, pos1, pos2);
-        area.setPreventPvp(buf.readBoolean());
-        area.setPreventExplosions(buf.readBoolean());
-        area.setPreventMobGriefing(buf.readBoolean());
-        area.setPreventBlockModification(buf.readBoolean());
-        area.setAllowFlight(buf.readBoolean());
-        area.setDisableFallDamage(buf.readBoolean());
-        area.setPreventHungerLoss(buf.readBoolean());
-        area.setHealPlayers(buf.readBoolean());
-        area.setRadiationDamage(buf.readFloat());
-        area.setEntryMessage(buf.readUtf());
-        area.setExitMessage(buf.readUtf());
-        return area;
+
+        boolean preventPvp = buf.readBoolean();
+        boolean preventExplosions = buf.readBoolean();
+        boolean preventMobGriefing = buf.readBoolean();
+        boolean preventBlockModification = buf.readBoolean();
+        boolean allowFlight = buf.readBoolean();
+        boolean disableFallDamage = buf.readBoolean();
+        boolean preventHungerLoss = buf.readBoolean();
+        boolean healPlayers = buf.readBoolean();
+        float radiationDamage = buf.readFloat();
+        String entryMessage = buf.readUtf();
+
+        int winCount = buf.readInt();
+        java.util.List<TimeWindow> wins = new java.util.ArrayList<>(winCount);
+        for (int i = 0; i < winCount; i++) {
+            LocalTime s = LocalTime.parse(buf.readUtf());
+            LocalTime e = LocalTime.parse(buf.readUtf());
+            wins.add(new TimeWindow(s, e));
+        }
+
+        return new ManagedArea(name, type, dimension, pos1, pos2,
+                preventPvp, preventExplosions, preventMobGriefing, preventBlockModification,
+                allowFlight, disableFallDamage, preventHungerLoss, healPlayers,
+                radiationDamage, entryMessage, "", wins);
     }
 } 

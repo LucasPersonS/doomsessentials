@@ -22,6 +22,8 @@ public class ChatEvents {
         String message = event.getRawText();
 
         event.setCanceled(true);
+        // Mention notifications
+        ChatUtils.processMentions(sender, message);
         sendLocalMessage(sender, message);
     }
 

@@ -19,6 +19,9 @@ import net.minecraft.sounds.SoundEvent;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.phys.AABB;
+import net.minecraft.world.phys.Vec3;
+import net.minecraft.world.phys.BlockHitResult;
+import net.minecraft.world.phys.HitResult;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.client.event.RenderGuiOverlayEvent;
 import net.minecraftforge.client.event.RenderNameTagEvent;
@@ -58,6 +61,28 @@ public class ClientCombatRenderHandler {
 
     private ClientCombatRenderHandler() {}
 
+    // ---------------------------------------------------------------------
+    // Line-of-sight helper
+    // ---------------------------------------------------------------------
+
+    /**
+     * Returns true if the local (client) player can directly see the target entity without any blocks obstructing.
+     */
+    private static boolean hasLineOfSight(Entity target) {
+        Minecraft mc = Minecraft.getInstance();
+        if (mc.player == null || mc.level == null) return true; // no info → assume visible
+
+        Vec3 start = mc.player.getEyePosition(1.0f);
+        Vec3 end = target.getEyePosition(1.0f);
+
+        var context = new net.minecraft.world.level.ClipContext(start, end, net.minecraft.world.level.ClipContext.Block.COLLIDER, net.minecraft.world.level.ClipContext.Fluid.NONE, mc.player);
+        HitResult result = mc.level.clip(context);
+
+        // Visible if nothing hit or the hit is the target itself
+        return result.getType() == HitResult.Type.MISS ||
+               (result instanceof BlockHitResult bhr && bhr.getType() == HitResult.Type.MISS);
+    }
+
     @SubscribeEvent
     public void onRenderNameplate(RenderNameTagEvent event) {
         if (!(event.getEntity() instanceof Player player)) return;
@@ -70,6 +95,12 @@ public class ClientCombatRenderHandler {
         }
 
         if (player.isCrouching()) return; // Hide tag if crouching
+        
+        // Hide if behind wall
+        if (!hasLineOfSight(player)) {
+            event.setResult(RenderNameTagEvent.Result.DENY); // cancel vanilla
+            return;
+        }
         
         // Determine player's status
         ManagedArea area = ClientCombatState.getPlayerArea(player);
@@ -151,8 +182,9 @@ public class ClientCombatRenderHandler {
 
             RenderSystem.disableBlend();
 
-            // Draw countdown (in seconds) centred beneath the icon when applicable and not in danger zone
-            if (remainingSeconds > 0 && !inDanger) {
+            // Draw countdown when applicable – hide if in danger zone or permanent combat mode
+            boolean alwaysActive = ClientCombatState.isPlayerAlwaysActive(player.getUUID());
+            if (remainingSeconds > 0 && !inDanger && !alwaysActive) {
                 Component timer = Component.literal(String.valueOf(remainingSeconds)).withStyle(ChatFormatting.YELLOW);
                 int w = font.width(timer);
                 guiGraphics.drawString(font, timer, (screenWidth - w) / 2, yIcon + iconH + 4, 0xFFFFFF, true);
@@ -219,6 +251,9 @@ public class ClientCombatRenderHandler {
     }
 
     private void renderCombatIcon(PoseStack poseStack, Player player, int packedLight) {
+        // Hide if behind wall
+        if (!hasLineOfSight(player)) return;
+
         poseStack.pushPose();
         // Adjust position to be above the head
         poseStack.translate(0.0D, player.getBbHeight() + 0.5D, 0.0D);

@@ -1,0 +1,6 @@
+{
+  "parent": "minecraft:block/cube_all",
+  "textures": {
+    "all": "doomsdayessentials:block/molten_steel_block"
+  }
+} 

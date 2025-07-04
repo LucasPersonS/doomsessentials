@@ -1,0 +1,11 @@
+{
+  "replace": false,
+  "values": [
+    "doomsdayessentials:medical_bed",
+    "doomsdayessentials:totem_block",
+    "doomsdayessentials:totem_block_top",
+    "doomsdayessentials:reinforced_stone",
+    "doomsdayessentials:primal_steel_block",
+    "doomsdayessentials:molten_steel_block"
+  ]
+} 
