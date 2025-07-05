@@ -15,7 +15,9 @@ import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import org.jetbrains.annotations.NotNull;
+import org.lupz.doomsdayessentials.injury.InjuryItems;
 import org.lupz.doomsdayessentials.professions.ProfissaoManager;
+import org.lupz.doomsdayessentials.professions.items.ProfessionItems;
 
 import java.util.ArrayList;
 import java.util.Iterator;
@@ -63,9 +65,10 @@ public class ProfissoesMenu extends AbstractContainerMenu {
             return;
         }
 
-        createProfessionItem(11, Items.EMERALD, "medico");
+        createProfessionItem(11, InjuryItems.MEDIC_KIT.get(), "medico");
         createProfessionItem(13, Items.IRON_SWORD, "combatente");
         createProfessionItem(15, Items.COMPASS, "rastreador");
+        createProfessionItem(17, ProfessionItems.ENGINEER_HAMMER.get(), "engenheiro");
     }
 
     private void createProfessionItem(int slot, net.minecraft.world.item.Item vanillaItem, String professionKey) {

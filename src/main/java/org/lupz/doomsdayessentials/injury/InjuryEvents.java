@@ -82,8 +82,7 @@ public class InjuryEvents {
 
                // Validate conditions
                if (target == null || !InjuryHelper.getCapability(target).map(InjuryCapability::isDowned).orElse(false)
-                       || reviver.distanceToSqr(target) > 9
-                       || !reviver.isUsingItem()) { // Stop if player released right-click
+                       || reviver.distanceToSqr(target) > 9) { // Cancel if out of range or target no longer downed
                   reviveProgress.remove(reviver.getUUID());
                   reviver.sendSystemMessage(net.minecraft.network.chat.Component.literal("§cReanimação cancelada."));
                } else {
@@ -136,13 +135,30 @@ public class InjuryEvents {
          return;
       }
 
-      // If the player is already downed this is the finishing blow handled by our system.
-      // Cancel vanilla death to avoid duplicate messages and process the kill ourselves.
+      // If the player is already downed this is the finishing blow. Instead of cancelling and
+      // invoking killPlayer (which causes a *second* LivingDeathEvent and duplicates corpses in
+      // some mods) we finalise the death inline and let the original event proceed.
       if (InjuryHelper.getCapability(player).map(InjuryCapability::isDowned).orElse(false)) {
-         event.setCanceled(true);
-         killPlayer(player, event.getSource());
-         // Mark that we've already sent a death message for this forced-death sequence
-         player.getPersistentData().putBoolean("doomsessentials_death_msg", true);
+         InjuryHelper.getCapability(player).ifPresent(cap -> {
+            // Clear the downed flag so subsequent logic treats the player as dead.
+            cap.setDowned(false, null);
+
+            // Increment the injury level once per actual death.
+            if (!player.getPersistentData().getBoolean("doomsessentials_injury_processed")) {
+               player.getPersistentData().putBoolean("doomsessentials_injury_processed", true);
+
+               boolean pvpOnly = EssentialsConfig.INJURY_PVP_ONLY.get();
+               boolean causedByPlayer = event.getSource().getEntity() instanceof Player && event.getSource().getEntity() != player;
+               if (!pvpOnly || causedByPlayer) {
+                  InjuryHelper.incrementInjuryLevel(player);
+               }
+
+               // Persist level as fallback
+               player.getPersistentData().putInt("doomsessentials_injury_level_copy", cap.getInjuryLevel());
+            }
+         });
+
+         // Allow vanilla death processing (and other mods) to continue – only ONE death event.
          return;
       }
 
@@ -156,6 +172,9 @@ public class InjuryEvents {
       event.setCanceled(true);
       InjuryHelper.downPlayer(player, event.getSource().getEntity() instanceof Player ? (Player) event.getSource().getEntity() : null);
       player.setHealth(1.0f);
+
+      // Cancel medico help if this player had one
+      org.lupz.doomsdayessentials.professions.MedicalHelpManager.cancelRequest(player, "Paciente morreu");
    }
 
    @SubscribeEvent
@@ -180,14 +199,15 @@ public class InjuryEvents {
             float remaining = cap.getDownedHealth() - event.getAmount();
             cap.setDownedHealth(remaining);
 
-            // Cancel the actual damage so we control the finishing blow logic
-            event.setCanceled(true);
-
             if (remaining <= 0.0f) {
-               // Health pool depleted – finalize the player preserving attacker info
-               killPlayer(player, event.getSource());
+               // Let this damage through so vanilla (and other mods) perform the actual kill; we
+               // just mark that it was a finishing blow.
+               EssentialsMod.LOGGER.info("[HURT finish] lethal hit accepted for {} via {}", player.getName().getString(), event.getSource().getMsgId());
+               // Do *not* cancel – allow natural death flow.
             } else {
-               // Optional: you could add feedback here (sound/particles) to indicate progress
+               // Cancel non-lethal damage while downed so they aren't repeatedly damaged.
+               event.setCanceled(true);
+               // Optional feedback here.
             }
          }
       });
@@ -311,6 +331,13 @@ public class InjuryEvents {
    }
 
    public static void killPlayer(ServerPlayer player, @javax.annotation.Nullable DamageSource originalSource) {
+      // Cancel any open medico help
+      org.lupz.doomsdayessentials.professions.MedicalHelpManager.cancelRequest(player, "Paciente morreu ou desistiu");
+
+      EssentialsMod.LOGGER.info("[killPlayer] invoked for {} src={} downed={} already={}", player.getName().getString(),
+              originalSource != null ? originalSource.getMsgId() : "null",
+              InjuryHelper.getCapability(player).map(InjuryCapability::isDowned).orElse(false),
+              player.getPersistentData().getBoolean("doomsessentials_already_killed"));
       // Prevent recursive calls or duplicate death handling
       if (player.getPersistentData().getBoolean("doomsessentials_force_death") ||
           player.getPersistentData().getBoolean("doomsessentials_already_killed")) {
@@ -355,6 +382,11 @@ public class InjuryEvents {
 
             // Lethal damage preserving killer attribution when possible
             player.hurt(src, Float.MAX_VALUE);
+
+            // NEW: vanilla awards the death statistic before we convert to the downed state, and
+            // it awards it again for this forced kill.  To avoid counting two deaths, roll it back
+            // by one immediately after the forced-kill damage.
+            player.awardStat(net.minecraft.stats.Stats.CUSTOM.get(net.minecraft.stats.Stats.DEATHS), -1);
          }
       });
    }

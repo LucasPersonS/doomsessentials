@@ -16,6 +16,8 @@ import org.lupz.doomsdayessentials.block.TotemBlock;
 import org.lupz.doomsdayessentials.block.TotemTopBlock;
 import org.lupz.doomsdayessentials.block.ReinforcedBlock;
 import org.lupz.doomsdayessentials.block.ReinforcedBlockEntity;
+import org.lupz.doomsdayessentials.block.MedicalBedBlock;
+import org.lupz.doomsdayessentials.block.MedicalBedItem;
 
 import java.util.function.Supplier;
 
@@ -29,8 +31,12 @@ public final class ModBlocks {
     public static final DeferredRegister<Block> BLOCKS =
             DeferredRegister.create(ForgeRegistries.BLOCKS, EssentialsMod.MOD_ID);
 
-    public static final RegistryObject<Block> MEDICAL_BED = registerBlock("medical_bed",
+    // Custom registration for Medical Bed with tooltip-aware item
+    public static final RegistryObject<Block> MEDICAL_BED = BLOCKS.register("medical_bed",
             () -> new MedicalBedBlock(BlockBehaviour.Properties.copy(Blocks.WHITE_WOOL).noOcclusion()));
+
+    public static final RegistryObject<Item> MEDICAL_BED_ITEM = ModItems.ITEMS.register("medical_bed",
+            () -> new MedicalBedItem(MEDICAL_BED.get(), new Item.Properties()));
 
     public static final RegistryObject<Block> TOTEM_BLOCK = registerBlock("totem_block",
             () -> new TotemBlock(BlockBehaviour.Properties.copy(Blocks.OAK_PLANKS).strength(2.5F).noOcclusion()));

@@ -22,8 +22,9 @@ public class CombatCommand {
 
     public static void register(CommandDispatcher<CommandSourceStack> dispatcher) {
         dispatcher.register(Commands.literal("combat")
-                .requires(src -> src.hasPermission(2))
+                .requires(src -> src.hasPermission(0))
                 .then(Commands.literal("clear")
+                        .requires(src -> src.hasPermission(2))
                         .then(Commands.argument("targets", EntityArgument.entities())
                                 .executes(ctx -> {
                                     var targets = EntityArgument.getEntities(ctx, "targets");
@@ -35,6 +36,7 @@ public class CombatCommand {
                                     return targets.size();
                                 })))
                 .then(Commands.literal("tag")
+                        .requires(src -> src.hasPermission(2))
                         .then(Commands.argument("targets", EntityArgument.players())
                                 .executes(ctx -> {
                                     var players = EntityArgument.getPlayers(ctx, "targets");

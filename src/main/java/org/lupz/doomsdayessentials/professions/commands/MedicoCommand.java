@@ -121,6 +121,12 @@ public final class MedicoCommand {
                                 }
                                 return 1;
                             }))
+                    .then(Commands.literal("rewards")
+                            .executes(ctx -> {
+                                ServerPlayer player = ctx.getSource().getPlayerOrException();
+                                net.minecraftforge.network.NetworkHooks.openScreen(player, new org.lupz.doomsdayessentials.professions.menu.MedicRewardMenuProvider());
+                                return 1;
+                            }))
                     .executes(ctx -> {
                         ctx.getSource().sendFailure(Component.literal("§7Uso: /medico heal|bed [jogador]|help|encerrar"));
                         return 0;

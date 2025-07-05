@@ -4,6 +4,7 @@ import net.minecraftforge.event.RegisterCommandsEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
 import org.lupz.doomsdayessentials.EssentialsMod;
+import org.lupz.doomsdayessentials.professions.commands.EngenheiroCommand;
 
 /**
  * Ensures that all profession-related commands are registered during the standard
@@ -23,5 +24,6 @@ public final class ProfessionCommandsRegister {
         ProfissoesCommand.register(dispatcher);
         MedicoCommand.register(dispatcher);
         RastreadorCommand.register(dispatcher);
+        EngenheiroCommand.register(dispatcher);
     }
 } 

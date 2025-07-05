@@ -42,6 +42,7 @@ public class EssentialsConfig {
     public static final ForgeConfigSpec.BooleanValue MEDICO_AUTO_RECEIVE_KIT;
     public static final ForgeConfigSpec.IntValue MEDICO_BED_COOLDOWN_SECONDS;
     public static final ForgeConfigSpec.IntValue MEDICO_GLOBAL_COOLDOWN_MINUTES;
+    public static final ForgeConfigSpec.ConfigValue<java.util.List<? extends String>> MEDICO_REWARD_ITEMS;
 
     // Professions.combatente
     public static final ForgeConfigSpec.BooleanValue COMBATENTE_ENABLED;
@@ -56,6 +57,11 @@ public class EssentialsConfig {
     public static final ForgeConfigSpec.DoubleValue TRACKER_COMPASS_RADIUS;
     public static final ForgeConfigSpec.IntValue TRACKER_COMPASS_DURATION;
     public static final ForgeConfigSpec.IntValue TRACKER_COMPASS_COOLDOWN;
+
+    // Professions.engenheiro
+    public static final ForgeConfigSpec.BooleanValue ENGENHEIRO_ENABLED;
+    public static final ForgeConfigSpec.IntValue ENGENHEIRO_MAX_COUNT;
+    public static final ForgeConfigSpec.IntValue ENGENHEIRO_BARRIER_COOLDOWN_SECONDS;
 
     // Shop Items
     public static final ForgeConfigSpec.ConfigValue<java.util.List<? extends String>> SHOP_ITEMS;
@@ -124,6 +130,10 @@ public class EssentialsConfig {
                 .defineInRange("medicoBedCooldownSeconds", 60, 1, 3600);
         MEDICO_GLOBAL_COOLDOWN_MINUTES = BUILDER.comment("Cooldown global em minutos antes que a habilidade de cura do médico possa ser usada novamente após qualquer cura.")
                 .defineInRange("medicoGlobalCooldownMinutes", 5, 1, 1440);
+        
+        // NEW CONFIG: Lista de recompensas para médicos
+        MEDICO_REWARD_ITEMS = BUILDER.comment("Lista de recompensas concedidas ao médico ao curar pacientes. Formato: itemId,quantidade")
+                .defineList("rewards", java.util.List.of("minecraft:gold_ingot,3"), o -> o instanceof String);
         BUILDER.pop();
 
         BUILDER.comment("Configurações para a profissão de Combatente").push("combatente");
@@ -152,12 +162,17 @@ public class EssentialsConfig {
                 .defineInRange("trackerCompassCooldown", 30, 10, 300);
         BUILDER.pop();
 
-        BUILDER.comment("Itens disponíveis na loja de profissões no formato outputId, costId, costAmount").push("shop");
-        SHOP_ITEMS = BUILDER.defineList("items", java.util.List.of(
-                "doomsdayessentials:medic_kit,apocalypsenow:scrapmetal,24",
-                "doomsdayessentials:tracking_compass,apocalypsenow:scrap_metal,20",
-                "doomsdayessentials:medical_bed,apocalypsenow:scrap_metal,100"
-        ), o -> o instanceof String);
+        BUILDER.comment("Configurações para a profissão de Engenheiro").push("engenheiro");
+        ENGENHEIRO_ENABLED = BUILDER.comment("Habilita ou desabilita a profissão de engenheiro.")
+                .define("engenheiroEnabled", true);
+        ENGENHEIRO_MAX_COUNT = BUILDER.comment("Número máximo de engenheiros simultâneos permitidos no servidor (0 = ilimitado).")
+                .defineInRange("engenheiroMaxCount", 5, 0, 1000);
+        ENGENHEIRO_BARRIER_COOLDOWN_SECONDS = BUILDER.comment("Cooldown em segundos para a habilidade /engenheiro barrier.")
+                .defineInRange("engenheiroBarrierCooldownSeconds", 60, 1, 3600);
+        BUILDER.pop();
+
+        BUILDER.comment("Itens disponíveis na loja de profissões no formato outputId,outputCount,costId,costAmount").push("shop");
+        SHOP_ITEMS = BUILDER.defineList("items", java.util.List.of(), o -> o instanceof String);
         BUILDER.pop();
 
         BUILDER.pop();

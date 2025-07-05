@@ -10,20 +10,19 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.inventory.AbstractContainerMenu;
 import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.item.Items;
 import org.jetbrains.annotations.NotNull;
-import org.lupz.doomsdayessentials.professions.shop.ShopUtil;
+import org.lupz.doomsdayessentials.professions.shop.EngineerShopUtil;
 import net.minecraftforge.registries.ForgeRegistries;
 
 import java.util.ArrayList;
 import java.util.List;
 
-/** GUI container for the professions shop. Read-only chest. */
-public class ShopMenu extends AbstractContainerMenu {
+/** GUI container for Engineer crafting workshop (read-only). */
+public class EngineerCraftMenu extends AbstractContainerMenu {
     private final Container container;
 
-    public ShopMenu(int windowId, Inventory playerInv) {
-        super(ProfessionMenuTypes.SHOP_MENU.get(), windowId);
+    public EngineerCraftMenu(int windowId, Inventory inv) {
+        super(ProfessionMenuTypes.ENGINEER_CRAFT.get(), windowId);
         this.container = new SimpleContainer(27);
         buildContents();
 
@@ -36,43 +35,36 @@ public class ShopMenu extends AbstractContainerMenu {
 
     private void buildContents() {
         int slot = 0;
-        for (var entry : ShopUtil.getEntries().values()) {
+        for (var entry : EngineerShopUtil.getEntries().values()) {
             if (slot >= 27) break;
             var item = ForgeRegistries.ITEMS.getValue(entry.outputId());
-            if(item==null) continue;
+            if (item == null) continue;
             ItemStack stack = new ItemStack(item, entry.outputCount());
             List<Component> lore = new ArrayList<>();
-            for(var cost: entry.costs().entrySet()){
-                var costItem = ForgeRegistries.ITEMS.getValue(cost.getKey());
-                if(costItem==null) continue;
-                lore.add(Component.literal("§7Custa " + cost.getValue() + "x " + costItem.getDescription().getString()));
+            for (var cost : entry.costs().entrySet()) {
+                var costIt = ForgeRegistries.ITEMS.getValue(cost.getKey());
+                if(costIt==null) continue;
+                Component line = Component.literal("Custo: ").withStyle(net.minecraft.ChatFormatting.GREEN)
+                        .append(Component.literal(cost.getValue()+"x ").withStyle(net.minecraft.ChatFormatting.GREEN))
+                        .append(Component.literal(costIt.getDescription().getString()).withStyle(net.minecraft.ChatFormatting.GRAY));
+                lore.add(line);
             }
             addLore(stack, lore);
             this.container.setItem(slot++, stack);
         }
-        // fill remaining with barrier
-        while (slot < 27) {
-            this.container.setItem(slot++, ItemStack.EMPTY);
-        }
+        while (slot < 27) this.container.setItem(slot++, ItemStack.EMPTY);
     }
 
     private void addLore(ItemStack stack, List<Component> lore) {
         ListTag tag = new ListTag();
-        for (Component c : lore) {
-            tag.add(StringTag.valueOf(Component.Serializer.toJson(c)));
-        }
+        for (Component c : lore) tag.add(StringTag.valueOf(Component.Serializer.toJson(c)));
         stack.getOrCreateTagElement("display").put("Lore", tag);
     }
 
-    @Override
-    public boolean stillValid(@NotNull Player pPlayer) { return true; }
-
-    @Override
-    public @NotNull ItemStack quickMoveStack(Player pPlayer, int pIndex) { return ItemStack.EMPTY; }
+    @Override public boolean stillValid(@NotNull Player p) { return true; }
+    @Override public @NotNull ItemStack quickMoveStack(Player p, int i) { return ItemStack.EMPTY; }
 
     private static class ReadOnlySlot extends Slot {
-        public ReadOnlySlot(Container cont, int i, int x, int y) { super(cont, i, x, y); }
-        @Override public boolean mayPlace(@NotNull ItemStack stack) { return false; }
-        @Override public boolean mayPickup(@NotNull Player player) { return false; }
+        public ReadOnlySlot(Container c,int idx,int x,int y){super(c,idx,x,y);} @Override public boolean mayPlace(@NotNull ItemStack s){return false;} @Override public boolean mayPickup(@NotNull Player p){return false;}
     }
 } 

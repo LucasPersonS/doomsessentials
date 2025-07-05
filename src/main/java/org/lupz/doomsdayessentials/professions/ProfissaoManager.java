@@ -79,6 +79,7 @@ public final class ProfissaoManager {
             case "medico" -> maxAllowed = EssentialsConfig.MEDICO_MAX_COUNT.get();
             case "combatente" -> maxAllowed = EssentialsConfig.COMBATENTE_MAX_COUNT.get();
             case "rastreador" -> maxAllowed = EssentialsConfig.RASTREADOR_MAX_COUNT.get();
+            case "engenheiro" -> maxAllowed = EssentialsConfig.ENGENHEIRO_MAX_COUNT.get();
             default -> {
                 // No limit defined for unknown professions
                 return true;

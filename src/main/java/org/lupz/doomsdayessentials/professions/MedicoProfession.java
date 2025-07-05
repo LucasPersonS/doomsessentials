@@ -120,6 +120,15 @@ public final class MedicoProfession {
         for (Player p : healedPlayers) {
             player.sendSystemMessage(Component.translatable("item.doomsdayessentials.medic_kit.healed_player", p.getDisplayName()).withStyle(net.minecraft.ChatFormatting.GREEN));
             p.sendSystemMessage(Component.translatable("item.doomsdayessentials.medic_kit.healed_by_medic", player.getDisplayName()).withStyle(net.minecraft.ChatFormatting.GREEN));
+
+            // Check if this player had a help request assigned to this medic
+            if (p instanceof ServerPlayer srvTarget && org.lupz.doomsdayessentials.professions.MedicalHelpManager.isAssignedMedic(srvTarget.getUUID(), player.getUUID())) {
+                // fulfil and close request
+                org.lupz.doomsdayessentials.professions.MedicalHelpManager.markFulfilled(srvTarget.getUUID());
+                org.lupz.doomsdayessentials.professions.MedicRewardManager.get().grantReward(player, srvTarget.getUUID());
+                org.lupz.doomsdayessentials.professions.MedicalHelpManager.completeRequest(srvTarget.getUUID());
+                player.getPersistentData().remove("medicoHelpTarget");
+            }
         }
 
         // Apply cooldowns
@@ -193,6 +202,14 @@ public final class MedicoProfession {
 
         medico.sendSystemMessage(Component.translatable("profession.medico.bed.success", target.getDisplayName()));
         target.sendSystemMessage(Component.translatable("profession.medico.bed.target", medico.getDisplayName()));
+
+        // If this target had a help request assigned to this medic, reward and close automatically
+        if (org.lupz.doomsdayessentials.professions.MedicalHelpManager.isAssignedMedic(target.getUUID(), medico.getUUID())) {
+            org.lupz.doomsdayessentials.professions.MedicalHelpManager.markFulfilled(target.getUUID());
+            org.lupz.doomsdayessentials.professions.MedicRewardManager.get().grantReward(medico, target.getUUID());
+            org.lupz.doomsdayessentials.professions.MedicalHelpManager.completeRequest(target.getUUID());
+            medico.getPersistentData().remove("medicoHelpTarget");
+        }
 
         int bedTicks = EssentialsConfig.MEDICO_BED_COOLDOWN_SECONDS.get() * 20;
         medico.getPersistentData().putInt(TAG_BED_COOLDOWN, bedTicks);

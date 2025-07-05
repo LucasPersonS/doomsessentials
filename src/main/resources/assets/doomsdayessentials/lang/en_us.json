@@ -6,6 +6,10 @@
   "item.doomsdayessentials.tracking_compass.not_tracker": "§cApenas Rastreadores podem usar este item.",
 
   "block.doomsdayessentials.medical_bed": "Cama Médica",
+  "block.doomsdayessentials.molten_steel_block": "Bloco de Aço Fudido",
+  "block.doomsdayessentials.primal_steel_block": "Bloco de Aço Primal",
+  "block.doomsdayessentials.reinforced_stone": "Pedra Reforçada",
+  "block.doomsdayessentials.totem_block": "Bandeira Doomsday",
 
   "professions.doomsdayessentials.select": "Selecionar Profissão",
   "professions.doomsdayessentials.combatente": "Combatente",
@@ -128,5 +132,24 @@
   "item.doomsdayessentials.medic_kit.desc1": "Kit de primeiros socorros para tratamento de emergência.",
   "item.doomsdayessentials.medic_kit.desc2": "Ressuscita aliados abatidos ou cura jogadores em área próxima.",
   "item.doomsdayessentials.tracking_compass.desc1": "Ferramenta do Rastreador para revelar inimigos próximos.",
-  "item.doomsdayessentials.tracking_compass.desc2": "Tempo de recarga só aplica quando alguém é revelado."
+  "item.doomsdayessentials.tracking_compass.desc2": "Tempo de recarga só aplica quando alguém é revelado.",
+  "itemGroup.doomsdayessentials": "Doomsday Essentials",
+  "profession.engenheiro.become": "§aVocê agora é um §6Engenheiro§a! Construa defesas rapidamente.",
+  "profession.engenheiro.leave": "§7Você deixou a profissão de Engenheiro.",
+  "profession.engenheiro.disabled": "§cA profissão de Engenheiro está desabilitada.",
+  "profession.engenheiro.not_engineer": "§cEsta habilidade é exclusiva para Engenheiros.",
+  "profession.engenheiro.cooldown_ready": "§aMartelo pronto para uso novamente!",
+  "profession.engenheiro.gui.name": "§6ENGENHEIRO",
+  "profession.engenheiro.gui.lore1": "§7Especialista em construção defensiva, capaz de",
+  "profession.engenheiro.gui.lore2": "§7erguer barreiras reforçadas instantaneamente.",
+  "profession.engenheiro.gui.lore3": "§fHabilidades:",
+  "profession.engenheiro.gui.lore4": "§a- Martelo de Engenharia cria uma barreira de aço fundido.",
+  "profession.engenheiro.gui.lore5": "§a- Resistência passiva e Rapidez na Mineração.",
+  "profession.engenheiro.gui.lore6": "§a- Access to §6/engenheiro craft§a.",
+  "professions.doomsdayessentials.engenheiro": "Engenheiro",
+  "item.doomsdayessentials.engineer_hammer.desc1": "Cria uma barreira de aço fundido à sua frente.",
+  "item.doomsdayessentials.engineer_hammer.desc2": "Clique direito para usar. Possui tempo de recarga.",
+  "item.doomsdayessentials.medical_bed.desc1": "Cama especial para tratar ferimentos.",
+  "item.doomsdayessentials.medical_bed.desc2": "Médicos podem deitar pacientes aqui para recuperar-se.",
+  "item.doomsdayessentials.engineer_hammer": "Martelo do Engenheiro"
 } 

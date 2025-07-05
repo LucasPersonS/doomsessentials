@@ -31,9 +31,11 @@ import org.lupz.doomsdayessentials.network.PacketHandler;
 import org.lupz.doomsdayessentials.professions.items.ProfessionItems;
 import org.lupz.doomsdayessentials.professions.menu.ProfessionMenuTypes;
 import org.lupz.doomsdayessentials.professions.menu.ProfissoesScreen;
+import org.lupz.doomsdayessentials.professions.menu.EngineerCraftScreen;
 import org.lupz.doomsdayessentials.sound.ModSounds;
 import org.lupz.doomsdayessentials.guild.GuildConfig;
 import org.lupz.doomsdayessentials.guild.command.OrganizacaoCommand;
+import org.lupz.doomsdayessentials.item.ModCreativeTab;
 import org.slf4j.Logger;
 
 @Mod(EssentialsMod.MOD_ID)
@@ -51,6 +53,7 @@ public class EssentialsMod {
         ModSounds.register(modEventBus);
         ModEffects.register(modEventBus);
         ProfessionMenuTypes.register(modEventBus);
+        ModCreativeTab.register(modEventBus);
 
         modEventBus.addListener(this::commonSetup);
 
@@ -72,6 +75,8 @@ public class EssentialsMod {
             Class.forName("org.lupz.doomsdayessentials.command.AirdropCommand");
             Class.forName("org.lupz.doomsdayessentials.injury.InjuryCommands");
             Class.forName("org.lupz.doomsdayessentials.professions.commands.ProfessionCommandsRegister");
+            Class.forName("org.lupz.doomsdayessentials.territory.command.TerritoryCommand");
+            Class.forName("org.lupz.doomsdayessentials.territory.TerritoryAccessEvents");
         } catch (ClassNotFoundException e) {
             LOGGER.error("Failed to load command class", e);
         }
@@ -80,6 +85,8 @@ public class EssentialsMod {
     private void commonSetup(final FMLCommonSetupEvent event) {
         event.enqueueWork(() -> {
             CombatManager.get();
+            org.lupz.doomsdayessentials.territory.TerritoryEventManager.get();
+            org.lupz.doomsdayessentials.territory.ResourceGeneratorManager.get();
             PacketHandler.register();
             InjuryNetwork.register();
             org.lupz.doomsdayessentials.professions.ProfissaoManager.loadProfessions();
@@ -98,6 +105,7 @@ public class EssentialsMod {
                 ClientCombatRenderHandler.init();
                 MenuScreens.register(ProfessionMenuTypes.PROFISSOES_MENU.get(), ProfissoesScreen::new);
                 MenuScreens.register(ProfessionMenuTypes.SHOP_MENU.get(), org.lupz.doomsdayessentials.professions.menu.ShopScreen::new);
+                MenuScreens.register(ProfessionMenuTypes.ENGINEER_CRAFT.get(), org.lupz.doomsdayessentials.professions.menu.EngineerCraftScreen::new);
             });
         }
     }

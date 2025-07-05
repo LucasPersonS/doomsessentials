@@ -42,6 +42,7 @@ public final class MedicalHelpManager {
     public static class HelpRequest {
         private final UUID requester;
         private UUID assignedMedico;
+        private boolean fulfilled;
 
         public HelpRequest(UUID requester) {
             this.requester = requester;
@@ -50,5 +51,40 @@ public final class MedicalHelpManager {
         public UUID getRequester() { return requester; }
         public UUID getAssignedMedico() { return assignedMedico; }
         public void setAssignedMedico(UUID medico) { this.assignedMedico = medico; }
+        public boolean isFulfilled() { return fulfilled; }
+        public void setFulfilled(boolean f) { this.fulfilled = f; }
+    }
+
+    /** Marks the request as fulfilled (help provided). */
+    public static boolean markFulfilled(UUID requesterUuid) {
+        HelpRequest req = requests.get(requesterUuid);
+        if (req != null) {
+            req.setFulfilled(true);
+            return true;
+        }
+        return false;
+    }
+
+    public static boolean isAssignedMedic(UUID requesterUuid, UUID medicoUuid) {
+        HelpRequest req = requests.get(requesterUuid);
+        return req != null && medicoUuid.equals(req.getAssignedMedico());
+    }
+
+    /** Cancels request if present and not fulfilled, notifying involved players. */
+    public static void cancelRequest(ServerPlayer requesterPlayer, String reason) {
+        HelpRequest req = requests.remove(requesterPlayer.getUUID());
+        if (req == null) return;
+
+        // Notify requester
+        requesterPlayer.sendSystemMessage(net.minecraft.network.chat.Component.literal("§eSeu pedido de ajuda foi cancelado: " + reason));
+
+        // Notify medico if assigned
+        if (req.getAssignedMedico() != null && !requesterPlayer.level().isClientSide) {
+            var medico = requesterPlayer.getServer().getPlayerList().getPlayer(req.getAssignedMedico());
+            if (medico != null) {
+                medico.getPersistentData().remove("medicoHelpTarget");
+                medico.sendSystemMessage(net.minecraft.network.chat.Component.literal("§eO chamado do paciente " + requesterPlayer.getName().getString() + " foi cancelado: " + reason));
+            }
+        }
     }
 } 

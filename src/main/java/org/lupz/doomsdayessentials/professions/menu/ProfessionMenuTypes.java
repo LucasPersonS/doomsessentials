@@ -7,6 +7,7 @@ import net.minecraftforge.registries.DeferredRegister;
 import net.minecraftforge.registries.ForgeRegistries;
 import net.minecraftforge.registries.RegistryObject;
 import org.lupz.doomsdayessentials.EssentialsMod;
+import org.lupz.doomsdayessentials.professions.menu.EngineerCraftMenu;
 
 /**
  * Holds menu type registrations for the profession GUI(s).
@@ -23,6 +24,14 @@ public final class ProfessionMenuTypes {
     public static final RegistryObject<MenuType<org.lupz.doomsdayessentials.professions.menu.ShopMenu>> SHOP_MENU = MENUS.register(
             "shop_menu",
             () -> IForgeMenuType.create((windowId, inv, data) -> new org.lupz.doomsdayessentials.professions.menu.ShopMenu(windowId, inv)));
+
+    public static final RegistryObject<MenuType<EngineerCraftMenu>> ENGINEER_CRAFT = MENUS.register(
+            "engineer_craft_menu",
+            () -> IForgeMenuType.create((windowId, inv, data) -> new EngineerCraftMenu(windowId, inv)));
+
+    public static final RegistryObject<MenuType<org.lupz.doomsdayessentials.professions.menu.MedicRewardMenu>> MEDIC_REWARD_MENU = MENUS.register(
+            "medic_reward_menu",
+            () -> IForgeMenuType.create((windowId, inv, data) -> new org.lupz.doomsdayessentials.professions.menu.MedicRewardMenu(windowId, inv)));
 
     private ProfessionMenuTypes() {}
 

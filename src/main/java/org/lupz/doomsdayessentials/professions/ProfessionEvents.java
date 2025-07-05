@@ -8,6 +8,7 @@ import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
 import org.lupz.doomsdayessentials.EssentialsMod;
 import org.lupz.doomsdayessentials.professions.capability.TrackerCapabilityProvider;
+import org.lupz.doomsdayessentials.professions.EngenheiroProfession;
 
 /**
  * Re-apply profession passive bonuses when the player logs in or respawns.
@@ -47,6 +48,7 @@ public final class ProfessionEvents {
         switch (prof.toLowerCase()) {
             case "combatente" -> CombatenteProfession.applyBonuses(player);
             case "rastreador" -> RastreadorProfession.applyBonuses(player);
+            case "engenheiro" -> EngenheiroProfession.applyBonuses(player);
             // Add future professions here
         }
     }

@@ -326,6 +326,7 @@ public class AreaEvents {
      */
     private static void ejectFromClosedArea(ServerPlayer player, ManagedArea area) {
         BlockPos p = player.blockPosition();
+        final int OFFSET = 4; // blocks to push out
         int newX = p.getX();
         int newZ = p.getZ();
 
@@ -341,18 +342,18 @@ public class AreaEvents {
 
             int minDist = Math.min(Math.min(distLeft, distRight), Math.min(distNorth, distSouth));
 
-            if (minDist == distLeft) newX = area.getPos1().getX() - 1;
-            else if (minDist == distRight) newX = area.getPos2().getX() + 1;
-            else if (minDist == distNorth) newZ = area.getPos1().getZ() - 1;
-            else newZ = area.getPos2().getZ() + 1;
+            if (minDist == distLeft) newX = area.getPos1().getX() - OFFSET;
+            else if (minDist == distRight) newX = area.getPos2().getX() + OFFSET;
+            else if (minDist == distNorth) newZ = area.getPos1().getZ() - OFFSET;
+            else newZ = area.getPos2().getZ() + OFFSET;
         } else if (insideX) {
             int distLeft  = p.getX() - area.getPos1().getX();
             int distRight = area.getPos2().getX() - p.getX();
-            newX = (distLeft < distRight) ? area.getPos1().getX() - 1 : area.getPos2().getX() + 1;
+            newX = (distLeft < distRight) ? area.getPos1().getX() - OFFSET : area.getPos2().getX() + OFFSET;
         } else if (insideZ) {
             int distNorth = p.getZ() - area.getPos1().getZ();
             int distSouth = area.getPos2().getZ() - p.getZ();
-            newZ = (distNorth < distSouth) ? area.getPos1().getZ() - 1 : area.getPos2().getZ() + 1;
+            newZ = (distNorth < distSouth) ? area.getPos1().getZ() - OFFSET : area.getPos2().getZ() + OFFSET;
         }
 
         double y = player.getY();

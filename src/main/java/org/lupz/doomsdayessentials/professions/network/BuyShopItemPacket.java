@@ -19,22 +19,23 @@ public class BuyShopItemPacket {
             if (player == null) return;
             var entry = ShopUtil.getEntries().get(msg.alias);
             if (entry == null) return;
-            var costItem = ForgeRegistries.ITEMS.getValue(entry.costId());
             var outItem = ForgeRegistries.ITEMS.getValue(entry.outputId());
-            if (costItem == null || outItem == null) return;
-            int available = player.getInventory().countItem(costItem);
-            if (available < entry.costCount()) {
-                player.sendSystemMessage(net.minecraft.network.chat.Component.literal("§cVocê precisa de mais itens para comprar."));
-                return;
+            if(outItem==null) return;
+            for(var cost: entry.costs().entrySet()){
+                var item = ForgeRegistries.ITEMS.getValue(cost.getKey());
+                if(item==null) return;
+                int avail = player.getInventory().countItem(item);
+                if(avail < cost.getValue()) { player.sendSystemMessage(net.minecraft.network.chat.Component.literal("§cVocê precisa de mais itens para comprar.")); return; }
             }
-            int toRemove = entry.costCount();
-            for (int i = 0; i < player.getInventory().getContainerSize(); i++) {
-                net.minecraft.world.item.ItemStack stack = player.getInventory().getItem(i);
-                if (stack.is(costItem)) {
-                    int rem = Math.min(toRemove, stack.getCount());
-                    stack.shrink(rem);
-                    toRemove -= rem;
-                    if (toRemove <= 0) break;
+            // remove costs
+            for(var cost: entry.costs().entrySet()){
+                var item = ForgeRegistries.ITEMS.getValue(cost.getKey());
+                int toRemove = cost.getValue();
+                for(int i=0;i<player.getInventory().getContainerSize();i++){
+                    var stack = player.getInventory().getItem(i);
+                    if(stack.is(item)){
+                        int rem = Math.min(toRemove, stack.getCount()); stack.shrink(rem); toRemove-=rem; if(toRemove<=0) break;
+                    }
                 }
             }
             player.getInventory().add(new net.minecraft.world.item.ItemStack(outItem, entry.outputCount()));

@@ -10,6 +10,8 @@ import org.lupz.doomsdayessentials.network.packet.s2c.SyncAreasPacket;
 import org.lupz.doomsdayessentials.network.packet.s2c.SyncCombatStatePacket;
 import org.lupz.doomsdayessentials.professions.network.SelectProfessionPacket;
 import org.lupz.doomsdayessentials.professions.network.BuyShopItemPacket;
+import org.lupz.doomsdayessentials.network.packet.s2c.TerritoryProgressPacket;
+import org.lupz.doomsdayessentials.professions.network.BuyEngineerItemPacket;
 
 public class PacketHandler {
 
@@ -52,6 +54,18 @@ public class PacketHandler {
                 .encoder(BuyShopItemPacket::encode)
                 .decoder(BuyShopItemPacket::decode)
                 .consumerMainThread(BuyShopItemPacket::handle)
+                .add();
+
+        CHANNEL.messageBuilder(TerritoryProgressPacket.class, index++, NetworkDirection.PLAY_TO_CLIENT)
+                .encoder(TerritoryProgressPacket::encode)
+                .decoder(TerritoryProgressPacket::decode)
+                .consumerMainThread(TerritoryProgressPacket::handle)
+                .add();
+
+        CHANNEL.messageBuilder(BuyEngineerItemPacket.class, index++, NetworkDirection.PLAY_TO_SERVER)
+                .encoder(BuyEngineerItemPacket::encode)
+                .decoder(BuyEngineerItemPacket::decode)
+                .consumerMainThread(BuyEngineerItemPacket::handle)
                 .add();
     }
 } 

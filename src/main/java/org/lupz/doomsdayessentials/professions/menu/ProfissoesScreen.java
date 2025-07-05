@@ -13,6 +13,8 @@ import net.minecraft.world.item.Items;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
 import org.lupz.doomsdayessentials.EssentialsMod;
+import org.lupz.doomsdayessentials.injury.InjuryItems;
+import org.lupz.doomsdayessentials.professions.items.ProfessionItems;
 import org.lupz.doomsdayessentials.professions.network.ProfessionNetwork;
 
 @OnlyIn(Dist.CLIENT)
@@ -51,7 +53,7 @@ public class ProfissoesScreen extends AbstractContainerScreen<ProfissoesMenu> {
         Slot slot = this.getSlotUnderMouse();
         if (slot != null && slot.hasItem()) {
             ItemStack stack = slot.getItem();
-            if (stack.is(Items.EMERALD)) {
+            if (stack.getItem() == InjuryItems.MEDIC_KIT.get()) {
                 ProfessionNetwork.selectProfession("medico");
                 this.minecraft.player.closeContainer();
                 return true;
@@ -63,6 +65,11 @@ public class ProfissoesScreen extends AbstractContainerScreen<ProfissoesMenu> {
             }
             if (stack.is(Items.COMPASS)) {
                 ProfessionNetwork.selectProfession("rastreador");
+                this.minecraft.player.closeContainer();
+                return true;
+            }
+            if (stack.getItem() == ProfessionItems.ENGINEER_HAMMER.get()) {
+                ProfessionNetwork.selectProfession("engenheiro");
                 this.minecraft.player.closeContainer();
                 return true;
             }

@@ -53,6 +53,8 @@ public class SelectProfessionPacket {
                     org.lupz.doomsdayessentials.professions.CombatenteProfession.onLeave(player);
                 } else if ("rastreador".equalsIgnoreCase(current)) {
                     org.lupz.doomsdayessentials.professions.RastreadorProfession.onLeave(player);
+                } else if ("engenheiro".equalsIgnoreCase(current)) {
+                    org.lupz.doomsdayessentials.professions.EngenheiroProfession.onLeave(player);
                 }
 
                 player.sendSystemMessage(Component.translatable("profession.leave"));
@@ -83,6 +85,8 @@ public class SelectProfessionPacket {
                 org.lupz.doomsdayessentials.professions.CombatenteProfession.onBecome(player);
             } else if ("rastreador".equalsIgnoreCase(msg.professionId)) {
                 org.lupz.doomsdayessentials.professions.RastreadorProfession.onBecome(player);
+            } else if ("engenheiro".equalsIgnoreCase(msg.professionId)) {
+                org.lupz.doomsdayessentials.professions.EngenheiroProfession.onBecome(player);
             } else {
                 player.sendSystemMessage(Component.literal("Você se tornou um " + msg.professionId + "."));
             }
