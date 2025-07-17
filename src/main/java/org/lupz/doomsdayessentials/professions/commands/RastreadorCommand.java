@@ -77,7 +77,7 @@ public class RastreadorCommand {
                 context.getSource().sendFailure(Component.literal("Jogador " + playerName + " já está na sua whitelist."));
             } else {
                 cap.addToWhitelist(finalUUID);
-                context.getSource().sendSuccess(() -> Component.literal("Jogador " + playerName + " foi adicionado à sua whitelist."), true);
+                context.getSource().sendSuccess(() -> Component.literal("Jogador " + playerName + " foi adicionado à sua whitelist."), false);
             }
         });
         return 1;
@@ -98,7 +98,7 @@ public class RastreadorCommand {
                 context.getSource().sendFailure(Component.literal("Player " + playerName + " is not on your whitelist."));
             } else {
                 cap.removeFromWhitelist(playerToRemove.getUUID());
-                context.getSource().sendSuccess(() -> Component.literal("Player " + playerName + " has been removed from your whitelist."), true);
+                context.getSource().sendSuccess(() -> Component.literal("Player " + playerName + " has been removed from your whitelist."), false);
             }
         });
         return 1;

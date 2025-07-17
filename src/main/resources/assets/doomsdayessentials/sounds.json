@@ -5,7 +5,9 @@
       "doomsdayessentials:danger_zone2",
       "doomsdayessentials:danger_zone3",
       "doomsdayessentials:danger_zone_mya1",
-      "doomsdayessentials:danger_zone_mya2"
+      "doomsdayessentials:danger_zone_mya2",
+      "doomsdayessentials:danger_zone_mabel1",
+      "doomsdayessentials:danger_zone_mabel2"
     ]
   },
   "safe_zone_enter": {
@@ -14,7 +16,9 @@
       "doomsdayessentials:safe_zone2",
       "doomsdayessentials:safe_zone3",
       "doomsdayessentials:safe_zone_mya1",
-      "doomsdayessentials:safe_zone_mya3"
+      "doomsdayessentials:safe_zone_mya3",
+      "doomsdayessentials:safe_zone_mabel1",
+      "doomsdayessentials:safe_zone_mabel2"
     ]
   },
   "frequencia1": {

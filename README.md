@@ -87,7 +87,18 @@ Only available if you currently hold the **Rastreador** profession.
 
 ---
 
-## 6. Miscellaneous
+## 6. Recycler (Admins)
+Manage recycler recipes.
+
+| Sub-command | Description |
+|---|---|
+| `/recicladora add <input> <output1> <outputCount1> [output2] [outputCount2]` | Adds a new recipe to the recycler. |
+| `/recicladora list` | Lists all currently loaded recycler recipes. |
+| `/recicladora reload` | Reloads all recycler recipes from the configuration file. |
+
+---
+
+## 7. Miscellaneous
 
 | Command | Permission | Description |
 |---------|------------|-------------|

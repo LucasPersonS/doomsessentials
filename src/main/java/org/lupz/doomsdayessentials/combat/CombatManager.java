@@ -112,6 +112,14 @@ public class CombatManager {
             return;
         }
 
+        // Check if either player is in an ARENA zone
+        var attackerArea = AreaManager.get().getAreaAt(attacker.serverLevel(), attacker.blockPosition());
+        var victimArea = AreaManager.get().getAreaAt(victim.serverLevel(), victim.blockPosition());
+        if ((attackerArea != null && attackerArea.getType() == AreaType.ARENA) ||
+            (victimArea != null && victimArea.getType() == AreaType.ARENA)) {
+            return;
+        }
+
         // Any player-vs-player damage counts
         tagPlayer(attacker);
         tagPlayer(victim);

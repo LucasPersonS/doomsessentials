@@ -11,6 +11,7 @@ import net.minecraft.util.StringRepresentable;
  * NEUTRAL  – "Yellow" zone. PvP is disabled unless one or both players are currently in combat.
  * FREQUENCY – Special zone used by the Frequency effect mechanics.
  * RESOURCE – High-risk generator zone during a capture event. Becomes SAFE when conquistada.
+ * ARENA    – Special zone for events. No combat tag, no injury on death, no item/XP loss.
  */
 public enum AreaType implements StringRepresentable {
     /**
@@ -20,12 +21,17 @@ public enum AreaType implements StringRepresentable {
     DANGER,
     SAFE,
     FREQUENCY,
+    ARENA,
     NEUTRAL; // Yellow / Neutral zones – PvP off unless players are in combat
 
     public static final Codec<AreaType> CODEC = StringRepresentable.fromEnum(AreaType::values);
 
     public boolean isDanger() {
         return this == DANGER;
+    }
+
+    public boolean isArena() {
+        return this == ARENA;
     }
 
     public boolean isResource() {

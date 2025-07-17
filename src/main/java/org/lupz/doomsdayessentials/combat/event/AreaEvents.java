@@ -84,6 +84,9 @@ public class AreaEvents {
     private static void handleAreaChange(ServerPlayer player, ManagedArea from, ManagedArea to) {
         // Leaving an area
         if (from != null) {
+            if (from.getType() == AreaType.ARENA) {
+                player.sendSystemMessage(Component.literal("§cVocê saiu da arena."));
+            }
             // Send exit message
             if (from.getExitMessage() != null && !from.getExitMessage().isEmpty()) {
                 player.connection.send(new ClientboundSetTitleTextPacket(Component.literal(from.getExitMessage())));
@@ -96,7 +99,7 @@ public class AreaEvents {
                 }
                 flightGrantedByMod.remove(player.getUUID());
             }
-            // Trigger combat countdown if leaving a hazard zone (danger / frequency)
+            // Trigger combat countdown if leaving a danger zone (danger / frequency)
             boolean fromHazard = from.getType() == AreaType.DANGER;
             boolean toHazard = to != null && to.getType() == AreaType.DANGER;
             if (fromHazard && !toHazard) {
@@ -106,6 +109,9 @@ public class AreaEvents {
         
         // Entering an area
         if (to != null) {
+            if (to.getType() == AreaType.ARENA) {
+                player.sendSystemMessage(Component.literal("§aVocê entrou na arena."));
+            }
             // Send entry message
             if (to.getEntryMessage() != null && !to.getEntryMessage().isEmpty()) {
                 player.connection.send(new ClientboundSetTitleTextPacket(Component.literal(to.getEntryMessage())));

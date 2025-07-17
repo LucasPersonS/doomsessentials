@@ -16,6 +16,7 @@ import net.minecraftforge.fml.event.lifecycle.FMLCommonSetupEvent;
 import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
 import org.lupz.doomsdayessentials.block.ModBlocks;
 import org.lupz.doomsdayessentials.client.ClientCombatRenderHandler;
+import org.lupz.doomsdayessentials.client.particle.ModParticles;
 import org.lupz.doomsdayessentials.combat.CombatManager;
 import org.lupz.doomsdayessentials.combat.command.AreaCommand;
 import org.lupz.doomsdayessentials.combat.command.CombatCommand;
@@ -61,6 +62,7 @@ public class EssentialsMod {
         ModEffects.register(modEventBus);
         ProfessionMenuTypes.register(modEventBus);
         ModCreativeTab.register(modEventBus);
+        ModParticles.register(modEventBus);
 
         modEventBus.addListener(this::commonSetup);
 

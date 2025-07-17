@@ -24,6 +24,10 @@ import org.lupz.doomsdayessentials.injury.network.InjuryNetwork;
 import org.lupz.doomsdayessentials.injury.network.UpdateInjuryLevelPacket;
 import net.minecraft.world.damagesource.DamageSource;
 import net.minecraftforge.eventbus.api.EventPriority;
+import org.lupz.doomsdayessentials.combat.AreaManager;
+import org.lupz.doomsdayessentials.combat.AreaType;
+import net.minecraftforge.event.entity.living.LivingDropsEvent;
+import net.minecraftforge.event.entity.living.LivingExperienceDropEvent;
 
 @EventBusSubscriber(modid = EssentialsMod.MOD_ID, bus = EventBusSubscriber.Bus.FORGE)
 public class InjuryEvents {
@@ -126,6 +130,13 @@ public class InjuryEvents {
          return;
       }
 
+      // Check if player is in an ARENA zone
+      var area = AreaManager.get().getAreaAt(player.serverLevel(), player.blockPosition());
+      if (area != null && area.getType() == AreaType.ARENA) {
+          player.getPersistentData().putBoolean("doomsessentials_died_in_arena", true);
+          return; // Skip injury system entirely
+      }
+
       if (!EssentialsConfig.INJURY_SYSTEM_ENABLED.get()) {
          return;
       }
@@ -175,6 +186,24 @@ public class InjuryEvents {
 
       // Cancel medico help if this player had one
       org.lupz.doomsdayessentials.professions.MedicalHelpManager.cancelRequest(player, "Paciente morreu");
+   }
+
+   @SubscribeEvent
+   public static void onPlayerDrops(LivingDropsEvent event) {
+      if (event.getEntity() instanceof ServerPlayer player) {
+         if (player.getPersistentData().getBoolean("doomsessentials_died_in_arena")) {
+            event.getDrops().clear();
+         }
+      }
+   }
+
+   @SubscribeEvent
+   public static void onExperienceDrop(LivingExperienceDropEvent event) {
+      if (event.getAttackingPlayer() != null) {
+          if (event.getAttackingPlayer().getPersistentData().getBoolean("doomsessentials_died_in_arena")) {
+              event.setDroppedExperience(0);
+          }
+      }
    }
 
    @SubscribeEvent
@@ -328,6 +357,42 @@ public class InjuryEvents {
               }
           });
       }
+
+      if (!event.isWasDeath()) {
+         return;
+      }
+      ServerPlayer newPlayer = (ServerPlayer) event.getEntity();
+      ServerPlayer oldPlayer = (ServerPlayer) event.getOriginal();
+
+      // Keep inventory and XP on death in ARENA
+      if (oldPlayer.getPersistentData().getBoolean("doomsessentials_died_in_arena")) {
+         newPlayer.getInventory().replaceWith(oldPlayer.getInventory());
+         newPlayer.totalExperience = oldPlayer.totalExperience;
+         newPlayer.experienceLevel = oldPlayer.experienceLevel;
+         newPlayer.experienceProgress = oldPlayer.experienceProgress;
+         oldPlayer.getPersistentData().remove("doomsessentials_died_in_arena");
+      }
+
+      newPlayer.getCapability(InjuryCapabilityProvider.INJURY_CAPABILITY).ifPresent(newCap -> {
+         oldPlayer.getCapability(InjuryCapabilityProvider.INJURY_CAPABILITY).ifPresent(oldCap -> {
+            newCap.setInjuryLevel(oldCap.getInjuryLevel());
+            newCap.setDeathCount(oldCap.getDeathCount());
+            System.out.println("[DEBG] clone: copied death count = " + newCap.getDeathCount());
+
+            // Copy the persistent injury tag as well
+            if (event.getOriginal().getPersistentData().contains("doomsessentials_injury_level_copy")) {
+                int saved = event.getOriginal().getPersistentData().getInt("doomsessentials_injury_level_copy");
+                event.getEntity().getPersistentData().putInt("doomsessentials_injury_level_copy", saved);
+                System.out.println("[DEBG] onPlayerClone copied persistent injury tag: " + saved);
+            }
+
+            // Immediately sync the injury level to the client so the HUD is correct right after respawn
+            if (event.getEntity() instanceof ServerPlayer sp) {
+               System.out.println("[DEBG] onPlayerClone SENDING_PACKET: level=" + newCap.getInjuryLevel());
+               InjuryNetwork.sendToPlayer(new UpdateInjuryLevelPacket(newCap.getInjuryLevel()), sp);
+            }
+         });
+      });
    }
 
    public static void killPlayer(ServerPlayer player, @javax.annotation.Nullable DamageSource originalSource) {
