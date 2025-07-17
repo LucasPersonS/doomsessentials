@@ -8,6 +8,7 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.saveddata.SavedData;
 import net.minecraft.world.level.storage.DimensionDataStorage;
 import org.jetbrains.annotations.Nullable;
+import org.lupz.doomsdayessentials.territory.ResourceGeneratorManager;
 
 import java.util.*;
 
@@ -372,5 +373,26 @@ public class GuildsManager extends SavedData {
     // Helper for iteration without exposing internal map
     public java.util.Collection<Guild> getAllGuilds() {
         return java.util.Collections.unmodifiableCollection(guilds.values());
+    }
+
+    public boolean deleteGuild(String name) {
+        Guild g = guilds.remove(name);
+        if (g == null) return false;
+
+        // clear invites that reference it
+        pendingInvites.entrySet().removeIf(e -> e.getValue().equals(name));
+
+        // break alliances & wars that involve it
+        guilds.values().forEach(other -> other.removeAlly(name));
+        activeWars.removeIf(w ->
+            w.getAttackingGuildName().equals(name) ||
+            w.getDefendingGuildName().equals(name));
+
+        // unclaim resource-generator areas
+        ResourceGeneratorManager.get().getGeneratorsForGuild(name)
+                                 .forEach(d -> ResourceGeneratorManager.get().unclaimArea(d.areaName));
+
+        setDirty();
+        return true;
     }
 } 

@@ -29,8 +29,9 @@ public class TerritoryHudOverlay {
 
         // Use texture overlay
         RenderSystem.enableBlend();
-        ResourceLocation tex = new ResourceLocation(EssentialsMod.MOD_ID,"textures/gui/capture_bar.png");
-        graphics.blit(tex,x,y,0,0,barWidth,barHeight,barWidth,barHeight);
+        ResourceLocation tex = new ResourceLocation("minecraft","textures/gui/widgets.png");
+        // Vanilla progress bar segment (u=0,v=64 width 182 height 5) – scale to barWidth
+        graphics.blit(tex, x, y, 0, 64, barWidth, barHeight, 256, 256);
         graphics.fill(x, y, x+filled, y+barHeight, color);
         RenderSystem.disableBlend();
 

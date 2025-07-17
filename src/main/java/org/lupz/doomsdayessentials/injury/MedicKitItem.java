@@ -53,7 +53,7 @@ public class MedicKitItem extends Item {
       if (entity instanceof ServerPlayer player) {
          if (!level.isClientSide) {
             double range = EssentialsConfig.MEDIC_HEAL_RADIUS.get();
-            int hearts = EssentialsConfig.MEDIC_HEAL_AMOUNT.get().intValue();
+            int hearts = EssentialsConfig.MEDICO_HEAL_AMOUNT.get().intValue();
             float healAmount = hearts; // hearts already half-hearts in config
 
             java.util.concurrent.atomic.AtomicBoolean anyHealed = new java.util.concurrent.atomic.AtomicBoolean(false);
@@ -85,6 +85,16 @@ public class MedicKitItem extends Item {
                         if (healed) {
                             anyHealed.set(true);
                             p.sendSystemMessage(Component.translatable("item.doomsdayessentials.medic_kit.healed_by_medic", player.getDisplayName()).withStyle(ChatFormatting.GREEN));
+
+                            // Reward & close help request if this was an assigned patient
+                            if (p instanceof ServerPlayer srvTarget) {
+                                if (org.lupz.doomsdayessentials.professions.MedicalHelpManager.isAssignedMedic(srvTarget.getUUID(), player.getUUID())) {
+                                    org.lupz.doomsdayessentials.professions.MedicalHelpManager.markFulfilled(srvTarget.getUUID());
+                                    org.lupz.doomsdayessentials.professions.MedicRewardManager.get().grantReward((ServerPlayer)player, srvTarget.getUUID());
+                                    org.lupz.doomsdayessentials.professions.MedicalHelpManager.completeRequest(srvTarget.getUUID());
+                                    player.getPersistentData().remove("medicoHelpTarget");
+                                }
+                            }
                         }
                     });
                 }

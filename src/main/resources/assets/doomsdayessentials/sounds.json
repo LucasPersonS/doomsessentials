@@ -31,5 +31,13 @@
     "sounds": [
       "doomsdayessentials:espalhe"
     ]
+  },
+  "recycler_loop": {
+    "category": "ambient",
+    "sounds": [
+      { "name": "doomsdayessentials:rust", "stream": true }
+    ],
+    "subtitle": "subtitles.doomsdayessentials.recycler_loop",
+    "attenuation_distance": 16
   }
 } 

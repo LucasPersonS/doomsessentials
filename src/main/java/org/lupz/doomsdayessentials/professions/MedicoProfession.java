@@ -96,7 +96,7 @@ public final class MedicoProfession {
         }
 
         double range = EssentialsConfig.MEDIC_HEAL_RADIUS.get();
-        float healAmount = EssentialsConfig.MEDIC_HEAL_AMOUNT.get().floatValue();
+        float healAmount = EssentialsConfig.MEDICO_HEAL_AMOUNT.get().floatValue();
         java.util.List<Player> healedPlayers = new java.util.ArrayList<>();
         player.level().getEntitiesOfClass(Player.class, player.getBoundingBox().inflate(range)).forEach(p -> {
             if (p != player && player.distanceToSqr(p) <= range * range) {

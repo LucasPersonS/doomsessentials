@@ -430,13 +430,14 @@ public class InjuryEvents {
 
       InjuryHelper.getCapability(target).ifPresent(cap -> {
          if (cap.isDowned()) {
-            // Begin revive process and remember which hand is being used
-            reviveProgress.put(reviver.getUUID(), new ReviveData(target.getUUID(), event.getHand()));
+            if (!reviveProgress.containsKey(reviver.getUUID())) {
+                reviveProgress.put(reviver.getUUID(), new ReviveData(target.getUUID(), event.getHand()));
+                reviver.sendSystemMessage(net.minecraft.network.chat.Component.literal("§eReanimando " + target.getDisplayName().getString() + "..."));
+            }
             // Force the server to start tracking the right-click "use" action so we can detect release
             if (reviver instanceof net.minecraft.server.level.ServerPlayer sp) {
                sp.startUsingItem(event.getHand());
             }
-            reviver.sendSystemMessage(net.minecraft.network.chat.Component.literal("§eReanimando " + target.getDisplayName().getString() + "..."));
             event.setCanceled(true); // Prevent other interactions
          }
       });

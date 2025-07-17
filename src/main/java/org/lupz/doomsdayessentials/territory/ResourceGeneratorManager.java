@@ -50,6 +50,10 @@ public class ResourceGeneratorManager {
     // ---------------------------------------------------------
     public ResourceAreaData get(String areaName) { return generators.get(areaName.toLowerCase()); }
 
+    public ResourceAreaData createIfAbsent(String areaName) {
+        return generators.computeIfAbsent(areaName.toLowerCase(), k -> new ResourceAreaData(areaName, "minecraft:stone", 1, 64));
+    }
+
     public String getOwner(String areaName) {
         ResourceAreaData d = generators.get(areaName);
         return d != null ? d.ownerGuild : null;
@@ -66,6 +70,7 @@ public class ResourceGeneratorManager {
             return;
         }
         data.ownerGuild = guild;
+        data.claimTimestamp = System.currentTimeMillis();
         data.lastTimestamp = System.currentTimeMillis();
         save();
     }
@@ -74,7 +79,7 @@ public class ResourceGeneratorManager {
         ResourceAreaData d = generators.get(areaName);
         if (d != null) {
             d.ownerGuild = null;
-            d.storedItems = 0;
+            for (var e : d.lootEntries) e.stored = 0;
             save();
         }
     }
@@ -83,23 +88,28 @@ public class ResourceGeneratorManager {
     public int collectForGuild(ServerPlayer player, String guildName) {
         int given = 0;
         for (ResourceAreaData d : generators.values()) {
-            if (!guildName.equals(d.ownerGuild) || d.storedItems == 0) continue;
-            Item item = ForgeRegistries.ITEMS.getValue(new ResourceLocation(d.lootId));
-            if (item == null || item == net.minecraft.world.level.block.Blocks.AIR.asItem()) {
-                EssentialsMod.LOGGER.error("Invalid loot item id {} for generator {}", d.lootId, d.areaName);
-                continue;
-            }
-            int remaining = d.storedItems;
-            while (remaining > 0) {
-                int stackSize = Math.min(item.getMaxStackSize(), remaining);
-                ItemStack stack = new ItemStack(item, stackSize);
-                if (!player.getInventory().add(stack)) {
-                    player.drop(stack, false);
+            int totalStored = d.lootEntries.stream().mapToInt(e->e.stored).sum();
+            if (!guildName.equals(d.ownerGuild) || totalStored == 0) continue;
+            for (ResourceAreaData.LootEntry entry : d.lootEntries) {
+                if (entry.stored == 0) continue;
+                var itemReg = ForgeRegistries.ITEMS.getValue(ResourceLocation.tryParse(entry.id));
+                if (itemReg == null || itemReg == net.minecraft.world.level.block.Blocks.AIR.asItem()) {
+                    EssentialsMod.LOGGER.error("Invalid loot item id {} for generator {}", entry.id, d.areaName);
+                    continue;
                 }
-                remaining -= stackSize;
+                int initial = entry.stored;
+                int remaining = initial;
+                while (remaining > 0) {
+                    int stackSize = Math.min(itemReg.getMaxStackSize(), remaining);
+                    ItemStack stack = new ItemStack(itemReg, stackSize);
+                    if (!player.getInventory().add(stack)) {
+                        player.drop(stack, false);
+                    }
+                    remaining -= stackSize;
+                }
+                given += initial;
+                entry.stored = 0;
             }
-            given += d.storedItems;
-            d.storedItems = 0;
             d.lastTimestamp = System.currentTimeMillis();
         }
         if (given > 0) save();
@@ -118,20 +128,40 @@ public class ResourceGeneratorManager {
         if (now - lastProdCheck < 60_000) return;
         lastProdCheck = now;
         boolean dirty = false;
+        java.util.Set<String> toRemove = new java.util.HashSet<>();
         for (ResourceAreaData d : generators.values()) {
             if (d.ownerGuild == null) continue;
-            if (d.storedItems >= d.storageCap) continue;
+            // Expiration check (48h)
+            if (d.claimTimestamp > 0 && now - d.claimTimestamp > 172_800_000L) {
+                // remove area and generator
+                org.lupz.doomsdayessentials.combat.AreaManager.get().deleteArea(d.areaName);
+                toRemove.add(d.areaName.toLowerCase());
+                EssentialsMod.LOGGER.info("Generator area {} expired and was removed", d.areaName);
+                continue;
+            }
             double hours = (now - d.lastTimestamp) / 3_600_000.0;
             if (hours <= 0) continue;
-            int produced = (int) Math.floor(hours * d.itemsPerHour);
-            if (produced <= 0) continue;
-            d.storedItems = Math.min(d.storageCap, d.storedItems + produced);
-            d.lastTimestamp = now;
-            dirty = true;
+            boolean areaDirty=false;
+            for (ResourceAreaData.LootEntry entry : d.lootEntries) {
+                if (entry.stored >= d.storageCap) continue;
+                int produced = (int) Math.floor(hours * entry.perHour);
+                if (produced <= 0) continue;
+                entry.stored = Math.min(d.storageCap, entry.stored + produced);
+                areaDirty=true;
+            }
+            if (areaDirty) {
+                d.lastTimestamp = now;
+                dirty = true;
+            }
         }
         if (dirty) save();
+        if (!toRemove.isEmpty()) {
+            toRemove.forEach(generators::remove);
+            save();
+        }
     }
     private long lastProdCheck = 0;
+    private final java.util.Set<String> toRemove = new java.util.HashSet<>();
 
     // ---------------------------------------------------------
     // Persistence helpers
@@ -170,6 +200,12 @@ public class ResourceGeneratorManager {
             Files.writeString(saveFile, GSON.toJson(root));
         } catch (IOException e) {
             e.printStackTrace();
+        }
+    }
+
+    public void deleteGenerator(String areaName) {
+        if (generators.remove(areaName.toLowerCase()) != null) {
+            save();
         }
     }
 

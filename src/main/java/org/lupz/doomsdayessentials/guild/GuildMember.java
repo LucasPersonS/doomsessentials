@@ -16,7 +16,7 @@ public class GuildMember {
 
     private final UUID playerUUID;
     private Rank rank;
-    private final long joinTimestamp;
+    private long joinTimestamp;
 
     public GuildMember(UUID playerUUID, Rank rank) {
         this.playerUUID = playerUUID;
@@ -42,6 +42,14 @@ public class GuildMember {
 
     public long getJoinTimestamp() {
         return joinTimestamp;
+    }
+
+    /**
+     * Sets the join timestamp, useful for admin commands that need to reset
+     * the leave cooldown for a player.
+     */
+    public void setJoinTimestamp(long timestamp) {
+        this.joinTimestamp = timestamp;
     }
 
     // ---------------------------------------------------------------------

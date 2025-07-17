@@ -15,6 +15,7 @@ import org.lupz.doomsdayessentials.guild.GuildsManager;
 import org.lupz.doomsdayessentials.network.PacketHandler;
 import org.lupz.doomsdayessentials.network.packet.s2c.TerritoryProgressPacket;
 import net.minecraftforge.network.PacketDistributor;
+import net.minecraft.ChatFormatting;
 
 import java.util.*;
 
@@ -60,11 +61,20 @@ public class TerritoryEventManager {
         ev.durationSeconds = durationSeconds;
         ev.requiredPlayers = requiredPlayers;
         this.activeEvent = ev;
-        broadcast(Component.literal("§6[Territory] Evento iniciado em " + area.getName() + "! Capture mantendo " + requiredPlayers + " jogadores por " + (durationSeconds/60) + "m."));
+        broadcast(Component.literal("§eEvento iniciado em §f" + area.getName() + "§e! Capture mantendo §f" + requiredPlayers + "§e jogadores por §f" + (durationSeconds/60) + "§em."));
         return true;
     }
 
     public void stopEvent() {
+        // Notify clients to hide the capture HUD before clearing the event
+        if (this.activeEvent != null) {
+            PacketHandler.CHANNEL.send(PacketDistributor.ALL.noArg(),
+                    new TerritoryProgressPacket(this.activeEvent.area.getName(),
+                            this.activeEvent.currentGuild,
+                            this.activeEvent.progressSeconds,
+                            this.activeEvent.durationSeconds,
+                            false));
+        }
         this.activeEvent = null;
     }
 
@@ -119,7 +129,7 @@ public class TerritoryEventManager {
         if (controllingGuild == null) {
             // contested or nobody meets requirement -> reset progress
             if (ev.progressSeconds != 0) {
-                broadcast(Component.literal("§e[Territory] Captura reiniciada – área contestada."));
+                broadcast(Component.literal("§6Captura reiniciada §r– §eárea contestada."));
             }
             ev.progressSeconds = 0;
             ev.currentGuild = null;
@@ -130,12 +140,12 @@ public class TerritoryEventManager {
         if (!Objects.equals(ev.currentGuild, controllingGuild)) {
             ev.currentGuild = controllingGuild;
             ev.progressSeconds = 0;
-            broadcast(Component.literal("§e[Territory] " + controllingGuild + " iniciou a captura (" + ev.progressSeconds + "/" + ev.durationSeconds + "s)."));
+            broadcast(Component.literal("§e" + controllingGuild + " §aagora está capturando §7(" + ev.progressSeconds + "/" + ev.durationSeconds + "s)"));
         }
 
         ev.progressSeconds++;
         if (ev.progressSeconds % 30 == 0 || ev.progressSeconds == ev.durationSeconds) {
-            broadcast(Component.literal("§6[Territory] " + controllingGuild + " capturando... " + ev.progressSeconds + "/" + ev.durationSeconds + "s"));
+            broadcast(Component.literal("§6Capturando… §e" + controllingGuild + " §7(" + ev.progressSeconds + "/" + ev.durationSeconds + "s)"));
         }
 
         // Send progress packet to all players for HUD
@@ -149,7 +159,7 @@ public class TerritoryEventManager {
     }
 
     private void finishCapture(CaptureEvent ev, ServerLevel level, String guildName) {
-        broadcast(Component.literal("§a[Territory] A guilda " + guildName + " capturou " + ev.area.getName() + "!"));
+        broadcast(Component.literal("§aA guilda §2" + guildName + " §acapturou §f" + ev.area.getName() + "§a!"));
         // Title announcement
         Component title = Component.literal("§a§lTerritório capturado");
         Component subtitle = Component.literal("§e" + guildName + " agora controla " + ev.area.getName());
@@ -170,7 +180,10 @@ public class TerritoryEventManager {
     private void broadcast(Component msg) {
         var server = ServerLifecycleHooks.getCurrentServer();
         if (server != null) {
-            server.getPlayerList().broadcastSystemMessage(msg, false);
+            Component prefix = Component.literal("⟦").withStyle(ChatFormatting.DARK_AQUA)
+                    .append(Component.literal("TERRITÓRIO").withStyle(ChatFormatting.GOLD, ChatFormatting.BOLD))
+                    .append(Component.literal("⟧ ").withStyle(ChatFormatting.DARK_AQUA));
+            server.getPlayerList().broadcastSystemMessage(prefix.copy().append(msg), false);
         }
     }
 } 

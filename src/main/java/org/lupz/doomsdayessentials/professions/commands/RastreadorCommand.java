@@ -19,7 +19,7 @@ public class RastreadorCommand {
 
     public static void register(CommandDispatcher<CommandSourceStack> dispatcher) {
         dispatcher.register(Commands.literal("rastreador")
-            .requires(source -> source.getEntity() instanceof ServerPlayer && RastreadorProfession.isTracker((ServerPlayer) source.getEntity()))
+            .requires(source -> source.getEntity() instanceof ServerPlayer)
             .then(Commands.literal("whitelist")
                 .then(Commands.literal("add")
                     .then(Commands.argument("player", StringArgumentType.word())
@@ -53,19 +53,31 @@ public class RastreadorCommand {
     private static int addPlayerToWhitelist(CommandContext<CommandSourceStack> context) throws CommandSyntaxException {
         ServerPlayer tracker = context.getSource().getPlayerOrException();
         String playerName = StringArgumentType.getString(context, "player");
-        ServerPlayer playerToAdd = context.getSource().getServer().getPlayerList().getPlayerByName(playerName);
+        var server = context.getSource().getServer();
+        ServerPlayer playerToAdd = server.getPlayerList().getPlayerByName(playerName);
+        UUID targetUUID = null;
+        if (playerToAdd != null) {
+            targetUUID = playerToAdd.getUUID();
+        } else {
+            // try offline lookup
+            java.util.Optional<com.mojang.authlib.GameProfile> prof = server.getProfileCache().get(playerName);
+            if (prof.isPresent()) {
+                targetUUID = prof.get().getId();
+            }
+        }
 
-        if (playerToAdd == null) {
-            context.getSource().sendFailure(Component.literal("Player not found: " + playerName));
+        if (targetUUID == null) {
+            context.getSource().sendFailure(Component.literal("Jogador não encontrado: " + playerName));
             return 0;
         }
 
+        final UUID finalUUID = targetUUID;
         tracker.getCapability(TrackerCapabilityProvider.TRACKER_CAPABILITY).ifPresent(cap -> {
-            if (cap.isWhitelisted(playerToAdd.getUUID())) {
-                context.getSource().sendFailure(Component.literal("Player " + playerName + " is already on your whitelist."));
+            if (cap.isWhitelisted(finalUUID)) {
+                context.getSource().sendFailure(Component.literal("Jogador " + playerName + " já está na sua whitelist."));
             } else {
-                cap.addToWhitelist(playerToAdd.getUUID());
-                context.getSource().sendSuccess(() -> Component.literal("Player " + playerName + " has been added to your whitelist."), true);
+                cap.addToWhitelist(finalUUID);
+                context.getSource().sendSuccess(() -> Component.literal("Jogador " + playerName + " foi adicionado à sua whitelist."), true);
             }
         });
         return 1;

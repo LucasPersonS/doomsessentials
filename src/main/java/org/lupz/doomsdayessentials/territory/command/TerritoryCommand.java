@@ -15,6 +15,8 @@ import org.lupz.doomsdayessentials.EssentialsMod;
 import org.lupz.doomsdayessentials.combat.AreaManager;
 import org.lupz.doomsdayessentials.combat.ManagedArea;
 import org.lupz.doomsdayessentials.territory.TerritoryEventManager;
+import net.minecraft.ChatFormatting;
+import net.minecraft.resources.ResourceLocation;
 
 @Mod.EventBusSubscriber(modid = EssentialsMod.MOD_ID, bus = Mod.EventBusSubscriber.Bus.FORGE)
 public class TerritoryCommand {
@@ -39,7 +41,7 @@ public class TerritoryCommand {
                                                 .executes(TerritoryCommand::startEvent)))))
                 .then(Commands.literal("stop").executes(TerritoryCommand::stopEvent))
                 .then(Commands.literal("status").executes(TerritoryCommand::status))
-                .then(Commands.literal("collect").executes(TerritoryCommand::collect));
+                .then(Commands.literal("collect"));
 
         // -----------------------------
         // /territory generator ...
@@ -52,6 +54,15 @@ public class TerritoryCommand {
                                 .then(Commands.argument("field", StringArgumentType.word()).suggests(TerritoryCommand::suggestFieldNames)
                                         .then(Commands.argument("value", StringArgumentType.greedyString())
                                                 .executes(TerritoryCommand::generatorSet)))))
+                .then(Commands.literal("additem")
+                        .then(Commands.argument("area", StringArgumentType.word()).suggests(TerritoryCommand::suggestAreaNames)
+                                .then(Commands.argument("item", StringArgumentType.string())
+                                        .then(Commands.argument("perHour", IntegerArgumentType.integer(1))
+                                                .executes(TerritoryCommand::generatorAddItem)))))
+                .then(Commands.literal("delitem")
+                        .then(Commands.argument("area", StringArgumentType.word()).suggests(TerritoryCommand::suggestAreaNames)
+                                .then(Commands.argument("item", StringArgumentType.string())
+                                        .executes(TerritoryCommand::generatorDelItem))))
                 .then(Commands.literal("reload").executes(TerritoryCommand::reloadGenerators));
 
         territoryRoot.then(eventCmd).then(generatorCmd);
@@ -101,24 +112,13 @@ public class TerritoryCommand {
         return 1;
     }
 
+    /**
+     * @deprecated A partir de 0.9.0 use /organizacao recompensas
+     */
+    @Deprecated
     private static int collect(CommandContext<CommandSourceStack> ctx) {
-        if (!(ctx.getSource().getEntity() instanceof net.minecraft.server.level.ServerPlayer player)) {
-            ctx.getSource().sendFailure(Component.literal("Somente jogadores podem coletar."));
-            return 0;
-        }
-        var gman = org.lupz.doomsdayessentials.guild.GuildsManager.get(player.serverLevel());
-        var guild = gman.getGuildByMember(player.getUUID());
-        if (guild == null) {
-            player.sendSystemMessage(Component.literal("Você não pertence a uma guilda."));
-            return 0;
-        }
-        int total = org.lupz.doomsdayessentials.territory.ResourceGeneratorManager.get().collectForGuild(player, guild.getName());
-        if (total == 0) {
-            player.sendSystemMessage(Component.literal("Nenhum recurso para coletar."));
-        } else {
-            player.sendSystemMessage(Component.literal("Coletado " + total + " itens dos seus geradores."));
-        }
-        return 1;
+        ctx.getSource().sendFailure(Component.literal("Comando obsoleto. Use /organizacao recompensas."));
+        return 0;
     }
 
     private static int generatorInfo(CommandContext<CommandSourceStack> ctx) {
@@ -128,8 +128,19 @@ public class TerritoryCommand {
             ctx.getSource().sendFailure(Component.literal("Gerador não encontrado."));
             return 0;
         }
-        ctx.getSource().sendSuccess(() -> Component.literal(
-                "Loot: " + data.lootId + ", PorHora: " + data.itemsPerHour + ", Cap: " + data.storageCap + ", Dono: " + data.ownerGuild + ", Armazenado: " + data.storedItems), false);
+        net.minecraft.network.chat.MutableComponent msg = Component.literal("§6[enerator Info] §e" + areaName + "\n");
+        for (var entry : data.lootEntries) {
+            Component line = Component.literal("  §a• §f" + entry.id + " §7(")
+                    .append(Component.literal(entry.perHour + "/h").withStyle(ChatFormatting.AQUA))
+                    .append(Component.literal(", armazenado: "))
+                    .append(Component.literal(String.valueOf(entry.stored)).withStyle(ChatFormatting.YELLOW))
+                    .append(Component.literal(")\n"));
+            msg = msg.append(line);
+        }
+        msg.append(Component.literal("§bCapacidade: §f" + data.storageCap + "\n"));
+        msg.append(Component.literal("§dDono: §f" + (data.ownerGuild==null?"§7-":data.ownerGuild)));
+        net.minecraft.network.chat.Component finalMsg = msg;
+        ctx.getSource().sendSuccess(() -> finalMsg, false);
         return 1;
     }
 
@@ -138,15 +149,18 @@ public class TerritoryCommand {
         String field = StringArgumentType.getString(ctx, "field");
         String value = StringArgumentType.getString(ctx, "value");
         var mgr = org.lupz.doomsdayessentials.territory.ResourceGeneratorManager.get();
-        var data = mgr.get(areaName);
-        if (data == null) {
-            ctx.getSource().sendFailure(Component.literal("Gerador não encontrado."));
-            return 0;
-        }
+        var data = mgr.createIfAbsent(areaName);
         try {
             switch (field) {
-                case "loot" -> data.lootId = value;
-                case "perhour", "itemsPerHour" -> data.itemsPerHour = Integer.parseInt(value);
+                case "loot" -> {
+                    if (data.lootEntries.isEmpty()) data.lootEntries.add(new org.lupz.doomsdayessentials.territory.ResourceAreaData.LootEntry(value, 1));
+                    else data.lootEntries.get(0).id = value;
+                }
+                case "perhour", "itemsPerHour" -> {
+                    int v = Integer.parseInt(value);
+                    if (data.lootEntries.isEmpty()) data.lootEntries.add(new org.lupz.doomsdayessentials.territory.ResourceAreaData.LootEntry("minecraft:stone", v));
+                    else data.lootEntries.get(0).perHour = v;
+                }
                 case "cap", "storageCap" -> data.storageCap = Integer.parseInt(value);
                 case "owner" -> data.ownerGuild = value.equalsIgnoreCase("null") ? null : value;
                 default -> {
@@ -165,7 +179,7 @@ public class TerritoryCommand {
 
     private static int reloadGenerators(CommandContext<CommandSourceStack> ctx) {
         org.lupz.doomsdayessentials.territory.ResourceGeneratorManager.get().reload();
-        ctx.getSource().sendSuccess(() -> Component.literal("Geradores recarregados do disco."), true);
+        ctx.getSource().sendSuccess(() -> Component.literal("Geradores recarregados do Gdisco."), true);
         return 1;
     }
 
@@ -181,5 +195,54 @@ public class TerritoryCommand {
         b.suggest("storageCap");
         b.suggest("owner");
         return b.buildFuture();
+    }
+
+    // ------------------------------------------------------------------
+    // additem / delitem impl
+    // ------------------------------------------------------------------
+
+    private static int generatorAddItem(CommandContext<CommandSourceStack> ctx) {
+        String area = StringArgumentType.getString(ctx, "area");
+        String itemId = StringArgumentType.getString(ctx, "item");
+        int perHour = IntegerArgumentType.getInteger(ctx, "perHour");
+
+        var mgr = org.lupz.doomsdayessentials.territory.ResourceGeneratorManager.get();
+        var data = mgr.createIfAbsent(area);
+
+        ResourceLocation rl = ResourceLocation.tryParse(itemId);
+        if (!net.minecraftforge.registries.ForgeRegistries.ITEMS.containsKey(rl)) {
+            ctx.getSource().sendFailure(Component.literal("Item inválido."));
+            return 0;
+        }
+
+        var existing = data.lootEntries.stream().filter(e -> e.id.equals(itemId)).findFirst().orElse(null);
+        if (existing != null) {
+            existing.perHour = perHour;
+            ctx.getSource().sendSuccess(() -> Component.literal("Item atualizado."), true);
+        } else {
+            data.lootEntries.add(new org.lupz.doomsdayessentials.territory.ResourceAreaData.LootEntry(itemId, perHour));
+            ctx.getSource().sendSuccess(() -> Component.literal("Item adicionado."), true);
+        }
+        mgr.save();
+        return 1;
+    }
+
+    private static int generatorDelItem(CommandContext<CommandSourceStack> ctx) {
+        String area = StringArgumentType.getString(ctx, "area");
+        String itemId = StringArgumentType.getString(ctx, "item");
+        var mgr = org.lupz.doomsdayessentials.territory.ResourceGeneratorManager.get();
+        var data = mgr.get(area);
+        if (data == null) {
+            ctx.getSource().sendFailure(Component.literal("Gerador não encontrado."));
+            return 0;
+        }
+        boolean removed = data.lootEntries.removeIf(e -> e.id.equals(itemId));
+        if (removed) {
+            mgr.save();
+            ctx.getSource().sendSuccess(() -> Component.literal("Item removido."), true);
+            return 1;
+        }
+        ctx.getSource().sendFailure(Component.literal("Item não encontrado."));
+        return 0;
     }
 } 

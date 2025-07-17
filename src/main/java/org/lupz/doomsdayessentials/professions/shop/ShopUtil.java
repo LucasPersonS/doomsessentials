@@ -26,11 +26,11 @@ public final class ShopUtil {
             String[] parts = line.split(",");
             try {
                 if(parts.length>=4 && parts.length%2==0) {
-                    ResourceLocation output = new ResourceLocation(parts[0]);
+                    ResourceLocation output = ResourceLocation.tryParse(parts[0]);
                     int outCount = Integer.parseInt(parts[1]);
                     Map<ResourceLocation,Integer> costs = new LinkedHashMap<>();
                     for(int i=2;i<parts.length;i+=2){
-                        ResourceLocation cid = new ResourceLocation(parts[i]);
+                        ResourceLocation cid = ResourceLocation.tryParse(parts[i]);
                         int cc = Integer.parseInt(parts[i+1]);
                         costs.put(cid, cc);
                     }

@@ -7,6 +7,8 @@ import net.minecraftforge.event.AddReloadListenerEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
 import org.lupz.doomsdayessentials.EssentialsMod;
+import net.minecraftforge.fml.config.ModConfig;
+import net.minecraftforge.fml.ModLoadingContext;
 
 /** Reload config for medic rewards when /reload (datapack reload) is executed. */
 @Mod.EventBusSubscriber(modid = EssentialsMod.MOD_ID, bus = Mod.EventBusSubscriber.Bus.FORGE)
@@ -22,7 +24,7 @@ public class RewardReloadEvents {
 
             @Override
             protected void apply(Void object, ResourceManager resourceManager, ProfilerFiller profiler) {
-                // Reload rewards from config when datapacks are reloaded (/reload)
+                // NOTE: Forge configs are not reloaded from disk on /reload. Use /forge config reload after editing the config.
                 MedicRewardManager.get().reloadConfig();
             }
         });

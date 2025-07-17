@@ -9,7 +9,7 @@ import org.lupz.doomsdayessentials.EssentialsMod;
 import org.lupz.doomsdayessentials.injury.capability.InjuryCapabilityProvider;
 
 public class InjuryHudOverlay {
-   private static final ResourceLocation BROKEN_BONE = new ResourceLocation(EssentialsMod.MOD_ID, "textures/gui/broken_bone.png");
+   private static final ResourceLocation BROKEN_BONE = ResourceLocation.fromNamespaceAndPath(EssentialsMod.MOD_ID, "textures/gui/broken_bone.png");
 
    public static final IGuiOverlay HUD_INJURY = (gui, guiGraphics, partialTicks, screenWidth, screenHeight) -> {
       Minecraft mc = Minecraft.getInstance();

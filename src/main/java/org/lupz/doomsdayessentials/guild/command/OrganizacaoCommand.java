@@ -18,6 +18,13 @@ import net.minecraftforge.event.RegisterCommandsEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
 import org.lupz.doomsdayessentials.EssentialsMod;
+import net.minecraft.world.level.block.Blocks;
+import net.minecraft.network.protocol.game.ClientboundSetTitleTextPacket;
+import net.minecraft.sounds.SoundEvents;
+import net.minecraft.sounds.SoundSource;
+import org.lupz.doomsdayessentials.guild.War;
+import org.lupz.doomsdayessentials.guild.GuildMember;
+import java.util.stream.Collectors;
 
 import java.util.UUID;
 
@@ -320,6 +327,13 @@ public class OrganizacaoCommand {
                                     lines.add(counts);
                                     lines.add(Component.literal("§6--------------------"));
 
+                                    if (!guild.getAllies().isEmpty()) {
+                                        String allyTags = guild.getAllies().stream()
+                                                .map(a -> "§e" + a)
+                                                .collect(Collectors.joining("§7, "));
+                                        lines.add(Component.literal("§6Alianças: " + allyTags));
+                                    }
+
                                     java.util.function.Function<GuildMember, String> nameFn = gm -> {
                                         var p = server.getPlayerList().getPlayer(gm.getPlayerUUID());
                                         if (p != null) return p.getName().getString();
@@ -407,8 +421,28 @@ public class OrganizacaoCommand {
                         ctx.getSource().sendFailure(Component.literal("A base não está definida.").withStyle(ChatFormatting.RED));
                         return 0;
                     }
+                    // Combat check
+                    if (org.lupz.doomsdayessentials.combat.CombatManager.get().isInCombat(player.getUUID())) {
+                        ctx.getSource().sendFailure(Component.literal("§cVocê não pode usar /organizacao base em combate."));
+                        return 0;
+                    }
+
+                    // Cooldown check using persistent NBT
+                    var tag = player.getPersistentData();
+                    long last = tag.getLong("de_base_tp");
+                    long cdMs = org.lupz.doomsdayessentials.config.EssentialsConfig.GUILD_BASE_COOLDOWN_MINUTES.get() * 60L * 1000L;
+                    long now = System.currentTimeMillis();
+                    if (now - last < cdMs) {
+                        long rem = cdMs - (now - last);
+                        long min = rem / 60000;
+                        long sec = (rem % 60000) / 1000;
+                        ctx.getSource().sendFailure(Component.literal("§eAguarde " + min + "m" + sec + "s para usar novamente."));
+                        return 0;
+                    }
+
                     var bp = guild.getBasePosition();
                     player.teleportTo(bp.getX() + 0.5, bp.getY(), bp.getZ() + 0.5);
+                    tag.putLong("de_base_tp", now);
                     ctx.getSource().sendSuccess(() -> Component.literal("Teleportado para a base.").withStyle(ChatFormatting.GREEN), false);
                     return 1;
                 }))
@@ -456,7 +490,27 @@ public class OrganizacaoCommand {
                         ctx.getSource().sendFailure(Component.literal("Este território está sob cooldown de guerra.").withStyle(ChatFormatting.RED));
                         return 0;
                     }
-                    m.startWar(attacker.getName(), defender.getName());
+                    War war = m.startWar(attacker.getName(), defender.getName());
+                    if (war == null) {
+                        ctx.getSource().sendFailure(Component.literal("Já há uma guerra entre essas organizações!").withStyle(ChatFormatting.RED));
+                        return 0;
+                    }
+
+                    // Broadcast to the whole server --------------------------------------
+                    var server = ctx.getSource().getServer();
+                    if (server != null) {
+                        Component broadcastMsg = Component.literal("A organização " + attacker.getTag() + " iniciou uma invasão contra " + defender.getTag() + "!").withStyle(ChatFormatting.RED);
+                        for (ServerPlayer p : server.getPlayerList().getPlayers()) {
+                            // Big red title
+                            p.connection.send(new ClientboundSetTitleTextPacket(Component.literal(attacker.getTag() + " vs " + defender.getTag()).withStyle(ChatFormatting.GOLD)));
+                            p.connection.send(new ClientboundSetTitleTextPacket(Component.literal("INVASÃO!").withStyle(ChatFormatting.DARK_RED, ChatFormatting.BOLD)));
+                            // Play sound
+                            p.playNotifySound(SoundEvents.RAID_HORN.get(), SoundSource.PLAYERS, 1f, 1f);
+                            // Chat message
+                            p.sendSystemMessage(broadcastMsg);
+                        }
+                    }
+
                     ctx.getSource().sendSuccess(() -> Component.literal("Guerra iniciada!").withStyle(ChatFormatting.RED), false);
                     return 1;
                 }))
@@ -686,6 +740,212 @@ public class OrganizacaoCommand {
                                     }
                                     return 1;
                                 })))
+                // /organizacao deletar <nome>
+                .then(Commands.literal("deletar")
+                        .requires(src -> src.hasPermission(2))           // only ops
+                        .then(Commands.argument("nome", StringArgumentType.string())
+                                .executes(ctx -> {
+                                    String nome = StringArgumentType.getString(ctx, "nome");
+                                    ServerLevel level = ctx.getSource().getLevel();
+                                    GuildsManager manager = GuildsManager.get(level);
+                                    Guild guild = manager.getGuild(nome);
+                                    if (guild == null) {
+                                        ctx.getSource().sendFailure(Component.literal("Organização não encontrada."));
+                                        return 0;
+                                    }
+                                    // Capture totem position before deletion
+                                    BlockPos totem = guild.getTotemPosition();
+                                    if (!manager.deleteGuild(nome)) {
+                                        ctx.getSource().sendFailure(Component.literal("Falha ao remover organização."));
+                                        return 0;
+                                    }
+                                    // Remove totem blocks from world (bottom + top)
+                                    if (totem != null) {
+                                        level.setBlockAndUpdate(totem, Blocks.AIR.defaultBlockState());
+                                        level.setBlockAndUpdate(totem.above(), Blocks.AIR.defaultBlockState());
+                                    }
+                                    ctx.getSource().sendSuccess(() -> Component.literal("Organização removida."), false);
+                                    return 1;
+                                })))
+                // /organizacao lider <nick> – transfer leadership
+                .then(Commands.literal("lider")
+                        .then(Commands.argument("nick", com.mojang.brigadier.arguments.StringArgumentType.string())
+                                // suggestions: guild members excluding self
+                                .suggests((ctx, builder) -> {
+                                    try {
+                                        ServerPlayer srcPlayer = ctx.getSource().getPlayerOrException();
+                                        GuildsManager gm = GuildsManager.get(srcPlayer.serverLevel());
+                                        Guild g = gm.getGuildByMember(srcPlayer.getUUID());
+                                        if (g != null) {
+                                            var server = ctx.getSource().getServer();
+                                            for (GuildMember mem : g.getMembers()) {
+                                                if (mem.getPlayerUUID().equals(srcPlayer.getUUID())) continue;
+                                                String name;
+                                                var p = server.getPlayerList().getPlayer(mem.getPlayerUUID());
+                                                if (p != null) {
+                                                    name = p.getGameProfile().getName();
+                                                } else {
+                                                    name = server.getProfileCache().get(mem.getPlayerUUID()).map(com.mojang.authlib.GameProfile::getName).orElse(null);
+                                                }
+                                                if (name != null) builder.suggest(name);
+                                            }
+                                        }
+                                    } catch (Exception ignored) {}
+                                    return builder.buildFuture();
+                                })
+                                .executes(ctx -> {
+                                    ServerPlayer player = ctx.getSource().getPlayerOrException();
+                                    String nick = com.mojang.brigadier.arguments.StringArgumentType.getString(ctx, "nick");
+                                    GuildsManager m = GuildsManager.get(player.serverLevel());
+                                    Guild guild = m.getGuildByMember(player.getUUID());
+                                    if (guild == null) {
+                                        ctx.getSource().sendFailure(Component.literal("Você não pertence a uma organização.").withStyle(ChatFormatting.RED));
+                                        return 0;
+                                    }
+                                    GuildMember self = guild.getMember(player.getUUID());
+                                    if (self.getRank() != GuildMember.Rank.LEADER) {
+                                        ctx.getSource().sendFailure(Component.literal("Apenas o líder pode transferir a liderança.").withStyle(ChatFormatting.RED));
+                                        return 0;
+                                    }
+                                    // find target UUID
+                                    var server = ctx.getSource().getServer();
+                                    java.util.UUID targetUUID = null;
+                                    ServerPlayer online = server.getPlayerList().getPlayerByName(nick);
+                                    if (online != null) {
+                                        targetUUID = online.getUUID();
+                                    } else {
+                                        var prof = server.getProfileCache().get(nick);
+                                        if (prof.isPresent()) targetUUID = prof.get().getId();
+                                    }
+                                    if (targetUUID == null) {
+                                        ctx.getSource().sendFailure(Component.literal("Jogador não encontrado.").withStyle(ChatFormatting.RED));
+                                        return 0;
+                                    }
+                                    if (targetUUID.equals(player.getUUID())) {
+                                        ctx.getSource().sendFailure(Component.literal("Você já é o líder.").withStyle(ChatFormatting.RED));
+                                        return 0;
+                                    }
+                                    GuildMember targetMember = guild.getMember(targetUUID);
+                                    if (targetMember == null) {
+                                        ctx.getSource().sendFailure(Component.literal("Esse jogador não é membro da sua organização.").withStyle(ChatFormatting.RED));
+                                        return 0;
+                                    }
+                                    // perform transfer
+                                    self.setRank(GuildMember.Rank.OFFICER);
+                                    targetMember.setRank(GuildMember.Rank.LEADER);
+                                    m.setDirty();
+
+                                    ctx.getSource().sendSuccess(() -> Component.literal("Liderança transferida para " + nick + ".").withStyle(ChatFormatting.GREEN), false);
+                                    // notify target if online
+                                    if (online != null) {
+                                        online.sendSystemMessage(Component.literal("§aVocê agora é o líder da organização " + guild.getTag() + "!"));
+                                    }
+                                    return 1;
+                                })))
+                // /organizacao resetcooldown <nick> – admin only: reset leave cooldown so the player can join another guild immediately
+                .then(Commands.literal("resetcooldown")
+                        .requires(src -> src.hasPermission(2))
+                        .then(Commands.argument("nick", com.mojang.brigadier.arguments.StringArgumentType.string())
+                                .executes(ctx -> {
+                                    String nick = com.mojang.brigadier.arguments.StringArgumentType.getString(ctx, "nick");
+                                    var server = ctx.getSource().getServer();
+
+                                    java.util.UUID targetUUID = null;
+                                    net.minecraft.server.level.ServerPlayer online = server.getPlayerList().getPlayerByName(nick);
+                                    if (online != null) {
+                                        targetUUID = online.getUUID();
+                                    } else {
+                                        var prof = server.getProfileCache().get(nick);
+                                        if (prof.isPresent()) targetUUID = prof.get().getId();
+                                    }
+
+                                    if (targetUUID == null) {
+                                        ctx.getSource().sendFailure(Component.literal("Jogador não encontrado."));
+                                        return 0;
+                                    }
+
+                                    org.lupz.doomsdayessentials.guild.GuildsManager gm = org.lupz.doomsdayessentials.guild.GuildsManager.get(server.overworld());
+                                    org.lupz.doomsdayessentials.guild.Guild guild = gm.getGuildByMember(targetUUID);
+                                    if (guild == null) {
+                                        ctx.getSource().sendFailure(Component.literal("Esse jogador não pertence a nenhuma organização."));
+                                        return 0;
+                                    }
+
+                                    org.lupz.doomsdayessentials.guild.GuildMember member = guild.getMember(targetUUID);
+                                    if (member == null) {
+                                        ctx.getSource().sendFailure(Component.literal("Membro não encontrado."));
+                                        return 0;
+                                    }
+
+                                    long cooldownMs = org.lupz.doomsdayessentials.guild.GuildConfig.GUILD_LEAVE_COOLDOWN_HOURS.get() * 60L * 60L * 1000L;
+                                    // Set join timestamp far enough in the past to bypass cooldown (1 sec extra)
+                                    member.setJoinTimestamp(System.currentTimeMillis() - cooldownMs - 1000L);
+
+                                    gm.setDirty();
+
+                                    ctx.getSource().sendSuccess(() -> Component.literal("Cooldown de saída resetado para " + nick + "."), false);
+                                    if (online != null) {
+                                        online.sendSystemMessage(Component.literal("§aUm admin resetou seu cooldown para trocar de organização."));
+                                    }
+                                    return 1;
+                                })))
+                // /organizacao recompensas – abre GUI de coletar recursos de território
+                .then(Commands.literal("recompensas").executes(ctx -> {
+                    ServerPlayer player;
+                    try { player = ctx.getSource().getPlayerOrException(); } catch(Exception e){ return 0; }
+                    GuildsManager gm = GuildsManager.get(player.serverLevel());
+                    if (gm.getGuildByMember(player.getUUID()) == null) {
+                        player.sendSystemMessage(Component.literal("§cVocê não pertence a uma organização."));
+                        return 0;
+                    }
+                    player.openMenu(new net.minecraft.world.SimpleMenuProvider((id, inv, p) -> new org.lupz.doomsdayessentials.territory.menu.TerritoryRewardMenu(id, inv), Component.literal("Recompensas de Território")));
+                    return 1;
+                }))
+                // /organizacao removeralianca <tag1> <tag2> – admin only: força a remoção de aliança entre duas organizações
+                .then(Commands.literal("removeralianca")
+                        .requires(src -> src.hasPermission(2))
+                        .then(Commands.argument("tag1", StringArgumentType.string())
+                                .then(Commands.argument("tag2", StringArgumentType.string())
+                                        .executes(ctx -> {
+                                            String tag1 = StringArgumentType.getString(ctx, "tag1");
+                                            String tag2 = StringArgumentType.getString(ctx, "tag2");
+
+                                            var server = ctx.getSource().getServer();
+                                            if (server == null) {
+                                                ctx.getSource().sendFailure(Component.literal("Servidor não disponível."));
+                                                return 0;
+                                            }
+
+                                            // Use overworld GuildsManager (guilds são globais)
+                                            GuildsManager m = GuildsManager.get(server.overworld());
+
+                                            Guild g1 = m.getAllGuilds().stream().filter(g -> g.getTag().equalsIgnoreCase(tag1)).findFirst().orElse(null);
+                                            Guild g2 = m.getAllGuilds().stream().filter(g -> g.getTag().equalsIgnoreCase(tag2)).findFirst().orElse(null);
+
+                                            if (g1 == null || g2 == null) {
+                                                ctx.getSource().sendFailure(Component.literal("Organização não encontrada."));
+                                                return 0;
+                                            }
+                                            if (g1.getName().equals(g2.getName())) {
+                                                ctx.getSource().sendFailure(Component.literal("Selecione duas organizações diferentes."));
+                                                return 0;
+                                            }
+
+                                            boolean wereAllied = m.areAllied(g1.getName(), g2.getName());
+                                            if (!wereAllied) {
+                                                ctx.getSource().sendFailure(Component.literal("Essas organizações não são aliadas."));
+                                                return 0;
+                                            }
+
+                                            boolean ok = m.removeAlliance(g1.getName(), g2.getName());
+                                            if (ok) {
+                                                ctx.getSource().sendSuccess(() -> Component.literal("Aliança removida entre " + g1.getTag() + " e " + g2.getTag() + "."), false);
+                                                return 1;
+                                            } else {
+                                                ctx.getSource().sendFailure(Component.literal("Falha ao remover aliança."));
+                                                return 0;
+                                            }
+                                        }))))
         );
     }
 } 

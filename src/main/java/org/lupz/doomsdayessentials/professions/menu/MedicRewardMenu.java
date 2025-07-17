@@ -28,7 +28,7 @@ public class MedicRewardMenu extends AbstractContainerMenu {
 
         for (int row = 0; row < 3; ++row) {
             for (int col = 0; col < 9; ++col) {
-                this.addSlot(new ReadOnlySlot(this.container, col + row * 9, 8 + col * 18, 18 + row * 18));
+                this.addSlot(new ReadOnlySlot(this.container, col + row * 9, 8 + col * 18, 42 + row * 18));
             }
         }
     }
@@ -40,7 +40,7 @@ public class MedicRewardMenu extends AbstractContainerMenu {
             String[] parts = line.split(",");
             try {
                 if (parts.length == 2) {
-                    var id = new net.minecraft.resources.ResourceLocation(parts[0]);
+                    var id = net.minecraft.resources.ResourceLocation.tryParse(parts[0]);
                     int count = Integer.parseInt(parts[1]);
                     var item = ForgeRegistries.ITEMS.getValue(id);
                     if (item == null) continue;

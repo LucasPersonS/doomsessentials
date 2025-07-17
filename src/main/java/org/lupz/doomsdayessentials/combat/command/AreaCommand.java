@@ -231,6 +231,9 @@ public class AreaCommand {
         }
 
         boolean removed = AreaManager.get().deleteArea(name);
+        if (removed) {
+            org.lupz.doomsdayessentials.territory.ResourceGeneratorManager.get().deleteGenerator(name);
+        }
         pendingDeletes.remove(sender);
         if (removed) {
             ctx.getSource().sendSuccess(() -> Component.literal("Area '").withStyle(ChatFormatting.GREEN)

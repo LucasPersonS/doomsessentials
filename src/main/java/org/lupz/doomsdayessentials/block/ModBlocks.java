@@ -18,6 +18,9 @@ import org.lupz.doomsdayessentials.block.ReinforcedBlock;
 import org.lupz.doomsdayessentials.block.ReinforcedBlockEntity;
 import org.lupz.doomsdayessentials.block.MedicalBedBlock;
 import org.lupz.doomsdayessentials.block.MedicalBedItem;
+import org.lupz.doomsdayessentials.block.RecycleBlock;
+import org.lupz.doomsdayessentials.block.RecycleBlockEntity;
+import org.lupz.doomsdayessentials.block.RecycleBlockItem;
 
 import java.util.function.Supplier;
 
@@ -66,14 +69,21 @@ public final class ModBlocks {
             BLOCK_ENTITIES.register("reinforced_block_entity", () ->
                     BlockEntityType.Builder.of(ReinforcedBlockEntity::new, REINFORCED_STONE.get(), PRIMAL_STEEL_BLOCK.get(), MOLTEN_STEEL_BLOCK.get()).build(null));
 
+    // Recycle Block
+    public static final RegistryObject<Block> RECYCLE_BLOCK = BLOCKS.register("recycle_block",
+            () -> new RecycleBlock(BlockBehaviour.Properties.copy(Blocks.IRON_BLOCK).strength(-1.0F, 3600000.0F).noOcclusion()));
+
+    public static final RegistryObject<Item> RECYCLE_BLOCK_ITEM = ModItems.ITEMS.register("recycle_block",
+            () -> new RecycleBlockItem(RECYCLE_BLOCK.get(), new Item.Properties()));
+
+    public static final RegistryObject<BlockEntityType<RecycleBlockEntity>> RECYCLE_BLOCK_ENTITY =
+            BLOCK_ENTITIES.register("recycle_block_entity", () ->
+                    BlockEntityType.Builder.of(RecycleBlockEntity::new, RECYCLE_BLOCK.get()).build(null));
+
     private static <T extends Block> RegistryObject<T> registerBlock(String name, Supplier<T> block) {
         RegistryObject<T> toReturn = BLOCKS.register(name, block);
-        registerBlockItem(name, toReturn);
+        ModItems.ITEMS.register(name, () -> new BlockItem(toReturn.get(), new Item.Properties()));
         return toReturn;
-    }
-
-    private static <T extends Block> RegistryObject<Item> registerBlockItem(String name, RegistryObject<T> block) {
-        return ModItems.ITEMS.register(name, () -> new BlockItem(block.get(), new Item.Properties()));
     }
 
     public static void register(IEventBus eventBus) {

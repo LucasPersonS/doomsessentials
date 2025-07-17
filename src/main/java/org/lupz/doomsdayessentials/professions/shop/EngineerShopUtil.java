@@ -1,57 +1,92 @@
 package org.lupz.doomsdayessentials.professions.shop;
 
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import com.google.gson.reflect.TypeToken;
 import net.minecraft.resources.ResourceLocation;
-import java.util.*;
+import net.minecraftforge.fml.loading.FMLPaths;
 
-/**
- * Static list of engineer craftable items and their costs.
- */
+import java.io.IOException;
+import java.io.Reader;
+import java.io.Writer;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
+
 public final class EngineerShopUtil {
 
-    public record Entry(ResourceLocation outputId, int outputCount, Map<ResourceLocation,Integer> costs) {
-        public ResourceLocation costId() { return costs.keySet().stream().findFirst().orElse(null); }
-        public int costCount() { return costs.values().stream().findFirst().orElse(0); }
-    }
-
-    private EngineerShopUtil() {}
-
+    private static final Path RECIPE_PATH = FMLPaths.CONFIGDIR.get().resolve("doomsdayessentials/recipes.json");
     private static final Map<String, Entry> ENTRIES = new HashMap<>();
-    static {
-        // initially empty; add via /engenheiro craft add
+    private static final Gson GSON = new GsonBuilder().setPrettyPrinting().enableComplexMapKeySerialization().create();
+
+    public record Entry(ResourceLocation outputId, int outputCount, Map<ResourceLocation, Integer> costs) {
     }
 
-    public static Map<String, Entry> getEntries() { return ENTRIES; }
+    public static void loadConfig() {
+        ENTRIES.clear();
+        if (!Files.exists(RECIPE_PATH)) {
+            createDefaultConfig();
+        }
 
-    public static void addOrReplace(String alias, Entry entry) {
-        ENTRIES.put(alias, entry);
-    }
-
-    // Serialisation helpers -----------------------------------------------------------------
-
-    /**
-     * Convert entry to config line.
-     */
-    public static String toConfigLine(Entry e) {
-        StringBuilder sb = new StringBuilder();
-        sb.append(e.outputId()).append(",").append(e.outputCount());
-        e.costs().forEach((id,cnt) -> sb.append(",").append(id).append(",").append(cnt));
-        return sb.toString();
-    }
-
-    /** Parse config string into entry. */
-    public static Entry parse(String line) {
-        String[] parts = line.split(",");
-        if (parts.length < 4 || parts.length % 2 != 0) return null;
-        try {
-            ResourceLocation out = new ResourceLocation(parts[0]);
-            int outCount = Integer.parseInt(parts[1]);
-            Map<ResourceLocation,Integer> costs = new LinkedHashMap<>();
-            for (int i=2;i<parts.length;i+=2) {
-                ResourceLocation costId = new ResourceLocation(parts[i]);
-                int costCount = Integer.parseInt(parts[i+1]);
-                costs.put(costId,costCount);
+        if (Files.exists(RECIPE_PATH)) {
+            try (Reader reader = Files.newBufferedReader(RECIPE_PATH)) {
+                TypeToken<Map<String, Entry>> typeToken = new TypeToken<>() {};
+                Map<String, Entry> loadedEntries = GSON.fromJson(reader, typeToken.getType());
+                if (loadedEntries != null) {
+                    ENTRIES.putAll(loadedEntries);
+                }
+            } catch (IOException e) {
+                e.printStackTrace();
             }
-            return new Entry(out,outCount,costs);
-        } catch (Exception ignored){return null;}
+        }
+    }
+
+    public static void addRecipe(String alias, Entry entry) {
+        Map<String, Entry> currentEntries = new HashMap<>();
+        if (Files.exists(RECIPE_PATH)) {
+            try (Reader reader = Files.newBufferedReader(RECIPE_PATH)) {
+                TypeToken<Map<String, Entry>> typeToken = new TypeToken<>() {};
+                Map<String, Entry> loadedEntries = GSON.fromJson(reader, typeToken.getType());
+                if(loadedEntries != null) {
+                    currentEntries.putAll(loadedEntries);
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+
+        currentEntries.put(alias, entry);
+
+        try (Writer writer = Files.newBufferedWriter(RECIPE_PATH)) {
+            GSON.toJson(currentEntries, writer);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private static void createDefaultConfig() {
+        try {
+            Files.createDirectories(RECIPE_PATH.getParent());
+            Map<String, Entry> defaultRecipes = new HashMap<>();
+
+            Map<ResourceLocation, Integer> costs = new HashMap<>();
+            costs.put(new ResourceLocation("minecraft", "diamond"), 3);
+            costs.put(new ResourceLocation("minecraft", "stick"), 2);
+
+            Entry exampleEntry = new Entry(new ResourceLocation("minecraft", "diamond_pickaxe"), 1, costs);
+            defaultRecipes.put("example_recipe", exampleEntry);
+
+            try (Writer writer = Files.newBufferedWriter(RECIPE_PATH)) {
+                GSON.toJson(defaultRecipes, writer);
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public static Map<String, Entry> getEntries() {
+        return Collections.unmodifiableMap(ENTRIES);
     }
 } 

@@ -98,4 +98,16 @@ public class ClientCombatState {
         ManagedArea area = getPlayerArea(player);
         return area != null && area.getType() == AreaType.SAFE;
     }
+
+    public static ManagedArea getAreaByName(String name) {
+        if (name == null) return null;
+        for (List<ManagedArea> list : managedAreasByDimension.values()) {
+            for (ManagedArea a : list) {
+                if (a.getName().equalsIgnoreCase(name)) {
+                    return a;
+                }
+            }
+        }
+        return null;
+    }
 } 

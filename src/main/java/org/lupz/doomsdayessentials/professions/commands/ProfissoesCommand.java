@@ -57,11 +57,11 @@ public final class ProfissoesCommand {
             String[] parts = line.split(",");
             try{
                 if(parts.length>=4 && parts.length%2==0){
-                    var out = new net.minecraft.resources.ResourceLocation(parts[0]);
+                    var out = net.minecraft.resources.ResourceLocation.tryParse(parts[0]);
                     int outCount = Integer.parseInt(parts[1]);
                     java.util.Map<net.minecraft.resources.ResourceLocation,Integer> costs = new java.util.LinkedHashMap<>();
                     for(int i=2;i<parts.length;i+=2){
-                        var cid = new net.minecraft.resources.ResourceLocation(parts[i]);
+                        var cid = net.minecraft.resources.ResourceLocation.tryParse(parts[i]);
                         int ccount = Integer.parseInt(parts[i+1]);
                         costs.put(cid, ccount);
                     }
@@ -160,7 +160,7 @@ public final class ProfissoesCommand {
         for(int i=0;i<tokens.length;i+=2){
             int amt;
             try{amt=Integer.parseInt(tokens[i]);}catch(NumberFormatException e){ctx.getSource().sendFailure(Component.literal("Número inválido: "+tokens[i]));return 0;}
-            net.minecraft.resources.ResourceLocation cid = new net.minecraft.resources.ResourceLocation(tokens[i+1]);
+            net.minecraft.resources.ResourceLocation cid = net.minecraft.resources.ResourceLocation.tryParse(tokens[i+1]);
             if(!net.minecraftforge.registries.ForgeRegistries.ITEMS.containsKey(cid)){ctx.getSource().sendFailure(Component.literal("Item não existe: "+cid));return 0;}
             costs.put(cid, amt);
         }
@@ -185,17 +185,32 @@ public final class ProfissoesCommand {
     }
 
     private static CompletableFuture<com.mojang.brigadier.suggestion.Suggestions> suggestAllItems(CommandContext<CommandSourceStack> c, SuggestionsBuilder b) {
-        // Only suggest if the builder is empty or has a partial match
-        String remaining = b.getRemaining().toLowerCase();
-        if (remaining.isEmpty() || remaining.length() < 3) {
-            // Don't suggest if input is too short to avoid overwhelming autocomplete
+        String remaining = b.getRemaining();
+        
+        // Parse the arguments to find what we're currently typing
+        String[] tokens = remaining.split(" ");
+        String currentToken = tokens.length > 0 ? tokens[tokens.length - 1] : "";
+        
+        // If we're typing a number (first token of a pair), don't suggest items
+        if (tokens.length % 2 == 1 && currentToken.matches("\\d+")) {
             return b.buildFuture();
         }
         
-        ForgeRegistries.ITEMS.getKeys().stream()
-            .filter(rl -> rl.toString().toLowerCase().contains(remaining))
-            .limit(20) // Limit suggestions to avoid overwhelming
-            .forEach(rl -> b.suggest(rl.toString()));
+        // If we're typing an item ID, suggest items
+        if (tokens.length % 2 == 0 || currentToken.contains(":")) {
+            String searchTerm = currentToken.toLowerCase();
+            
+            // Only suggest if we have at least 2 characters
+            if (searchTerm.length() < 2) {
+                return b.buildFuture();
+            }
+            
+            ForgeRegistries.ITEMS.getKeys().stream()
+                .filter(rl -> rl.toString().toLowerCase().contains(searchTerm))
+                .limit(20) // Limit suggestions to avoid overwhelming
+                .forEach(rl -> b.suggest(rl.toString()));
+        }
+        
         return b.buildFuture();
     }
 } 

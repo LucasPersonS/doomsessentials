@@ -32,19 +32,26 @@ import org.lupz.doomsdayessentials.professions.items.ProfessionItems;
 import org.lupz.doomsdayessentials.professions.menu.ProfessionMenuTypes;
 import org.lupz.doomsdayessentials.professions.menu.ProfissoesScreen;
 import org.lupz.doomsdayessentials.professions.menu.EngineerCraftScreen;
+import org.lupz.doomsdayessentials.professions.network.EngineerNetwork;
+import org.lupz.doomsdayessentials.professions.shop.EngineerConfig;
+import org.lupz.doomsdayessentials.professions.shop.EngineerShopUtil;
+import org.lupz.doomsdayessentials.recycler.RecycleRecipeManager;
 import org.lupz.doomsdayessentials.sound.ModSounds;
 import org.lupz.doomsdayessentials.guild.GuildConfig;
 import org.lupz.doomsdayessentials.guild.command.OrganizacaoCommand;
 import org.lupz.doomsdayessentials.item.ModCreativeTab;
 import org.slf4j.Logger;
+import org.lupz.doomsdayessentials.client.renderer.RecycleBlockRenderer;
+import net.minecraft.client.renderer.blockentity.BlockEntityRenderers;
+import org.lupz.doomsdayessentials.client.model.RecycleModel2;
 
 @Mod(EssentialsMod.MOD_ID)
 public class EssentialsMod {
     public static final String MOD_ID = "doomsdayessentials";
     public static final Logger LOGGER = LogUtils.getLogger();
 
-    public EssentialsMod() {
-        IEventBus modEventBus = FMLJavaModLoadingContext.get().getModEventBus();
+    public EssentialsMod(FMLJavaModLoadingContext context) {
+        IEventBus modEventBus = context.getModEventBus();
 
         ModItems.register(modEventBus);
         InjuryItems.register(modEventBus);
@@ -58,9 +65,14 @@ public class EssentialsMod {
         modEventBus.addListener(this::commonSetup);
 
         // Register Configs
-        ModLoadingContext.get().registerConfig(ModConfig.Type.COMMON, EssentialsConfig.SPEC, MOD_ID + "-essentials.toml");
+        context.registerConfig(ModConfig.Type.COMMON, EssentialsConfig.SPEC, MOD_ID + "-essentials.toml");
         // Guild / Organizacao config
-        ModLoadingContext.get().registerConfig(ModConfig.Type.COMMON, GuildConfig.SPEC, MOD_ID + "-guilds.toml");
+        context.registerConfig(ModConfig.Type.COMMON, GuildConfig.SPEC, MOD_ID + "-guilds.toml");
+        // Engineer config
+        context.registerConfig(ModConfig.Type.COMMON, EngineerConfig.SPEC, MOD_ID + "-engineer.toml");
+
+        // Load engineer recipes
+        EngineerShopUtil.loadConfig();
 
         // Register ourselves for server and other game events we are interested in
         MinecraftForge.EVENT_BUS.register(this);
@@ -72,9 +84,9 @@ public class EssentialsMod {
             Class.forName("org.lupz.doomsdayessentials.combat.command.CombatCommand");
             Class.forName("org.lupz.doomsdayessentials.command.SoundCommand");
             Class.forName("org.lupz.doomsdayessentials.command.DoomsHelpCommand");
-            Class.forName("org.lupz.doomsdayessentials.command.AirdropCommand");
             Class.forName("org.lupz.doomsdayessentials.injury.InjuryCommands");
             Class.forName("org.lupz.doomsdayessentials.professions.commands.ProfessionCommandsRegister");
+            Class.forName("org.lupz.doomsdayessentials.command.RecyclerCommand");
             Class.forName("org.lupz.doomsdayessentials.territory.command.TerritoryCommand");
             Class.forName("org.lupz.doomsdayessentials.territory.TerritoryAccessEvents");
         } catch (ClassNotFoundException e) {
@@ -89,7 +101,9 @@ public class EssentialsMod {
             org.lupz.doomsdayessentials.territory.ResourceGeneratorManager.get();
             PacketHandler.register();
             InjuryNetwork.register();
+            EngineerNetwork.register();
             org.lupz.doomsdayessentials.professions.ProfissaoManager.loadProfessions();
+            RecycleRecipeManager.loadRecipes();
         });
     }
 
@@ -106,7 +120,20 @@ public class EssentialsMod {
                 MenuScreens.register(ProfessionMenuTypes.PROFISSOES_MENU.get(), ProfissoesScreen::new);
                 MenuScreens.register(ProfessionMenuTypes.SHOP_MENU.get(), org.lupz.doomsdayessentials.professions.menu.ShopScreen::new);
                 MenuScreens.register(ProfessionMenuTypes.ENGINEER_CRAFT.get(), org.lupz.doomsdayessentials.professions.menu.EngineerCraftScreen::new);
+                MenuScreens.register(ProfessionMenuTypes.MEDIC_REWARD_MENU.get(), org.lupz.doomsdayessentials.professions.menu.MedicRewardScreen::new);
+                MenuScreens.register(ProfessionMenuTypes.TERRITORY_REWARD_MENU.get(), org.lupz.doomsdayessentials.territory.menu.TerritoryRewardScreen::new);
+                MenuScreens.register(ProfessionMenuTypes.RECYCLE_MENU.get(), org.lupz.doomsdayessentials.menu.RecycleScreen::new);
+
+                // Register Recycle block renderer
+                BlockEntityRenderers.register(ModBlocks.RECYCLE_BLOCK_ENTITY.get(), RecycleBlockRenderer::new);
             });
+        }
+
+        @SubscribeEvent
+        public static void registerLayerDefinitions(net.minecraftforge.client.event.EntityRenderersEvent.RegisterLayerDefinitions event) {
+            event.registerLayerDefinition(org.lupz.doomsdayessentials.client.model.CrownModel.LAYER_LOCATION,
+                    org.lupz.doomsdayessentials.client.model.CrownModel::createBodyLayer);
+            event.registerLayerDefinition(RecycleModel2.LAYER_LOCATION, RecycleModel2::createBodyLayer);
         }
     }
 } 

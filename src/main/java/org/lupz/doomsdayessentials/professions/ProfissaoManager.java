@@ -5,12 +5,15 @@ import com.google.gson.GsonBuilder;
 import net.minecraftforge.server.ServerLifecycleHooks;
 import org.lupz.doomsdayessentials.EssentialsMod;
 import org.lupz.doomsdayessentials.config.EssentialsConfig;
+import org.lupz.doomsdayessentials.professions.shop.EngineerConfig;
 
+import javax.annotation.Nullable;
 import java.io.File;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.lang.reflect.Type;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
@@ -79,7 +82,7 @@ public final class ProfissaoManager {
             case "medico" -> maxAllowed = EssentialsConfig.MEDICO_MAX_COUNT.get();
             case "combatente" -> maxAllowed = EssentialsConfig.COMBATENTE_MAX_COUNT.get();
             case "rastreador" -> maxAllowed = EssentialsConfig.RASTREADOR_MAX_COUNT.get();
-            case "engenheiro" -> maxAllowed = EssentialsConfig.ENGENHEIRO_MAX_COUNT.get();
+            case "engenheiro" -> maxAllowed = EngineerConfig.ENGENHEIRO_MAX_COUNT.get();
             default -> {
                 // No limit defined for unknown professions
                 return true;

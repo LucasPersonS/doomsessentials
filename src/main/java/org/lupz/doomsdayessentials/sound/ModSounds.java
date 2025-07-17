@@ -17,6 +17,7 @@ public class ModSounds {
     public static final RegistryObject<SoundEvent> SAFE_ZONE_ENTER = register("safe_zone_enter");
     public static final RegistryObject<SoundEvent> FREQUENCIA1 = register("frequencia1");
     public static final RegistryObject<SoundEvent> FREQUENCIA2 = register("frequencia2");
+    public static final RegistryObject<SoundEvent> RECYCLER_LOOP = register("recycler_loop");
 
     private static RegistryObject<SoundEvent> register(String name) {
         // 16 block hearing range

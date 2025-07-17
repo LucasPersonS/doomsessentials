@@ -153,21 +153,40 @@ public class TerritoryEvents {
         BlockPos pos = e.getPos();
         // Handle totem break: only leader, remove territory
         if (e.getState().getBlock() == ModBlocks.TOTEM_BLOCK.get() || e.getState().getBlock() == ModBlocks.TOTEM_BLOCK_TOP.get()) {
-            Guild guild = manager.getGuildByMember(player.getUUID());
-            if (guild == null || guild.getTotemPosition() == null) {
+            Guild ownerGuild = manager.getGuildAt(pos);
+            if (ownerGuild == null || ownerGuild.getTotemPosition() == null) {
                 player.sendSystemMessage(Component.literal("Você não pode quebrar este totem.").withStyle(ChatFormatting.RED));
                 e.setCanceled(true);
                 return;
             }
 
-            boolean isLeader = guild.getMember(player.getUUID()).getRank() == GuildMember.Rank.LEADER;
-            if (!isLeader) {
-                player.sendSystemMessage(Component.literal("Apenas o líder pode quebrar o totem.").withStyle(ChatFormatting.RED));
-                e.setCanceled(true);
-                return;
+            boolean isMember = ownerGuild.getMember(player.getUUID()) != null;
+            boolean isLeader = isMember && ownerGuild.getMember(player.getUUID()).getRank() == GuildMember.Rank.LEADER;
+            boolean underWar = manager.isTerritoryUnderWar(ownerGuild.getName());
+
+            if (isMember) {
+                // Defending side rules
+                if (underWar) {
+                    player.sendSystemMessage(Component.literal("Membros não podem quebrar o totem durante uma invasão.").withStyle(ChatFormatting.RED));
+                    e.setCanceled(true);
+                    return;
+                } else if (!isLeader) {
+                    player.sendSystemMessage(Component.literal("Apenas o líder pode quebrar o totem.").withStyle(ChatFormatting.RED));
+                    e.setCanceled(true);
+                    return;
+                }
+                // leader & no war -> allowed
+            } else {
+                // Enemy side rules
+                if (!underWar) {
+                    player.sendSystemMessage(Component.literal("Você só pode quebrar o totem durante uma invasão.").withStyle(ChatFormatting.RED));
+                    e.setCanceled(true);
+                    return;
+                }
+                // enemy & war -> allowed
             }
 
-            BlockPos bottomExpected = guild.getTotemPosition();
+            BlockPos bottomExpected = ownerGuild.getTotemPosition();
             BlockPos targetBottom = e.getState().getBlock() == ModBlocks.TOTEM_BLOCK_TOP.get() ? pos.below() : pos;
             if (!targetBottom.equals(bottomExpected)) {
                 player.sendSystemMessage(Component.literal("Este não é o totem da sua organização.").withStyle(ChatFormatting.RED));
@@ -176,7 +195,7 @@ public class TerritoryEvents {
             }
 
             // Remove territory
-            guild.setTotemPosition(null);
+            ownerGuild.setTotemPosition(null);
             manager.setDirty();
             player.sendSystemMessage(Component.literal("Totem removido. Território liberado.").withStyle(ChatFormatting.YELLOW));
             // allow block to break; top/bottom counterpart will be destroyed by block logic

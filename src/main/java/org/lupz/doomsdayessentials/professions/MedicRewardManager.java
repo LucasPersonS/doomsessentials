@@ -116,7 +116,7 @@ public final class MedicRewardManager {
             String[] parts = line.split(",");
             try {
                 if (parts.length == 2) {
-                    ResourceLocation id = new ResourceLocation(parts[0]);
+                    ResourceLocation id = ResourceLocation.tryParse(parts[0]);
                     int count = Integer.parseInt(parts[1]);
                     rewardPool.add(new RewardEntry(id, count));
                 }
@@ -134,10 +134,20 @@ public final class MedicRewardManager {
             String json = Files.readString(saveFile);
             if (json.isEmpty()) return;
             JsonElement el = JsonParser.parseString(json);
-            STORAGE_CODEC.parse(JsonOps.INSTANCE, el).result().ifPresent(map -> {
-                medicData.clear();
-                map.forEach((k,v) -> medicData.put(UUID.fromString(k), v));
-            });
+
+            // Allow partial results so that a single bad entry does not invalidate the whole file.
+            STORAGE_CODEC.parse(JsonOps.INSTANCE, el)
+                    .resultOrPartial(err -> System.err.println("[DoomsEssentials] Failed to parse medic_rewards.json: " + err))
+                    .ifPresent(map -> {
+                        medicData.clear();
+                        map.forEach((k, v) -> {
+                            try {
+                                medicData.put(UUID.fromString(k), v);
+                            } catch (IllegalArgumentException ignored) {
+                                // Skip malformed UUIDs
+                            }
+                        });
+                    });
         } catch (IOException ignored) {}
     }
 
@@ -145,9 +155,11 @@ public final class MedicRewardManager {
         try {
             Map<String, MedicData> map = new HashMap<>();
             medicData.forEach((k,v) -> map.put(k.toString(), v));
-            STORAGE_CODEC.encodeStart(JsonOps.INSTANCE, map).result().ifPresent(el -> {
-                try { Files.writeString(saveFile, GSON.toJson(el)); } catch (IOException ignored) {}
-            });
+            STORAGE_CODEC.encodeStart(JsonOps.INSTANCE, map)
+                    .resultOrPartial(err -> System.err.println("[DoomsEssentials] Failed to encode medic_rewards.json: " + err))
+                    .ifPresent(el -> {
+                        try { Files.writeString(saveFile, GSON.toJson(el)); } catch (IOException ignored) {}
+                    });
         } catch (Exception ignored) {}
     }
 
@@ -160,8 +172,10 @@ public final class MedicRewardManager {
         Map<UUID, Long> patientTimestamps = new HashMap<>();
 
         public static final Codec<MedicData> CODEC = RecordCodecBuilder.create(instance -> instance.group(
-                Codec.INT.fieldOf("idx").forGetter(d -> d.nextIndex),
-                Codec.unboundedMap(Codec.STRING.xmap(UUID::fromString, UUID::toString), Codec.LONG).fieldOf("patients").forGetter(d -> d.patientTimestamps)
+                Codec.INT.optionalFieldOf("idx", 0).forGetter(d -> d.nextIndex),
+                Codec.unboundedMap(Codec.STRING.xmap(UUID::fromString, UUID::toString), Codec.LONG)
+                        .optionalFieldOf("patients", java.util.Collections.emptyMap())
+                        .forGetter(d -> d.patientTimestamps)
         ).apply(instance, MedicData::from));
 
         static MedicData from(int idx, Map<UUID, Long> map) {

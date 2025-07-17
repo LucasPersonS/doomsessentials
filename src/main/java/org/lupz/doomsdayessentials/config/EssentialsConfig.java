@@ -10,7 +10,6 @@ public class EssentialsConfig {
     public static final ForgeConfigSpec.IntValue COMBAT_DURATION_SECONDS;
     public static final ForgeConfigSpec.ConfigValue<java.util.List<? extends String>> ALLOWED_COMBAT_COMMANDS;
     public static final ForgeConfigSpec.IntValue COMBAT_LOG_TIMER;
-    public static final ForgeConfigSpec.IntValue LOCAL_CHAT_RADIUS;
 
     // Injury System
     public static final ForgeConfigSpec.BooleanValue INJURY_SYSTEM_ENABLED;
@@ -18,7 +17,6 @@ public class EssentialsConfig {
     public static final ForgeConfigSpec.IntValue DEATHS_PER_INJURY_LEVEL;
     public static final ForgeConfigSpec.BooleanValue INJURY_PVP_ONLY;
     public static final ForgeConfigSpec.IntValue HEALING_BED_TIME_MINUTES;
-    public static final ForgeConfigSpec.IntValue MEDICO_HEAL_AMOUNT;
     public static final ForgeConfigSpec.DoubleValue DOWNED_HEALTH_POOL;
     public static final ForgeConfigSpec.IntValue DOWNED_BLEED_OUT_SECONDS;
     public static final ForgeConfigSpec.BooleanValue RESET_INJURY_ON_DEATH;
@@ -33,7 +31,7 @@ public class EssentialsConfig {
     // Professions
     public static final ForgeConfigSpec.IntValue MEDIC_HEAL_COOLDOWN;
     public static final ForgeConfigSpec.DoubleValue MEDIC_HEAL_RADIUS;
-    public static final ForgeConfigSpec.DoubleValue MEDIC_HEAL_AMOUNT;
+    public static final ForgeConfigSpec.IntValue MEDICO_HEAL_AMOUNT;
 
     // Professions.medico
     public static final ForgeConfigSpec.BooleanValue MEDICO_ENABLED;
@@ -58,10 +56,11 @@ public class EssentialsConfig {
     public static final ForgeConfigSpec.IntValue TRACKER_COMPASS_DURATION;
     public static final ForgeConfigSpec.IntValue TRACKER_COMPASS_COOLDOWN;
 
-    // Professions.engenheiro
-    public static final ForgeConfigSpec.BooleanValue ENGENHEIRO_ENABLED;
-    public static final ForgeConfigSpec.IntValue ENGENHEIRO_MAX_COUNT;
-    public static final ForgeConfigSpec.IntValue ENGENHEIRO_BARRIER_COOLDOWN_SECONDS;
+    // Professions.Chat
+    public static final ForgeConfigSpec.IntValue LOCAL_CHAT_RADIUS;
+
+    // Professions.Guild
+    public static final ForgeConfigSpec.IntValue GUILD_BASE_COOLDOWN_MINUTES;
 
     // Shop Items
     public static final ForgeConfigSpec.ConfigValue<java.util.List<? extends String>> SHOP_ITEMS;
@@ -73,7 +72,7 @@ public class EssentialsConfig {
                 .defineInRange("combatDurationSeconds", 15, 1, 600);
         ALLOWED_COMBAT_COMMANDS = BUILDER
                 .comment("Commands that are allowed to be used while in combat. (e.g., 'msg', 'r')")
-                .defineList("allowedCombatCommands", java.util.List.of("msg", "r"), s -> s instanceof String);
+                .defineList("allowedCombatCommands", java.util.Arrays.asList("msg", "r"), s -> s instanceof String);
         COMBAT_LOG_TIMER = BUILDER.comment("The duration (in seconds) that combat logs are visible.")
                 .defineInRange("combatLogTimer", 30, 1, 300);
         BUILDER.pop();
@@ -85,13 +84,11 @@ public class EssentialsConfig {
                 .defineInRange("maxInjuryLevel", 5, 1, 100);
         DEATHS_PER_INJURY_LEVEL = BUILDER
                 .comment("How many deaths are required to increase injury level by 1.")
-                .defineInRange("deathsPerInjuryLevel", 5, 1, 100);
+                .defineInRange("deathsPerInjuryLevel", 1, 1, 100);
         INJURY_PVP_ONLY = BUILDER.comment("If true, only deaths from PvP will count towards injuries.")
                 .define("injuryPvpOnly", false);
         HEALING_BED_TIME_MINUTES = BUILDER.comment("Time in minutes a player must sleep to heal one level of injury.")
                 .defineInRange("healingBedTimeMinutes", 1, 1, 120);
-        MEDICO_HEAL_AMOUNT = BUILDER.comment("How many injury levels a medic can heal with a medic kit.")
-                .defineInRange("medicoHealAmount", 1, 1, 5);
         DOWNED_HEALTH_POOL = BUILDER
                 .comment("How much damage a downed player can take before dying. Roughly 5 unarmed hits.")
                 .defineInRange("downedHealthPool", 20.0, 1.0, 1000.0);
@@ -110,12 +107,6 @@ public class EssentialsConfig {
         BUILDER.pop();
 
         BUILDER.push("professions");
-        MEDIC_HEAL_COOLDOWN = BUILDER.comment("The cooldown in seconds for the Medic's heal ability.")
-                .defineInRange("medicHealCooldown", 60, 10, 300);
-        MEDIC_HEAL_RADIUS = BUILDER.comment("The radius in blocks for the Medic's area of effect heal.")
-                .defineInRange("medicHealRadius", 5.0, 1.0, 20.0);
-        MEDIC_HEAL_AMOUNT = BUILDER.comment("The amount of health (in half hearts) the Medic's heal ability restores.")
-                .defineInRange("medicHealAmount", 8.0, 1.0, 40.0);
 
         BUILDER.comment("Configurações para a profissão de Médico").push("medico");
         MEDICO_ENABLED = BUILDER.comment("Habilita ou desabilita a profissão de médico.")
@@ -126,6 +117,12 @@ public class EssentialsConfig {
                 .define("medicoAnnounceJoin", true);
         MEDICO_AUTO_RECEIVE_KIT = BUILDER.comment("Se verdadeiro, entrega um kit médico quando o jogador se torna médico.")
                 .define("medicoAutoReceiveKit", true);
+        MEDICO_HEAL_AMOUNT = BUILDER.comment("How many injury levels a medic can heal with a medic kit.")
+                .defineInRange("medicoHealAmount", 1, 1, 5);
+        MEDIC_HEAL_COOLDOWN = BUILDER.comment("The cooldown in seconds for the Medic's heal ability.")
+                .defineInRange("medicHealCooldown", 60, 10, 300);
+        MEDIC_HEAL_RADIUS = BUILDER.comment("The radius in blocks for the Medic's area of effect heal.")
+                .defineInRange("medicHealRadius", 5.0, 1.0, 20.0);
         MEDICO_BED_COOLDOWN_SECONDS = BUILDER.comment("Cooldown em segundos para a habilidade /medico bed.")
                 .defineInRange("medicoBedCooldownSeconds", 60, 1, 3600);
         MEDICO_GLOBAL_COOLDOWN_MINUTES = BUILDER.comment("Cooldown global em minutos antes que a habilidade de cura do médico possa ser usada novamente após qualquer cura.")
@@ -133,7 +130,7 @@ public class EssentialsConfig {
         
         // NEW CONFIG: Lista de recompensas para médicos
         MEDICO_REWARD_ITEMS = BUILDER.comment("Lista de recompensas concedidas ao médico ao curar pacientes. Formato: itemId,quantidade")
-                .defineList("rewards", java.util.List.of("minecraft:gold_ingot,3"), o -> o instanceof String);
+                .defineList("rewards", java.util.Arrays.asList("minecraft:gold_ingot,3"), o -> o instanceof String);
         BUILDER.pop();
 
         BUILDER.comment("Configurações para a profissão de Combatente").push("combatente");
@@ -162,24 +159,20 @@ public class EssentialsConfig {
                 .defineInRange("trackerCompassCooldown", 30, 10, 300);
         BUILDER.pop();
 
-        BUILDER.comment("Configurações para a profissão de Engenheiro").push("engenheiro");
-        ENGENHEIRO_ENABLED = BUILDER.comment("Habilita ou desabilita a profissão de engenheiro.")
-                .define("engenheiroEnabled", true);
-        ENGENHEIRO_MAX_COUNT = BUILDER.comment("Número máximo de engenheiros simultâneos permitidos no servidor (0 = ilimitado).")
-                .defineInRange("engenheiroMaxCount", 5, 0, 1000);
-        ENGENHEIRO_BARRIER_COOLDOWN_SECONDS = BUILDER.comment("Cooldown em segundos para a habilidade /engenheiro barrier.")
-                .defineInRange("engenheiroBarrierCooldownSeconds", 60, 1, 3600);
-        BUILDER.pop();
-
-        BUILDER.comment("Itens disponíveis na loja de profissões no formato outputId,outputCount,costId,costAmount").push("shop");
-        SHOP_ITEMS = BUILDER.defineList("items", java.util.List.of(), o -> o instanceof String);
-        BUILDER.pop();
-
-        BUILDER.pop();
-
         BUILDER.push("Chat");
         LOCAL_CHAT_RADIUS = BUILDER.comment("The radius in blocks for local chat.")
                 .defineInRange("localChatRadius", 16, 1, 256);
+        BUILDER.pop();
+
+        // Guild configs
+        BUILDER.push("guild");
+        GUILD_BASE_COOLDOWN_MINUTES = BUILDER.comment("Cooldown em minutos para usar /organizacao base novamente.")
+                .defineInRange("baseCooldownMinutes", 30, 1, 1440);
+        BUILDER.pop();
+
+        BUILDER.comment("Itens disponíveis na loja de profissões no formato outputId,outputCount,costId,costAmount").push("shop");
+        SHOP_ITEMS = BUILDER.defineList("items", java.util.Collections.emptyList(), o -> o instanceof String);
+
         BUILDER.pop();
 
         SPEC = BUILDER.build();

@@ -52,6 +52,9 @@ public class ReinforcedBlock extends BaseEntityBlock {
     @Override
     public InteractionResult use(BlockState state, Level level, BlockPos pos, Player player, InteractionHand hand, BlockHitResult hit) {
         if (!level.isClientSide) {
+            if (!player.getItemInHand(hand).is(net.minecraft.world.item.Items.STICK)) {
+                return InteractionResult.PASS;
+            }
             BlockEntity be = level.getBlockEntity(pos);
             if (be instanceof ReinforcedBlockEntity rbe) {
                 float durability = rbe.getDurability();

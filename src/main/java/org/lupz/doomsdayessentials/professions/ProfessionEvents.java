@@ -33,7 +33,17 @@ public final class ProfessionEvents {
     @SubscribeEvent
     public static void onClone(PlayerEvent.Clone event) {
         if (event.isWasDeath()) {
-            apply(event.getEntity());
+            net.minecraft.world.entity.player.Player newPlayer = event.getEntity();
+            java.util.UUID uuid = newPlayer.getUUID();
+
+            if (event.getOriginal().getPersistentData().getBoolean("isRastreador")) {
+                newPlayer.getPersistentData().putBoolean("isRastreador", true);
+            }
+            if (event.getOriginal().getPersistentData().getBoolean("isEngenheiro")) {
+                newPlayer.getPersistentData().putBoolean("isEngenheiro", true);
+            }
+
+            apply(newPlayer);
             event.getOriginal().getCapability(TrackerCapabilityProvider.TRACKER_CAPABILITY).ifPresent(oldCap -> {
                 event.getEntity().getCapability(TrackerCapabilityProvider.TRACKER_CAPABILITY).ifPresent(newCap -> {
                     newCap.deserializeNBT(oldCap.serializeNBT());

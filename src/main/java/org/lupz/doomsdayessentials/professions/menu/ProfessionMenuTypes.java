@@ -33,6 +33,18 @@ public final class ProfessionMenuTypes {
             "medic_reward_menu",
             () -> IForgeMenuType.create((windowId, inv, data) -> new org.lupz.doomsdayessentials.professions.menu.MedicRewardMenu(windowId, inv)));
 
+    public static final RegistryObject<MenuType<org.lupz.doomsdayessentials.territory.menu.TerritoryRewardMenu>> TERRITORY_REWARD_MENU = MENUS.register(
+            "territory_reward_menu",
+            () -> IForgeMenuType.create((windowId, inv, data) -> new org.lupz.doomsdayessentials.territory.menu.TerritoryRewardMenu(windowId, inv)));
+
+    public static final RegistryObject<MenuType<org.lupz.doomsdayessentials.menu.RecycleMenu>> RECYCLE_MENU = MENUS.register(
+            "recycle_menu",
+            () -> IForgeMenuType.create((windowId, inv, data) -> {
+                net.minecraft.core.BlockPos pos = data != null ? data.readBlockPos() : inv.player.blockPosition();
+                var be = (org.lupz.doomsdayessentials.block.RecycleBlockEntity) inv.player.level().getBlockEntity(pos);
+                return new org.lupz.doomsdayessentials.menu.RecycleMenu(windowId, inv, be);
+            }));
+
     private ProfessionMenuTypes() {}
 
     public static void register(IEventBus eventBus) {

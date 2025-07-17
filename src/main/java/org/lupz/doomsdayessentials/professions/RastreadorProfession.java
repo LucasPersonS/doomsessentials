@@ -40,9 +40,6 @@ public final class RastreadorProfession {
 
         // Remove tracker compass from inventory
         player.getInventory().items.removeIf(item -> item.getItem() == ProfessionItems.TRACKING_COMPASS.get());
-
-        // Remove night vision when leaving
-        player.removeEffect(MobEffects.NIGHT_VISION);
     }
 
     public static boolean isTracker(Player player) {
@@ -113,6 +110,21 @@ public final class RastreadorProfession {
 
     public static void tickTracker(Player player) {
         if (player.level().isClientSide) return;
+
+        if (isTracker(player)) {
+            // Permanent Night Vision I
+            if (!player.hasEffect(MobEffects.NIGHT_VISION)) {
+                player.addEffect(new MobEffectInstance(MobEffects.NIGHT_VISION, Integer.MAX_VALUE, 0, true, false, false));
+            }
+        } else {
+            // If player is not a tracker but has the effect, remove it.
+            // This can happen if they leave the profession.
+            MobEffectInstance effect = player.getEffect(MobEffects.NIGHT_VISION);
+            if (effect != null && effect.getDuration() == Integer.MAX_VALUE) {
+                player.removeEffect(MobEffects.NIGHT_VISION);
+            }
+        }
+
         if (!isTracker(player)) return;
 
         var tag = player.getPersistentData();
