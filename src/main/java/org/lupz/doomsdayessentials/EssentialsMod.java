@@ -1,10 +1,14 @@
 package org.lupz.doomsdayessentials;
 
+import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.logging.LogUtils;
 import net.minecraft.client.gui.screens.MenuScreens;
+import net.minecraft.commands.Commands;
 import net.minecraft.core.registries.Registries;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.common.MinecraftForge;
+import net.minecraftforge.event.RegisterCommandsEvent;
 import net.minecraftforge.event.server.ServerStartingEvent;
 import net.minecraftforge.eventbus.api.IEventBus;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
@@ -16,7 +20,6 @@ import net.minecraftforge.fml.event.lifecycle.FMLCommonSetupEvent;
 import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
 import org.lupz.doomsdayessentials.block.ModBlocks;
 import org.lupz.doomsdayessentials.client.ClientCombatRenderHandler;
-import org.lupz.doomsdayessentials.client.particle.ModParticles;
 import org.lupz.doomsdayessentials.combat.CombatManager;
 import org.lupz.doomsdayessentials.combat.command.AreaCommand;
 import org.lupz.doomsdayessentials.combat.command.CombatCommand;
@@ -45,6 +48,7 @@ import org.slf4j.Logger;
 import org.lupz.doomsdayessentials.client.renderer.RecycleBlockRenderer;
 import net.minecraft.client.renderer.blockentity.BlockEntityRenderers;
 import org.lupz.doomsdayessentials.client.model.RecycleModel2;
+import org.lupz.doomsdayessentials.entity.ModEntities;
 
 @Mod(EssentialsMod.MOD_ID)
 public class EssentialsMod {
@@ -59,10 +63,13 @@ public class EssentialsMod {
         ProfessionItems.register(modEventBus);
         ModBlocks.register(modEventBus);
         ModSounds.register(modEventBus);
-        ModEffects.register(modEventBus);
-        ProfessionMenuTypes.register(modEventBus);
-        ModCreativeTab.register(modEventBus);
-        ModParticles.register(modEventBus);
+                 ModEntities.register(modEventBus);
+         org.lupz.doomsdayessentials.event.eclipse.market.MarketEntities.register(modEventBus);
+         org.lupz.doomsdayessentials.event.eclipse.market.MarketBlocks.register(modEventBus);
+         ModEffects.register(modEventBus);
+         ProfessionMenuTypes.register(modEventBus);
+         org.lupz.doomsdayessentials.event.eclipse.market.NightMarketMenus.register(modEventBus);
+         ModCreativeTab.register(modEventBus);
 
         modEventBus.addListener(this::commonSetup);
 
@@ -78,6 +85,7 @@ public class EssentialsMod {
 
         // Register ourselves for server and other game events we are interested in
         MinecraftForge.EVENT_BUS.register(this);
+        MinecraftForge.EVENT_BUS.addListener(this::registerCommands);
 
         // Force class loading to ensure EventBusSubscriber is registered
         try {
@@ -91,6 +99,11 @@ public class EssentialsMod {
             Class.forName("org.lupz.doomsdayessentials.command.RecyclerCommand");
             Class.forName("org.lupz.doomsdayessentials.territory.command.TerritoryCommand");
             Class.forName("org.lupz.doomsdayessentials.territory.TerritoryAccessEvents");
+            Class.forName("org.lupz.doomsdayessentials.command.DItemCommand"); // ensure registration
+            Class.forName("org.lupz.doomsdayessentials.command.EventCommand"); // ensure registration of /dooms event
+            // Eclipse infection command removed; replaced by Frequency system
+            Class.forName("org.lupz.doomsdayessentials.command.EclipseScoreCommand");
+            Class.forName("org.lupz.doomsdayessentials.command.NightMarketCommand");
         } catch (ClassNotFoundException e) {
             LOGGER.error("Failed to load command class", e);
         }
@@ -106,7 +119,13 @@ public class EssentialsMod {
             EngineerNetwork.register();
             org.lupz.doomsdayessentials.professions.ProfissaoManager.loadProfessions();
             RecycleRecipeManager.loadRecipes();
+            org.lupz.doomsdayessentials.item.BlockedItemManager.get();
+            org.lupz.doomsdayessentials.utils.SkyColorManager.get();
         });
+    }
+
+    public void registerCommands(RegisterCommandsEvent event) {
+        // Removed old CustomParticleManager testparticle command.
     }
 
     @SubscribeEvent
@@ -117,6 +136,7 @@ public class EssentialsMod {
     public static class ClientModEvents {
         @SubscribeEvent
         public static void onClientSetup(FMLClientSetupEvent event) {
+            // CustomParticleManager removed – no particle preloading.
             event.enqueueWork(() -> {
                 ClientCombatRenderHandler.init();
                 MenuScreens.register(ProfessionMenuTypes.PROFISSOES_MENU.get(), ProfissoesScreen::new);
@@ -124,10 +144,24 @@ public class EssentialsMod {
                 MenuScreens.register(ProfessionMenuTypes.ENGINEER_CRAFT.get(), org.lupz.doomsdayessentials.professions.menu.EngineerCraftScreen::new);
                 MenuScreens.register(ProfessionMenuTypes.MEDIC_REWARD_MENU.get(), org.lupz.doomsdayessentials.professions.menu.MedicRewardScreen::new);
                 MenuScreens.register(ProfessionMenuTypes.TERRITORY_REWARD_MENU.get(), org.lupz.doomsdayessentials.territory.menu.TerritoryRewardScreen::new);
-                MenuScreens.register(ProfessionMenuTypes.RECYCLE_MENU.get(), org.lupz.doomsdayessentials.menu.RecycleScreen::new);
+                                 MenuScreens.register(ProfessionMenuTypes.RECYCLE_MENU.get(), org.lupz.doomsdayessentials.menu.RecycleScreen::new);
+                 org.lupz.doomsdayessentials.event.eclipse.market.NightMarketMenus.clientSetup(event);
+ 
+                                  // Register Recycle block renderer
+                 BlockEntityRenderers.register(ModBlocks.RECYCLE_BLOCK_ENTITY.get(), RecycleBlockRenderer::new);
+                 // Night Market block renderer (GeoLib)
+                 net.minecraft.client.renderer.blockentity.BlockEntityRenderers.register(
+                     org.lupz.doomsdayessentials.event.eclipse.market.MarketBlocks.NIGHT_MARKET_BLOCK_ENTITY.get(),
+                     ctx -> new org.lupz.doomsdayessentials.client.renderer.NightMarketBlockRenderer()
+                 );
 
-                // Register Recycle block renderer
-                BlockEntityRenderers.register(ModBlocks.RECYCLE_BLOCK_ENTITY.get(), RecycleBlockRenderer::new);
+                // Faceless renderer
+                net.minecraft.client.renderer.entity.EntityRenderers.register(org.lupz.doomsdayessentials.entity.ModEntities.FACELESS.get(), org.lupz.doomsdayessentials.client.renderer.FacelessRenderer::new);
+                // Night Market renderer
+                net.minecraft.client.renderer.entity.EntityRenderers.register(org.lupz.doomsdayessentials.event.eclipse.market.MarketEntities.NIGHT_MARKET.get(), org.lupz.doomsdayessentials.client.renderer.NightMarketRenderer::new);
+
+                // Register GeckoLib crown armor renderer
+                // Crown armor renderer is now supplied via initializeClient in the item class.
             });
         }
 

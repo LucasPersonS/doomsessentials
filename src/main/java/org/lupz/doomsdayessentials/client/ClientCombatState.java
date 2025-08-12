@@ -21,11 +21,20 @@ public class ClientCombatState {
     private static Map<UUID, Integer> playersInCombat = new HashMap<>();
     private static long lastCombatSyncTime = 0;
 
+    // Simple cache for local player's area per tick and block position
+    private static long cachedTick = -1;
+    private static net.minecraft.core.BlockPos cachedPos = null;
+    private static ManagedArea cachedArea = null;
+
     public static void setManagedAreas(Collection<ManagedArea> areas) {
         managedAreasByDimension.clear();
         for (ManagedArea area : areas) {
             managedAreasByDimension.computeIfAbsent(area.getDimension().location(), k -> new ArrayList<>()).add(area);
         }
+        // Invalidate cache when areas list changes
+        cachedTick = -1;
+        cachedPos = null;
+        cachedArea = null;
     }
 
     public static void setPlayersInCombat(Map<UUID, Integer> combatState) {
@@ -60,6 +69,25 @@ public class ClientCombatState {
 
     public static ManagedArea getPlayerArea(Player player) {
         if (player == null) return null;
+        // Fast path: for local player, cache by tick and block pos
+        Minecraft mc = Minecraft.getInstance();
+        if (player == mc.player && mc.level != null) {
+            long gameTime = mc.level.getGameTime();
+            net.minecraft.core.BlockPos pos = player.blockPosition();
+            if (cachedTick == gameTime && cachedPos != null && cachedPos.equals(pos)) {
+                return cachedArea;
+            }
+            ManagedArea resolved = resolvePlayerArea(player);
+            cachedTick = gameTime;
+            cachedPos = pos;
+            cachedArea = resolved;
+            return resolved;
+        }
+        // For other players, resolve directly
+        return resolvePlayerArea(player);
+    }
+
+    private static ManagedArea resolvePlayerArea(Player player) {
         List<ManagedArea> areasInDim = managedAreasByDimension.get(player.level().dimension().location());
         if (areasInDim == null) {
             return null;

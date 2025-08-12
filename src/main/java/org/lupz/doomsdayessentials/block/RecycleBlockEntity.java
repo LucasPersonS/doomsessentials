@@ -23,6 +23,8 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.lupz.doomsdayessentials.menu.RecycleMenu;
 import org.lupz.doomsdayessentials.recycler.RecycleRecipeManager;
+import net.minecraftforge.api.distmarker.OnlyIn;
+import net.minecraftforge.api.distmarker.Dist;
 
 import java.util.Optional;
 
@@ -161,7 +163,9 @@ public class RecycleBlockEntity extends BlockEntity implements MenuProvider, Con
         }
     }
 
+    @OnlyIn(Dist.CLIENT)
     private RecyclerLoopSound loopSound;
+    @OnlyIn(Dist.CLIENT)
     private void clientTick(Level level, BlockPos pos, BlockState state, RecycleBlockEntity be){
         if(state.getValue(RecycleBlock.RUNNING)){
             if(loopSound == null || loopSound.isStopped()){

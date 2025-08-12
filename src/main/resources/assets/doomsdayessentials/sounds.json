@@ -43,5 +43,26 @@
     ],
     "subtitle": "subtitles.doomsdayessentials.recycler_loop",
     "attenuation_distance": 16
+  },
+  "whispering": {
+    "sounds": [ "doomsdayessentials:whispering" ]
+  },
+  "whind": {
+    "sounds": [ "doomsdayessentials:whind" ]
+  },
+  "inside_frequency": {
+    "sounds": [ "doomsdayessentials:inside-frequency" ]
+  },
+  "abduction_thunder": {
+    "sounds": [ "doomsdayessentials:thunder" ]
+  },
+  "abduction_beam": {
+    "sounds": [ "doomsdayessentials:abduction" ]
+  },
+  "hello": {
+    "sounds": [ "doomsdayessentials:hello" ]
+  },
+  "vanish": {
+    "sounds": [ "doomsdayessentials:vanish" ]
   }
 } 

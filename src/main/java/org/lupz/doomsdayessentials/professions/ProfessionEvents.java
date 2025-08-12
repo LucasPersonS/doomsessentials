@@ -13,7 +13,7 @@ import org.lupz.doomsdayessentials.professions.EngenheiroProfession;
 /**
  * Re-apply profession passive bonuses when the player logs in or respawns.
  */
-@Mod.EventBusSubscriber(modid = EssentialsMod.MOD_ID)
+@Mod.EventBusSubscriber(modid = EssentialsMod.MOD_ID, bus = Mod.EventBusSubscriber.Bus.FORGE)
 public final class ProfessionEvents {
 
     @SubscribeEvent

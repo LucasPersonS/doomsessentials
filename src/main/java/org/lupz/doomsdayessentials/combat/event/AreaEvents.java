@@ -79,6 +79,29 @@ public class AreaEvents {
         if (currentArea != null) {
             applyAreaEffects(player, currentArea);
         }
+
+        // Always render marker for CLOSED areas if player is within 30 blocks of center
+        for (ManagedArea area : org.lupz.doomsdayessentials.combat.AreaManager.get().getAreas()) {
+            if (area.isCurrentlyOpen()) continue; // Only for closed areas
+            BlockPos center = new BlockPos(
+                (area.getPos1().getX() + area.getPos2().getX()) / 2,
+                area.getPos2().getY() + 1,
+                (area.getPos1().getZ() + area.getPos2().getZ()) / 2
+            );
+            double distSq = player.blockPosition().distSqr(center);
+            if (distSq <= 30 * 30) {
+                org.lupz.doomsdayessentials.network.PacketHandler.CHANNEL.send(
+                    net.minecraftforge.network.PacketDistributor.PLAYER.with(() -> player),
+                    new org.lupz.doomsdayessentials.network.packet.s2c.TerritoryMarkerPacket(
+                        area.getName(),
+                        center.getX() + 0.5,
+                        center.getY(),
+                        center.getZ() + 0.5,
+                        (byte)4 // status 4 for closed/always marker
+                    )
+                );
+            }
+        }
     }
     
     private static void handleAreaChange(ServerPlayer player, ManagedArea from, ManagedArea to) {
@@ -385,12 +408,13 @@ public class AreaEvents {
         Component chatMsg = Component.literal("§c§l[ZONA FECHADA] §eEsta área abrirá às §a" + timeStr + "§e.");
         player.sendSystemMessage(chatMsg);
 
-        Component title = Component.literal("§4§lZONA FECHADA");
-        Component subtitle = Component.literal("§eAbrirá às §a" + timeStr);
-        try {
-            net.minecraft.server.network.ServerGamePacketListenerImpl conn = player.connection;
-            conn.send(new net.minecraft.network.protocol.game.ClientboundSetTitleTextPacket(title));
-            conn.send(new net.minecraft.network.protocol.game.ClientboundSetSubtitleTextPacket(subtitle));
-        } catch (Exception ignored) {}
+        org.lupz.doomsdayessentials.network.PacketHandler.CHANNEL.send(
+                net.minecraftforge.network.PacketDistributor.PLAYER.with(() -> player),
+                new org.lupz.doomsdayessentials.network.packet.s2c.ClosedZonePacket(timeStr, true));
+        // Set marker Y to 1 block above the highest Y of the area
+        double markerY = area.getPos2().getY() + 1;
+        org.lupz.doomsdayessentials.network.PacketHandler.CHANNEL.send(
+                net.minecraftforge.network.PacketDistributor.ALL.noArg(),
+                new org.lupz.doomsdayessentials.network.packet.s2c.TerritoryMarkerPacket(area.getName(), p.getX()+0.5, markerY, p.getZ()+0.5, (byte)4));
     }
 } 

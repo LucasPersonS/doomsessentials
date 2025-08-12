@@ -61,7 +61,11 @@ public class TerritoryRewardMenu extends AbstractContainerMenu {
                     var item = ForgeRegistries.ITEMS.getValue(net.minecraft.resources.ResourceLocation.tryParse(entry.id));
                     if (item == null) continue;
                     ItemStack stack = new ItemStack(item);
-                    stack.setCount(Math.min(64, entry.stored));
+                    // Show full stored amount in a single stack, allowing counts above vanilla limit
+                    int shownCount = entry.stored;
+                    // Cap to an upper limit to avoid client-side overflow (Forge BIG_STACK_MAX is 9999)
+                    if (shownCount > 9999) shownCount = 9999;
+                    stack.setCount(shownCount);
                     List<Component> lore = new ArrayList<>();
                     lore.add(Component.literal("§7Área: §f" + d.areaName));
                     lore.add(Component.literal("§aProduzindo: §f" + entry.perHour + "/h"));

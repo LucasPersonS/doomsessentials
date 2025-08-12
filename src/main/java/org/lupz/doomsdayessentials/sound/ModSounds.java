@@ -19,6 +19,17 @@ public class ModSounds {
     public static final RegistryObject<SoundEvent> FREQUENCIA2 = register("frequencia2");
     public static final RegistryObject<SoundEvent> RECYCLER_LOOP = register("recycler_loop");
 
+    public static final RegistryObject<SoundEvent> ABDUCTION_THUNDER = register("abduction_thunder");
+    public static final RegistryObject<SoundEvent> ABDUCTION_BEAM = register("abduction_beam");
+    public static final RegistryObject<SoundEvent> VANISH = register("vanish");
+    public static final RegistryObject<SoundEvent> HELLO = register("hello");
+
+    // New frequency ambience
+    public static final RegistryObject<SoundEvent> ESPALHE = register("espalhe");
+    public static final RegistryObject<SoundEvent> WHISPERING = register("whispering");
+    public static final RegistryObject<SoundEvent> WHIND = register("whind");
+    public static final RegistryObject<SoundEvent> INSIDE_FREQUENCY = register("inside_frequency");
+
     private static RegistryObject<SoundEvent> register(String name) {
         // 16 block hearing range
         return SOUND_EVENTS.register(name, () -> SoundEvent.createFixedRangeEvent(ResourceLocation.fromNamespaceAndPath(EssentialsMod.MOD_ID, name), 16f));

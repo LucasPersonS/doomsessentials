@@ -35,7 +35,6 @@ public final class MedicRewardManager {
     private record RewardEntry(ResourceLocation id, int count) {}
 
     private static final Codec<MedicData> MEDIC_DATA_CODEC = MedicData.CODEC;
-    private static final Codec<Map<String, MedicData>> STORAGE_CODEC = Codec.unboundedMap(Codec.STRING, MEDIC_DATA_CODEC);
 
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
 
@@ -136,7 +135,8 @@ public final class MedicRewardManager {
             JsonElement el = JsonParser.parseString(json);
 
             // Allow partial results so that a single bad entry does not invalidate the whole file.
-            STORAGE_CODEC.parse(JsonOps.INSTANCE, el)
+            Codec.unboundedMap(Codec.STRING, MEDIC_DATA_CODEC)
+                    .parse(JsonOps.INSTANCE, el)
                     .resultOrPartial(err -> System.err.println("[DoomsEssentials] Failed to parse medic_rewards.json: " + err))
                     .ifPresent(map -> {
                         medicData.clear();
@@ -155,7 +155,8 @@ public final class MedicRewardManager {
         try {
             Map<String, MedicData> map = new HashMap<>();
             medicData.forEach((k,v) -> map.put(k.toString(), v));
-            STORAGE_CODEC.encodeStart(JsonOps.INSTANCE, map)
+            Codec.unboundedMap(Codec.STRING, MEDIC_DATA_CODEC)
+                    .encodeStart(JsonOps.INSTANCE, map)
                     .resultOrPartial(err -> System.err.println("[DoomsEssentials] Failed to encode medic_rewards.json: " + err))
                     .ifPresent(el -> {
                         try { Files.writeString(saveFile, GSON.toJson(el)); } catch (IOException ignored) {}

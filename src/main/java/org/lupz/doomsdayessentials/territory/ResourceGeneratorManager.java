@@ -10,11 +10,10 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraftforge.common.MinecraftForge;
-import net.minecraftforge.event.TickEvent;
-import net.minecraftforge.eventbus.api.SubscribeEvent;
+// Tick listener removed – production now timestamp based
 import net.minecraftforge.registries.ForgeRegistries;
-import net.minecraftforge.server.ServerLifecycleHooks;
 import org.lupz.doomsdayessentials.EssentialsMod;
+import org.lupz.doomsdayessentials.territory.TerritoryAreaLoader;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -41,6 +40,7 @@ public class ResourceGeneratorManager {
         if (!Files.exists(cfgDir)) {
             try { Files.createDirectories(cfgDir); } catch (IOException e) { e.printStackTrace(); }
         }
+        TerritoryAreaLoader.load();
         load();
         MinecraftForge.EVENT_BUS.register(this);
     }
@@ -48,10 +48,14 @@ public class ResourceGeneratorManager {
     // ---------------------------------------------------------
     // Public API
     // ---------------------------------------------------------
-    public ResourceAreaData get(String areaName) { return generators.get(areaName.toLowerCase()); }
+    public ResourceAreaData get(String areaName) {
+        ResourceAreaData d = generators.get(areaName.toLowerCase());
+        if (d != null) accrue(d);
+        return d;
+    }
 
     public ResourceAreaData createIfAbsent(String areaName) {
-        return generators.computeIfAbsent(areaName.toLowerCase(), k -> new ResourceAreaData(areaName, "minecraft:stone", 1, 64));
+        return generators.computeIfAbsent(areaName.toLowerCase(), k -> new ResourceAreaData(areaName, new java.util.ArrayList<>(), 64));
     }
 
     public String getOwner(String areaName) {
@@ -64,10 +68,11 @@ public class ResourceGeneratorManager {
     }
 
     public void claimArea(String areaName, String guild) {
-        ResourceAreaData data = generators.get(areaName);
+        ResourceAreaData data = generators.get(areaName.toLowerCase());
         if (data == null) {
-            EssentialsMod.LOGGER.warn("Trying to claim unknown generator area {}", areaName);
-            return;
+            EssentialsMod.LOGGER.info("Creating new generator entry for area {} on claim", areaName);
+            data = new ResourceAreaData(areaName, new java.util.ArrayList<>(), 400);
+            generators.put(areaName.toLowerCase(), data);
         }
         data.ownerGuild = guild;
         data.claimTimestamp = System.currentTimeMillis();
@@ -90,6 +95,7 @@ public class ResourceGeneratorManager {
         for (ResourceAreaData d : generators.values()) {
             int totalStored = d.lootEntries.stream().mapToInt(e->e.stored).sum();
             if (!guildName.equals(d.ownerGuild) || totalStored == 0) continue;
+            accrue(d);
             for (ResourceAreaData.LootEntry entry : d.lootEntries) {
                 if (entry.stored == 0) continue;
                 var itemReg = ForgeRegistries.ITEMS.getValue(ResourceLocation.tryParse(entry.id));
@@ -117,51 +123,39 @@ public class ResourceGeneratorManager {
     }
 
     // ---------------------------------------------------------
-    // Tick production
+    // Production helper – accrues items based on timestamps
     // ---------------------------------------------------------
-    @SubscribeEvent
-    public void onServerTick(TickEvent.ServerTickEvent e) {
-        if (e.phase != TickEvent.Phase.END) return;
-        // run every minute (1200 ticks)
-        if (ServerLifecycleHooks.getCurrentServer() == null) return;
+    private void accrue(ResourceAreaData d) {
+        if (d.ownerGuild == null) return;
         long now = System.currentTimeMillis();
-        if (now - lastProdCheck < 60_000) return;
-        lastProdCheck = now;
-        boolean dirty = false;
-        java.util.Set<String> toRemove = new java.util.HashSet<>();
-        for (ResourceAreaData d : generators.values()) {
-            if (d.ownerGuild == null) continue;
-            // Expiration check (48h)
-            if (d.claimTimestamp > 0 && now - d.claimTimestamp > 172_800_000L) {
-                // remove area and generator
-                org.lupz.doomsdayessentials.combat.AreaManager.get().deleteArea(d.areaName);
-                toRemove.add(d.areaName.toLowerCase());
-                EssentialsMod.LOGGER.info("Generator area {} expired and was removed", d.areaName);
-                continue;
-            }
-            double hours = (now - d.lastTimestamp) / 3_600_000.0;
-            if (hours <= 0) continue;
-            boolean areaDirty=false;
-            for (ResourceAreaData.LootEntry entry : d.lootEntries) {
-                if (entry.stored >= d.storageCap) continue;
-                int produced = (int) Math.floor(hours * entry.perHour);
-                if (produced <= 0) continue;
-                entry.stored = Math.min(d.storageCap, entry.stored + produced);
-                areaDirty=true;
-            }
-            if (areaDirty) {
-                d.lastTimestamp = now;
-                dirty = true;
-            }
+        // Expire after 48h uncollected
+        if (d.claimTimestamp > 0 && now - d.claimTimestamp > 172_800_000L) {
+            org.lupz.doomsdayessentials.combat.AreaManager.get().deleteArea(d.areaName);
+            generators.remove(d.areaName.toLowerCase());
+            save();
+            EssentialsMod.LOGGER.info("Generator area {} expired and was removed", d.areaName);
+            return;
         }
-        if (dirty) save();
-        if (!toRemove.isEmpty()) {
-            toRemove.forEach(generators::remove);
+        double hours = (now - d.lastTimestamp) / 3_600_000.0;
+        if (hours <= 0) return;
+        boolean dirty = false;
+        for (ResourceAreaData.LootEntry entry : d.lootEntries) {
+            if (entry.stored >= d.storageCap) continue;
+            int produced = (int) Math.floor(hours * entry.perHour);
+            if (produced <= 0) continue;
+            entry.stored = Math.min(d.storageCap, entry.stored + produced);
+            dirty = true;
+        }
+        if (dirty) {
+            d.lastTimestamp = now;
             save();
         }
     }
-    private long lastProdCheck = 0;
-    private final java.util.Set<String> toRemove = new java.util.HashSet<>();
+
+    // ---------------------------------------------------------
+    // Tick production
+    // ---------------------------------------------------------
+    // Tick listener removed – production now timestamp based
 
     // ---------------------------------------------------------
     // Persistence helpers
@@ -211,7 +205,14 @@ public class ResourceGeneratorManager {
 
     // For config packers
     public List<ResourceAreaData> getGeneratorsForGuild(String guildName) {
-        return generators.values().stream().filter(d -> guildName.equals(d.ownerGuild)).toList();
+        java.util.List<ResourceAreaData> list = new java.util.ArrayList<>();
+        for (ResourceAreaData d : generators.values()) {
+            if (guildName.equals(d.ownerGuild)) {
+                accrue(d);
+                list.add(d);
+            }
+        }
+        return list;
     }
 
     private void load() {

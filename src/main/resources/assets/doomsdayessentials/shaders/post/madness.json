@@ -1,0 +1,10 @@
+{
+  "targets": [],
+  "passes": [
+    {
+      "intarget": "minecraft:main",
+      "outtarget": "minecraft:main",
+      "shader": "minecraft:shaders/post/wobble.json"
+    }
+  ]
+} 

@@ -57,11 +57,16 @@ public class InjuryEvents {
             int z = player.getPersistentData().getInt("healingBedZ");
             BlockPos bedPos = new BlockPos(x, y, z);
 
-            if (player.position().distanceToSqr(bedPos.getX() + 0.5, bedPos.getY() + 0.5, bedPos.getZ() + 0.5) > 2.0) {
-               player.teleportTo(bedPos.getX() + 0.5, bedPos.getY() + 0.5, bedPos.getZ() + 0.5);
-            }
-            player.setDeltaMovement(0, 0, 0);
+            // If the player leaves the bed area, stop the healing process and unlock them.
+            double distSq = player.position().distanceToSqr(bedPos.getX() + 0.5, bedPos.getY() + 0.5, bedPos.getZ() + 0.5);
 
+            // Rough radius of ~1.5 blocks (squared ≈ 2.25) counts as "still on the bed".
+            if (distSq > 2.25) {
+               InjuryHelper.releaseFromHealingBed(player);
+               return;
+            }
+
+            // Continue ticking the healing progress while the player remains on the bed.
             InjuryHelper.onHealingBed(player);
             return;
          }

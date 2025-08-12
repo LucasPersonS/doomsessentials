@@ -97,7 +97,25 @@ public class AreaCommand {
                                     b.suggest("west");
                                     return b.buildFuture();
                                 })
-                                .executes(AreaCommand::expandArea))))));
+                                .executes(AreaCommand::expandArea)))))
+                // ---------------------------------------------------------
+                // /area shrink <name> <amount> <direction>
+                // ---------------------------------------------------------
+                .then(Commands.literal("shrink")
+                    .then(Commands.argument("name", StringArgumentType.word())
+                        .suggests(AreaCommand::suggestAreaNames)
+                        .then(Commands.argument("amount", IntegerArgumentType.integer(1))
+                            .then(Commands.argument("direction", StringArgumentType.word())
+                                .suggests((c, b) -> {
+                                    b.suggest("up");
+                                    b.suggest("down");
+                                    b.suggest("north");
+                                    b.suggest("south");
+                                    b.suggest("east");
+                                    b.suggest("west");
+                                    return b.buildFuture();
+                                })
+                                .executes(AreaCommand::shrinkArea))))));
     }
 
     private static CompletableFuture<com.mojang.brigadier.suggestion.Suggestions> suggestAreaNames(CommandContext<CommandSourceStack> c, SuggestionsBuilder b) {
@@ -381,6 +399,53 @@ public class AreaCommand {
         ctx.getSource().sendSuccess(() -> Component.literal("Area '").withStyle(ChatFormatting.GREEN)
                 .append(Component.literal(name).withStyle(ChatFormatting.WHITE))
                 .append(Component.literal("' expanded by " + amount + " blocks " + direction + ".").withStyle(ChatFormatting.GREEN)), true);
+        return 1;
+    }
+
+    // ---------------------------------------------------------------------
+    // Shrink command implementation
+    // ---------------------------------------------------------------------
+
+    private static int shrinkArea(CommandContext<CommandSourceStack> ctx) {
+        String name = StringArgumentType.getString(ctx, "name");
+        ManagedArea area = AreaManager.get().getArea(name);
+        if (area == null) {
+            ctx.getSource().sendFailure(Component.literal("Area not found.").withStyle(ChatFormatting.RED));
+            return 0;
+        }
+
+        int amount = IntegerArgumentType.getInteger(ctx, "amount");
+        String direction = StringArgumentType.getString(ctx, "direction").toLowerCase();
+
+        BlockPos pos1 = area.getPos1();
+        BlockPos pos2 = area.getPos2();
+
+        switch (direction) {
+            case "up" -> pos2 = pos2.below(amount);
+            case "down" -> pos1 = pos1.above(amount);
+            case "north" -> pos1 = pos1.south(amount);
+            case "south" -> pos2 = pos2.north(amount);
+            case "east" -> pos2 = pos2.west(amount);
+            case "west" -> pos1 = pos1.east(amount);
+            default -> {
+                ctx.getSource().sendFailure(Component.literal("Invalid direction. Use up, down, north, south, east, or west.").withStyle(ChatFormatting.RED));
+                return 0;
+            }
+        }
+
+        // Validate area dimensions
+        if (pos2.getX() < pos1.getX() || pos2.getY() < pos1.getY() || pos2.getZ() < pos1.getZ()) {
+            ctx.getSource().sendFailure(Component.literal("Shrink amount too large. Area dimensions would become invalid.").withStyle(ChatFormatting.RED));
+            return 0;
+        }
+
+        ManagedArea newArea = new ManagedArea(area, pos1, pos2);
+        AreaManager.get().addArea(newArea);
+        AreaManager.get().saveAreas();
+
+        ctx.getSource().sendSuccess(() -> Component.literal("Area '").withStyle(ChatFormatting.GREEN)
+                .append(Component.literal(name).withStyle(ChatFormatting.WHITE))
+                .append(Component.literal("' shrunk by " + amount + " blocks " + direction + ".").withStyle(ChatFormatting.GREEN)), true);
         return 1;
     }
 } 

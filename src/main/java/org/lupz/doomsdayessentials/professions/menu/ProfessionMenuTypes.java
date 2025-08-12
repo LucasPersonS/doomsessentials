@@ -37,6 +37,13 @@ public final class ProfessionMenuTypes {
             "territory_reward_menu",
             () -> IForgeMenuType.create((windowId, inv, data) -> new org.lupz.doomsdayessentials.territory.menu.TerritoryRewardMenu(windowId, inv)));
 
+    public static final RegistryObject<MenuType<org.lupz.doomsdayessentials.territory.menu.GeneratorInfoMenu>> GENERATOR_INFO_MENU = MENUS.register(
+            "generator_info_menu",
+            () -> net.minecraftforge.common.extensions.IForgeMenuType.create((windowId, inv, data) -> {
+                String area = data != null ? data.readUtf() : "";
+                return new org.lupz.doomsdayessentials.territory.menu.GeneratorInfoMenu(windowId, inv, area);
+            }));
+
     public static final RegistryObject<MenuType<org.lupz.doomsdayessentials.menu.RecycleMenu>> RECYCLE_MENU = MENUS.register(
             "recycle_menu",
             () -> IForgeMenuType.create((windowId, inv, data) -> {

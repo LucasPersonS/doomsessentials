@@ -19,16 +19,25 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.item.Item;
 import net.minecraftforge.registries.ForgeRegistries;
+import net.minecraftforge.client.gui.overlay.VanillaGuiOverlay;
 
 import java.awt.*;
 import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 @Mod.EventBusSubscriber(modid = EssentialsMod.MOD_ID, bus = Mod.EventBusSubscriber.Bus.FORGE, value = Dist.CLIENT)
 public class KillFeedRenderer {
     private static final long FADE_DURATION_MS = 500L;
 
+    // Cache for resolved gun icon textures: key is namespace:path weapon id, value is RL or null if not found
+    private static final Map<String, ResourceLocation> GUN_ICON_CACHE = new ConcurrentHashMap<>();
+
     @SubscribeEvent
     public static void onRenderGuiOverlay(RenderGuiOverlayEvent.Post event) {
+        // Render once per frame anchored to the final overlay to avoid duplicate draws
+        if (!event.getOverlay().id().equals(VanillaGuiOverlay.PLAYER_HEALTH.id())) return;
+
         Minecraft mc = Minecraft.getInstance();
         if (mc.options.hideGui) return;
 
@@ -80,8 +89,7 @@ public class KillFeedRenderer {
             int ySize = 12 + padding;
             int iconSize = 12;
             int headSize = 12;
-            
-            // Determine if we have a custom gun icon (tacz or lradd)
+
             String gunIdRaw = entry.weaponName();
             boolean showGunIcon = false;
             String gunNamespace = "";
@@ -96,10 +104,10 @@ public class KillFeedRenderer {
             boolean showHead = true;
             int headWidth = headSize + padding;
             int gunWidth = showGunIcon ? iconSize + padding : 0;
-            
+
             boolean showMobIcon = isMobKill;
             int mobWidth = showMobIcon ? iconSize + padding : 0;
-            
+
             int totalWidth = textWidth + gunWidth + mobWidth + (showHead ? headWidth : 0);
             int x = screenWidth - totalWidth - 2 - padding * 2;
             int bgColor = new Color(0, 0, 0, (int) (alpha * 150)).getRGB();
@@ -125,34 +133,38 @@ public class KillFeedRenderer {
             }
             currentX += (showHead ? headWidth : 0);
 
-            // Draw gun icon if applicable
+            // Draw gun icon if applicable with caching
             if (showGunIcon) {
-                ResourceLocation gunIconRL = ResourceLocation.fromNamespaceAndPath(gunNamespace, "textures/item/guns/" + gunPath + ".png");
-                ResourceManager rm = mc.getResourceManager();
-                boolean hasTex = rm.getResource(gunIconRL).isPresent();
-                if (!hasTex) {
-                    // fallback to textures/item/<gun>.png (common in some packs)
-                    gunIconRL = ResourceLocation.fromNamespaceAndPath(gunNamespace, "textures/item/" + gunPath + ".png");
-                    hasTex = rm.getResource(gunIconRL).isPresent();
-                }
-                // NEW: also check common TaCZ HUD icon folders
-                if (!hasTex) {
-                    gunIconRL = ResourceLocation.fromNamespaceAndPath(gunNamespace, "textures/gun/hud/" + gunPath + ".png");
-                    hasTex = rm.getResource(gunIconRL).isPresent();
-                }
-                if (!hasTex) {
-                    gunIconRL = ResourceLocation.fromNamespaceAndPath(gunNamespace, "textures/gun/" + gunPath + ".png");
-                    hasTex = rm.getResource(gunIconRL).isPresent();
+                String fullId = gunNamespace + ":" + gunPath;
+                ResourceLocation cached = GUN_ICON_CACHE.get(fullId);
+                if (cached == null && !GUN_ICON_CACHE.containsKey(fullId)) {
+                    // Resolve once and cache result (including negative cache as null)
+                    ResourceManager rm = mc.getResourceManager();
+                    ResourceLocation tryRl;
+                    // Try multiple common paths
+                    String[] candidatePaths = new String[] {
+                        "textures/item/guns/" + gunPath + ".png",
+                        "textures/item/" + gunPath + ".png",
+                        "textures/gun/hud/" + gunPath + ".png",
+                        "textures/gun/" + gunPath + ".png"
+                    };
+                    ResourceLocation found = null;
+                    for (String p : candidatePaths) {
+                        tryRl = ResourceLocation.fromNamespaceAndPath(gunNamespace, p);
+                        if (rm.getResource(tryRl).isPresent()) { found = tryRl; break; }
+                    }
+                    GUN_ICON_CACHE.put(fullId, found); // can be null meaning not found
+                    cached = found;
                 }
 
-                if (hasTex) {
+                if (cached != null) {
                     RenderSystem.setShaderColor(1.0f, 1.0f, 1.0f, alpha);
                     RenderSystem.enableBlend();
-                    guiGraphics.blit(gunIconRL, currentX, y + (ySize - iconSize) / 2, 0, 0, iconSize, iconSize, iconSize, iconSize);
+                    guiGraphics.blit(cached, currentX, y + (ySize - iconSize) / 2, 0, 0, iconSize, iconSize, iconSize, iconSize);
                     RenderSystem.disableBlend();
                     RenderSystem.setShaderColor(1.0f, 1.0f, 1.0f, 1.0f);
                 } else {
-                    // try render the gun item itself
+                    // fallback render the gun item itself
                     Item gunItem = ForgeRegistries.ITEMS.getValue(ResourceLocation.parse(gunNamespace+":"+gunPath));
                     ItemStack stack = gunItem != null ? new ItemStack(gunItem) : new ItemStack(Items.IRON_SWORD);
                     guiGraphics.renderItem(stack, currentX, y + (ySize - iconSize) / 2);

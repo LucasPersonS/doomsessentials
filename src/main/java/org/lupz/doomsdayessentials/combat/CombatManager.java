@@ -36,6 +36,9 @@ public class CombatManager {
     // Players that opted-in to permanent combat mode via /combat activate
     private final Set<UUID> alwaysActive = ConcurrentHashMap.newKeySet();
 
+    // Throttle broadcast to clients: send at most every 5 ticks (4 Hz)
+    private int syncTickCounter = 0;
+
     private CombatManager() {
         MinecraftForge.EVENT_BUS.register(this);
     }
@@ -158,6 +161,10 @@ public class CombatManager {
         }
 
         playersInCombat.entrySet().removeIf(e -> !alwaysActive.contains(e.getKey()) && e.getValue() <= 0);
+
+        // Throttle broadcast: send only once every 5 ticks (~4 times per second)
+        syncTickCounter++;
+        if (syncTickCounter % 5 != 0) return;
 
         // Broadcast the updated combat state to all players
         PacketHandler.CHANNEL.send(net.minecraftforge.network.PacketDistributor.ALL.noArg(), new SyncCombatStatePacket(playersInCombat));

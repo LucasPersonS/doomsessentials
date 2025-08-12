@@ -29,11 +29,7 @@ public class SoundCommand {
             Commands.literal("playsoundessentials")
                 .requires(src -> src.hasPermission(2))
                 .then(Commands.argument("sound", StringArgumentType.word())
-                    .suggests((ctx, builder) -> {
-                        builder.suggest("frequencia1");
-                        builder.suggest("frequencia2");
-                        return builder.buildFuture();
-                    })
+                    .suggests(SOUND_PROVIDER)
                     .executes(ctx -> playSound(ctx, null))
                     .then(Commands.argument("player", EntityArgument.player())
                         .executes(ctx -> playSound(ctx, EntityArgument.getPlayer(ctx, "player")))
@@ -55,20 +51,42 @@ public class SoundCommand {
         }
 
         final ServerPlayer finalTarget = target;
-        switch (soundName) {
-            case "frequencia1":
-                target.playNotifySound(ModSounds.FREQUENCIA1.get(), SoundSource.MASTER, 1.0f, 1.0f);
-                ctx.getSource().sendSuccess(() -> Component.literal("Playing frequencia1 for " + finalTarget.getName().getString()), false);
-                break;
-            case "frequencia2":
-                target.playNotifySound(ModSounds.FREQUENCIA2.get(), SoundSource.MASTER, 1.0f, 1.0f);
-                ctx.getSource().sendSuccess(() -> Component.literal("Playing frequencia2 for " + finalTarget.getName().getString()), false);
-                break;
-            default:
-                ctx.getSource().sendFailure(Component.literal("Unknown sound: " + soundName));
-                return 0;
+        // Build ResourceLocation automatically
+        if(!soundName.contains(":")) soundName = EssentialsMod.MOD_ID+":"+soundName;
+        net.minecraft.resources.ResourceLocation rl = net.minecraft.resources.ResourceLocation.tryParse(soundName);
+        if(rl==null){
+            ctx.getSource().sendFailure(Component.literal("Invalid sound id"));
+            return 0;
         }
 
+        net.minecraft.sounds.SoundEvent dynamic = net.minecraft.sounds.SoundEvent.createVariableRangeEvent(rl);
+        target.playNotifySound(dynamic, SoundSource.MASTER, 1.0f, 1.0f);
+        ctx.getSource().sendSuccess(() -> Component.literal("Playing " + rl + " for " + finalTarget.getName().getString()), false);
         return 1;
+    }
+
+    // ----------------------------------------------------------------
+    // Suggestion provider based on sounds.json
+    // ----------------------------------------------------------------
+
+    private static final java.util.Set<String> SOUND_CACHE = loadSoundKeys();
+
+    private static final com.mojang.brigadier.suggestion.SuggestionProvider<CommandSourceStack> SOUND_PROVIDER = (ctx,builder)->{
+        java.util.Set<String> opts = SOUND_CACHE;
+        String rem = builder.getRemainingLowerCase();
+        opts.stream().filter(s->s.startsWith(rem)).forEach(builder::suggest);
+        return builder.buildFuture();
+    };
+
+    private static java.util.Set<String> loadSoundKeys(){
+        java.util.Set<String> keys = new java.util.HashSet<>();
+        try{
+            java.io.InputStream is = SoundCommand.class.getResourceAsStream("/assets/"+EssentialsMod.MOD_ID+"/sounds.json");
+            if(is!=null){
+                com.google.gson.JsonObject root = new com.google.gson.JsonParser().parse(new java.io.InputStreamReader(is)).getAsJsonObject();
+                for(String k: root.keySet()) keys.add(k);
+            }
+        }catch(Exception ignored){}
+        return keys;
     }
 } 

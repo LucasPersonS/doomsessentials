@@ -87,12 +87,7 @@ public class TerritoryClientState {
             color = 0x0066FF; // blue when idle (no players)
         }
 
-        if (starting || guildChanged || captured) {
-            spawnBorderParticles(area, color);
-        }
-
-        // passive particles each update to keep visualization
-        spawnBorderParticles(area, color);
+        // Removed client-side particle rendering – now handled server-side with colored dust
 
         running = p.isRunning();
         areaName = p.getAreaName();

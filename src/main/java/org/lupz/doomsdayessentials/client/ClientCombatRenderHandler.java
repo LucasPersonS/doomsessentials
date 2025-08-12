@@ -59,6 +59,10 @@ public class ClientCombatRenderHandler {
     private static boolean wasInSafeArea = false;
     private static boolean wasInFrequencyZone = false;
 
+    // Culling distances
+    private static final double NAMEPLATE_MAX_DISTANCE_SQR = 48.0 * 48.0; // 48 blocks
+    private static final double ICON_MAX_DISTANCE_SQR = 48.0 * 48.0;
+
     private ClientCombatRenderHandler() {}
 
     // ---------------------------------------------------------------------
@@ -86,6 +90,10 @@ public class ClientCombatRenderHandler {
     @SubscribeEvent
     public void onRenderNameplate(RenderNameTagEvent event) {
         if (!(event.getEntity() instanceof Player player)) return;
+
+        // Distance culling
+        Minecraft mc = Minecraft.getInstance();
+        if (mc.player != null && player.distanceToSqr(mc.player) > NAMEPLATE_MAX_DISTANCE_SQR) return;
 
         // Standard player checks
         if (player == Minecraft.getInstance().player && !Minecraft.getInstance().options.getCameraType().isFirstPerson()) {
@@ -212,6 +220,9 @@ public class ClientCombatRenderHandler {
             RenderSystem.disableDepthTest();
             RenderSystem.depthMask(false);
             guiGraphics.fill(0, 0, screenWidth, screenHeight, 0x33FF0000); // Semi-transparent red
+            // Restore depth state to avoid interfering with subsequent overlays
+            RenderSystem.depthMask(true);
+            RenderSystem.enableDepthTest();
         }
     }
 
@@ -240,6 +251,10 @@ public class ClientCombatRenderHandler {
     public void onRenderPlayerPost(RenderPlayerEvent.Post event) {
         Player player = event.getEntity();
         if (player.isCrouching()) return; // Hide icon if crouching
+
+        // Distance culling
+        Minecraft mc = Minecraft.getInstance();
+        if (mc.player != null && player.distanceToSqr(mc.player) > ICON_MAX_DISTANCE_SQR) return;
 
         ManagedArea area = ClientCombatState.getPlayerArea(player);
         boolean inDanger = area != null && area.getType() == AreaType.DANGER;

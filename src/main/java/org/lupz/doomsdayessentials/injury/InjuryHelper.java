@@ -155,7 +155,7 @@ public class InjuryHelper {
         });
     }
 
-    private static void releaseFromHealingBed(Player player) {
+    public static void releaseFromHealingBed(Player player) {
         BlockPos bedPos = new BlockPos(
                 player.getPersistentData().getInt("healingBedX"),
                 player.getPersistentData().getInt("healingBedY"),

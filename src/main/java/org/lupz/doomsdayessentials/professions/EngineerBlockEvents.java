@@ -76,7 +76,14 @@ public final class EngineerBlockEvents {
         BlockPos pos = e.getPos();
         BlockState state = level.getBlockState(pos);
         Block block = state.getBlock();
-        if (!(block instanceof ReinforcedBlock) && block != ModBlocks.MOLTEN_STEEL_BLOCK.get() && block != ModBlocks.PRIMAL_STEEL_BLOCK.get()) return;
+        // Allow instant-break with the hammer on reinforced blocks and the temporary barrier wood.
+        if (!(block instanceof ReinforcedBlock)
+                && block != ModBlocks.MOLTEN_STEEL_BLOCK.get()
+                && block != ModBlocks.PRIMAL_STEEL_BLOCK.get()
+                && block != net.minecraft.world.level.block.Blocks.MANGROVE_WOOD
+                && block != net.minecraft.world.level.block.Blocks.STRIPPED_MANGROVE_WOOD) {
+            return;
+        }
 
         GuildsManager gm = GuildsManager.get((net.minecraft.server.level.ServerLevel) level);
         Guild territoryGuild = gm.getGuildAt(pos);
@@ -85,7 +92,11 @@ public final class EngineerBlockEvents {
 
         // Remove block; drop only if not molten steel (barrier)
         level.setBlockAndUpdate(pos, net.minecraft.world.level.block.Blocks.AIR.defaultBlockState());
-        if (block != ModBlocks.MOLTEN_STEEL_BLOCK.get()) {
+
+        // Only drop the original block item if it is NOT one of the temporary barrier woods.
+        if (block != ModBlocks.MOLTEN_STEEL_BLOCK.get()
+                && block != net.minecraft.world.level.block.Blocks.MANGROVE_WOOD
+                && block != net.minecraft.world.level.block.Blocks.STRIPPED_MANGROVE_WOOD) {
             net.minecraft.world.level.block.Block.popResource(level, pos, new ItemStack(block));
         }
         e.setCanceled(true);
