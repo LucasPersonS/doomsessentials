@@ -19,6 +19,12 @@ public final class ModEntities {
                     .clientTrackingRange(64)
                     .build("faceless"));
 
+    public static final RegistryObject<EntityType<org.lupz.doomsdayessentials.entity.SentryEntity>> SENTRY = ENTITIES.register("sentry",
+            () -> EntityType.Builder.<org.lupz.doomsdayessentials.entity.SentryEntity>of(org.lupz.doomsdayessentials.entity.SentryEntity::new, MobCategory.MONSTER)
+                    .sized(0.6f, 0.6f)
+                    .clientTrackingRange(64)
+                    .build("sentry"));
+
     public static void register(IEventBus bus){
         ENTITIES.register(bus);
         bus.addListener(ModEntities::onAttributeCreate);
@@ -26,5 +32,6 @@ public final class ModEntities {
 
     private static void onAttributeCreate(EntityAttributeCreationEvent e){
         e.put(FACELESS.get(), FacelessEntity.createAttributes().build());
+        e.put(SENTRY.get(), org.lupz.doomsdayessentials.entity.SentryEntity.createAttributes().build());
     }
 } 

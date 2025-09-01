@@ -30,6 +30,9 @@ public class ModSounds {
     public static final RegistryObject<SoundEvent> WHIND = register("whind");
     public static final RegistryObject<SoundEvent> INSIDE_FREQUENCY = register("inside_frequency");
 
+    // Sentry fixed shoot sound
+    public static final RegistryObject<SoundEvent> SENTRY_SHOOT_SCAR_L_3P = register("scar_l_shoot_3p");
+
     private static RegistryObject<SoundEvent> register(String name) {
         // 16 block hearing range
         return SOUND_EVENTS.register(name, () -> SoundEvent.createFixedRangeEvent(ResourceLocation.fromNamespaceAndPath(EssentialsMod.MOD_ID, name), 16f));

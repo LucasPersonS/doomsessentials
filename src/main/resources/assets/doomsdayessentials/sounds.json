@@ -64,5 +64,8 @@
   },
   "vanish": {
     "sounds": [ "doomsdayessentials:vanish" ]
+  },
+  "scar_l_shoot_3p": {
+    "sounds": [ "doomsdayessentials:scar_l_shoot_3p" ]
   }
 } 

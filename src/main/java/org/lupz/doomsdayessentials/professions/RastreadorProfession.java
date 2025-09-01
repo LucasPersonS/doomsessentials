@@ -40,6 +40,10 @@ public final class RastreadorProfession {
 
         // Remove tracker compass from inventory
         player.getInventory().items.removeIf(item -> item.getItem() == ProfessionItems.TRACKING_COMPASS.get());
+
+        // Remove passive effects
+        MobEffectInstance effect = player.getEffect(MobEffects.NIGHT_VISION);
+        if (effect != null) player.removeEffect(MobEffects.NIGHT_VISION);
     }
 
     public static boolean isTracker(Player player) {
@@ -50,7 +54,6 @@ public final class RastreadorProfession {
      * Apply passive bonuses (called on become and on login/respawn).
      */
     public static void applyBonuses(Player player) {
-        // Permanent Night Vision I
         if (!player.hasEffect(MobEffects.NIGHT_VISION)) {
             player.addEffect(new MobEffectInstance(MobEffects.NIGHT_VISION, Integer.MAX_VALUE, 0, true, false, false));
         }
@@ -86,7 +89,7 @@ public final class RastreadorProfession {
 
         final boolean[] found = {false};
         player.getCapability(TrackerCapabilityProvider.TRACKER_CAPABILITY).ifPresent(cap -> {
-            List<ServerPlayer> nearbyPlayers = player.level().getEntitiesOfClass(ServerPlayer.class, player.getBoundingBox().inflate(radius),
+            java.util.List<ServerPlayer> nearbyPlayers = player.level().getEntitiesOfClass(ServerPlayer.class, player.getBoundingBox().inflate(radius),
                     p -> p != player && !cap.isWhitelisted(p.getUUID()));
 
             if (nearbyPlayers.isEmpty()) {
@@ -117,10 +120,9 @@ public final class RastreadorProfession {
                 player.addEffect(new MobEffectInstance(MobEffects.NIGHT_VISION, Integer.MAX_VALUE, 0, true, false, false));
             }
         } else {
-            // If player is not a tracker but has the effect, remove it.
-            // This can happen if they leave the profession.
+            // Remove effect if not tracker anymore
             MobEffectInstance effect = player.getEffect(MobEffects.NIGHT_VISION);
-            if (effect != null && effect.getDuration() == Integer.MAX_VALUE) {
+            if (effect != null) {
                 player.removeEffect(MobEffects.NIGHT_VISION);
             }
         }

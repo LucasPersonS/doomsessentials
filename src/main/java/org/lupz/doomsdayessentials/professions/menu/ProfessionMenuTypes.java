@@ -33,6 +33,10 @@ public final class ProfessionMenuTypes {
             "medic_reward_menu",
             () -> IForgeMenuType.create((windowId, inv, data) -> new org.lupz.doomsdayessentials.professions.menu.MedicRewardMenu(windowId, inv)));
 
+    public static final RegistryObject<MenuType<BountyBoardMenu>> BOUNTY_BOARD_MENU = MENUS.register(
+            "bounty_board_menu",
+            () -> IForgeMenuType.create((windowId, inv, data) -> new BountyBoardMenu(windowId, inv)));
+
     public static final RegistryObject<MenuType<org.lupz.doomsdayessentials.territory.menu.TerritoryRewardMenu>> TERRITORY_REWARD_MENU = MENUS.register(
             "territory_reward_menu",
             () -> IForgeMenuType.create((windowId, inv, data) -> new org.lupz.doomsdayessentials.territory.menu.TerritoryRewardMenu(windowId, inv)));

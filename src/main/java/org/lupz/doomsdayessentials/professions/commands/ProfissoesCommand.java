@@ -26,7 +26,7 @@ public final class ProfissoesCommand {
                         .requires(src -> src.hasPermission(0))
                         .executes(ctx -> {
                             ServerPlayer player = ctx.getSource().getPlayerOrException();
-                            player.openMenu(new ProfissoesMenuProvider());
+                            org.lupz.doomsdayessentials.network.PacketHandler.CHANNEL.send(net.minecraftforge.network.PacketDistributor.PLAYER.with(() -> player), new org.lupz.doomsdayessentials.professions.menu.ProfessionSelectionOpener());
                             return 1;
                         })
                         .then(Commands.literal("loja")

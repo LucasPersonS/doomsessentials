@@ -172,5 +172,19 @@
   "command.recycler.list.header": "§e--- Receitas do Reciclador ---",
   "command.engineer.list.header": "§e--- Receitas do Engenheiro ---",
   "command.recycler.reloaded": "Receitas do Reciclador recarregadas.",
-  "command.engineer.reloaded": "§aReceitas do Engenheiro recarregadas com sucesso."
+  "command.engineer.reloaded": "§aReceitas do Engenheiro recarregadas com sucesso.",
+  "profession.cacador.become": "§aVocê agora é um §6Caçador de Recompensas§a!",
+  "profession.cacador.leave": "§7Você deixou a profissão de Caçador de Recompensas.",
+  "profession.cacador.mark.no_target": "§cNenhum alvo na sua mira.",
+  "profession.cacador.mark.applied": "§aAlvo marcado: %s",
+  "profession.cacador.gui.name": "§6CAÇADOR",
+  "profession.cacador.gui.lore1": "§7Especialista em perseguir alvos valiosos.",
+  "profession.cacador.gui.lore2": "§7Ganha mais loot de zumbis.",
+  "profession.cacador.gui.lore3": "§fHabilidade:",
+  "profession.cacador.gui.lore4": "§a- Marca Letal: +30% dano contra o alvo por 20s.",
+  "profession.cacador.gui.lore5": "§a- Acesso ao Mural de Recompensas.",
+  "profession.cacador.gui.lore6": "§7Apenas em zonas seguras.",
+  "item.doomsdayessentials.hunting_board": "Mural de Recompensas",
+  "menu.doomsdayessentials.bounty_board": "Mural de Recompensas",
+  "menu.doomsdayessentials.bounty_board.placeholder": "(Em breve) Lista de recompensas disponíveis."
 } 

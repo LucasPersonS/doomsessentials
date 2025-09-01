@@ -144,6 +144,7 @@ public class EssentialsMod {
                 MenuScreens.register(ProfessionMenuTypes.ENGINEER_CRAFT.get(), org.lupz.doomsdayessentials.professions.menu.EngineerCraftScreen::new);
                 MenuScreens.register(ProfessionMenuTypes.MEDIC_REWARD_MENU.get(), org.lupz.doomsdayessentials.professions.menu.MedicRewardScreen::new);
                 MenuScreens.register(ProfessionMenuTypes.TERRITORY_REWARD_MENU.get(), org.lupz.doomsdayessentials.territory.menu.TerritoryRewardScreen::new);
+                MenuScreens.register(ProfessionMenuTypes.BOUNTY_BOARD_MENU.get(), org.lupz.doomsdayessentials.professions.menu.BountyBoardScreen::new);
                                  MenuScreens.register(ProfessionMenuTypes.RECYCLE_MENU.get(), org.lupz.doomsdayessentials.menu.RecycleScreen::new);
                  org.lupz.doomsdayessentials.event.eclipse.market.NightMarketMenus.clientSetup(event);
  
@@ -157,6 +158,8 @@ public class EssentialsMod {
 
                 // Faceless renderer
                 net.minecraft.client.renderer.entity.EntityRenderers.register(org.lupz.doomsdayessentials.entity.ModEntities.FACELESS.get(), org.lupz.doomsdayessentials.client.renderer.FacelessRenderer::new);
+                // Sentry renderer
+                net.minecraft.client.renderer.entity.EntityRenderers.register(org.lupz.doomsdayessentials.entity.ModEntities.SENTRY.get(), org.lupz.doomsdayessentials.client.renderer.SentryRenderer::new);
                 // Night Market renderer
                 net.minecraft.client.renderer.entity.EntityRenderers.register(org.lupz.doomsdayessentials.event.eclipse.market.MarketEntities.NIGHT_MARKET.get(), org.lupz.doomsdayessentials.client.renderer.NightMarketRenderer::new);
 

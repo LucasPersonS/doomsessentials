@@ -68,7 +68,8 @@ public class ProfissoesMenu extends AbstractContainerMenu {
         createProfessionItem(11, InjuryItems.MEDIC_KIT.get(), "medico");
         createProfessionItem(13, Items.IRON_SWORD, "combatente");
         createProfessionItem(15, Items.COMPASS, "rastreador");
-        createProfessionItem(17, ProfessionItems.ENGINEER_HAMMER.get(), "engenheiro");
+        		createProfessionItem(17, ProfessionItems.ENGINEER_HAMMER.get(), "engenheiro");
+		createProfessionItem(19, net.minecraft.world.item.Items.CROSSBOW, "cacador");
     }
 
     private void createProfessionItem(int slot, net.minecraft.world.item.Item vanillaItem, String professionKey) {

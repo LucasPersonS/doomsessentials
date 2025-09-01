@@ -80,6 +80,12 @@ public class PlayerEventHandler {
         if (event.phase == TickEvent.Phase.END && !event.player.level().isClientSide()) {
             MedicoProfession.tickMedico(event.player);
             RastreadorProfession.tickTracker(event.player);
+            // Tick engineer cooldowns
+            int cd = event.player.getPersistentData().getInt("engineerTurretCooldown");
+            if (cd > 0) event.player.getPersistentData().putInt("engineerTurretCooldown", cd - 1);
+            // Tick combatente cooldown
+            int acd = event.player.getPersistentData().getInt("combatenteAdrenalineCooldown");
+            if (acd > 0) event.player.getPersistentData().putInt("combatenteAdrenalineCooldown", acd - 1);
         }
     }
 }

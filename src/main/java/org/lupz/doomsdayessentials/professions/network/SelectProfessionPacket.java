@@ -87,6 +87,8 @@ public class SelectProfessionPacket {
                 org.lupz.doomsdayessentials.professions.RastreadorProfession.onBecome(player);
             } else if ("engenheiro".equalsIgnoreCase(msg.professionId)) {
                 org.lupz.doomsdayessentials.professions.EngenheiroProfession.onBecome(player);
+            } else if ("cacador".equalsIgnoreCase(msg.professionId)) {
+                org.lupz.doomsdayessentials.professions.CacadorProfession.onBecome(player);
             } else {
                 player.sendSystemMessage(Component.literal("Você se tornou um " + msg.professionId + "."));
             }

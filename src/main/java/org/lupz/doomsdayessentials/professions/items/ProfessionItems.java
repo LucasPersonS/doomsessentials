@@ -20,6 +20,9 @@ public final class ProfessionItems {
     public static final RegistryObject<Item> ENGINEER_HAMMER = ITEMS.register("engineer_hammer",
             () -> new EngineerHammerItem(new Item.Properties().stacksTo(1)));
 
+    public static final RegistryObject<Item> HUNTING_BOARD = ITEMS.register("hunting_board",
+            () -> new HuntingBoardItem(new Item.Properties().stacksTo(1)));
+
     public static void register(IEventBus bus) {
         ITEMS.register(bus);
     }

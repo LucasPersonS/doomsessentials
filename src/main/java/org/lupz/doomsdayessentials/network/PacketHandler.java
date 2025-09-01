@@ -81,6 +81,12 @@ public class PacketHandler {
                 .consumerMainThread(ToggleRecyclerPacket::handle)
                 .add();
 
+        CHANNEL.messageBuilder(org.lupz.doomsdayessentials.professions.network.UseProfessionSkillPacket.class, index++, NetworkDirection.PLAY_TO_SERVER)
+                .encoder(org.lupz.doomsdayessentials.professions.network.UseProfessionSkillPacket::encode)
+                .decoder(org.lupz.doomsdayessentials.professions.network.UseProfessionSkillPacket::decode)
+                .consumerMainThread(org.lupz.doomsdayessentials.professions.network.UseProfessionSkillPacket::handle)
+                .add();
+
         CHANNEL.messageBuilder(org.lupz.doomsdayessentials.network.packet.s2c.MadnessEffectPacket.class, index++, NetworkDirection.PLAY_TO_CLIENT)
                 .encoder(org.lupz.doomsdayessentials.network.packet.s2c.MadnessEffectPacket::encode)
                 .decoder(org.lupz.doomsdayessentials.network.packet.s2c.MadnessEffectPacket::decode)
@@ -91,6 +97,25 @@ public class PacketHandler {
                 .encoder(org.lupz.doomsdayessentials.network.packet.s2c.SkyTintPacket::encode)
                 .decoder(org.lupz.doomsdayessentials.network.packet.s2c.SkyTintPacket::decode)
                 .consumerMainThread(org.lupz.doomsdayessentials.network.packet.s2c.SkyTintPacket::handle)
+                .add();
+
+        CHANNEL.messageBuilder(org.lupz.doomsdayessentials.professions.menu.ProfessionSelectionOpener.class, index++, NetworkDirection.PLAY_TO_CLIENT)
+                .encoder(org.lupz.doomsdayessentials.professions.menu.ProfessionSelectionOpener::encode)
+                .decoder(org.lupz.doomsdayessentials.professions.menu.ProfessionSelectionOpener::decode)
+                .consumerMainThread(org.lupz.doomsdayessentials.professions.menu.ProfessionSelectionOpener::handle)
+                .add();
+
+
+        CHANNEL.messageBuilder(org.lupz.doomsdayessentials.network.SentryShootSoundPacket.class, index++, NetworkDirection.PLAY_TO_CLIENT)
+                .encoder(org.lupz.doomsdayessentials.network.SentryShootSoundPacket::encode)
+                .decoder(org.lupz.doomsdayessentials.network.SentryShootSoundPacket::decode)
+                .consumerMainThread(org.lupz.doomsdayessentials.network.SentryShootSoundPacket::handle)
+                .add();
+
+        CHANNEL.messageBuilder(org.lupz.doomsdayessentials.network.MountSentryWeaponPacket.class, index++, NetworkDirection.PLAY_TO_SERVER)
+                .encoder(org.lupz.doomsdayessentials.network.MountSentryWeaponPacket::encode)
+                .decoder(org.lupz.doomsdayessentials.network.MountSentryWeaponPacket::decode)
+                .consumerMainThread(org.lupz.doomsdayessentials.network.MountSentryWeaponPacket::handle)
                 .add();
 
         CHANNEL.messageBuilder(org.lupz.doomsdayessentials.network.packet.s2c.ClosedZonePacket.class, index++, NetworkDirection.PLAY_TO_CLIENT)
