@@ -40,6 +40,24 @@ public class InjuryEvents {
       downedPlayerOriginalSources.remove(playerUUID);
    }
 
+   // Hard block any item hand use at the highest priority
+   @SubscribeEvent(priority = EventPriority.HIGHEST)
+   public static void onUseItem(net.minecraftforge.event.entity.player.PlayerInteractEvent.RightClickItem event) {
+      Player player = event.getEntity();
+      if (player == null || player.level().isClientSide) return;
+      InjuryHelper.getCapability(player).ifPresent(cap -> { if (cap.isDowned()) event.setCanceled(true); });
+   }
+
+   @SubscribeEvent(priority = EventPriority.HIGHEST)
+   public static void onUseItemEmpty(net.minecraftforge.event.entity.player.PlayerInteractEvent.RightClickEmpty event) {
+      Player player = event.getEntity();
+      if (player == null || player.level().isClientSide) return;
+      InjuryHelper.getCapability(player).ifPresent(cap -> { if (cap.isDowned()) event.setCanceled(true); });
+   }
+
+   // Fallback: cancel generic input to attack/shoot via AttackEntity and LeftClickEmpty already present
+   // If TACZ exposes specific fire events, they will be caught by the above interact cancels.
+
    @SubscribeEvent
    public static void onAttachCapabilities(AttachCapabilitiesEvent<Entity> event) {
       if (event.getObject() instanceof Player && !event.getObject().getCapability(InjuryCapabilityProvider.INJURY_CAPABILITY).isPresent()) {
@@ -73,6 +91,18 @@ public class InjuryEvents {
 
          InjuryHelper.getCapability(player).ifPresent(cap -> {
             if (cap.isDowned()) {
+               // Keep the player in crawling pose while downed
+               if (player.getPose() != net.minecraft.world.entity.Pose.SWIMMING) {
+                  player.setPose(net.minecraft.world.entity.Pose.SWIMMING);
+               }
+               // Reassert swimming state to stabilize third-person rendering
+               if (!player.isSwimming()) {
+                  player.setSwimming(true);
+               }
+               // Ensure any ongoing item usage is stopped (blocks continuous-fire weapons)
+               if (player.isUsingItem()) {
+                  player.stopUsingItem();
+               }
                if (System.currentTimeMillis() > cap.getDownedUntil()) {
                   killPlayer(player);
                   return; 
@@ -122,6 +152,74 @@ public class InjuryEvents {
       }
    }
 
+   // Cancel starting and ticking of any item use while downed (covers continuous-fire weapons)
+   @SubscribeEvent(priority = EventPriority.HIGHEST)
+   public static void onItemUseStart(net.minecraftforge.event.entity.living.LivingEntityUseItemEvent.Start event) {
+      if (!(event.getEntity() instanceof ServerPlayer player)) return;
+      InjuryHelper.getCapability(player).ifPresent(cap -> { if (cap.isDowned()) event.setCanceled(true); });
+   }
+
+   @SubscribeEvent(priority = EventPriority.HIGHEST)
+   public static void onItemUseTick(net.minecraftforge.event.entity.living.LivingEntityUseItemEvent.Tick event) {
+      if (!(event.getEntity() instanceof ServerPlayer player)) return;
+      InjuryHelper.getCapability(player).ifPresent(cap -> {
+         if (cap.isDowned()) {
+            event.setCanceled(true);
+            player.stopUsingItem();
+         }
+      });
+   }
+
+   // Block item use, interactions, and combat while downed (including TACZ firing)
+   @SubscribeEvent
+   public static void onRightClickItem(net.minecraftforge.event.entity.player.PlayerInteractEvent.RightClickItem event) {
+      Player player = event.getEntity();
+      if (player == null || player.level().isClientSide) return;
+      InjuryHelper.getCapability(player).ifPresent(cap -> { if (cap.isDowned()) event.setCanceled(true); });
+   }
+
+   @SubscribeEvent
+   public static void onRightClickBlock(net.minecraftforge.event.entity.player.PlayerInteractEvent.RightClickBlock event) {
+      Player player = event.getEntity();
+      if (player == null || player.level().isClientSide) return;
+      InjuryHelper.getCapability(player).ifPresent(cap -> { if (cap.isDowned()) event.setCanceled(true); });
+   }
+
+   @SubscribeEvent
+   public static void onLeftClickBlock(net.minecraftforge.event.entity.player.PlayerInteractEvent.LeftClickBlock event) {
+      Player player = event.getEntity();
+      if (player == null || player.level().isClientSide) return;
+      InjuryHelper.getCapability(player).ifPresent(cap -> { if (cap.isDowned()) event.setCanceled(true); });
+   }
+
+   @SubscribeEvent
+   public static void onRightClickEntity(net.minecraftforge.event.entity.player.PlayerInteractEvent.EntityInteract event) {
+      Player player = event.getEntity();
+      if (player == null || player.level().isClientSide) return;
+      InjuryHelper.getCapability(player).ifPresent(cap -> { if (cap.isDowned()) event.setCanceled(true); });
+   }
+
+   @SubscribeEvent
+   public static void onAttackEntity(net.minecraftforge.event.entity.player.AttackEntityEvent event) {
+      Player player = event.getEntity();
+      if (player.level().isClientSide) return;
+      InjuryHelper.getCapability(player).ifPresent(cap -> { if (cap.isDowned()) event.setCanceled(true); });
+   }
+
+   @SubscribeEvent
+   public static void onSwing(net.minecraftforge.event.entity.player.PlayerInteractEvent.LeftClickEmpty event) {
+      Player player = event.getEntity();
+      if (player.level().isClientSide) return;
+      InjuryHelper.getCapability(player).ifPresent(cap -> { if (cap.isDowned()) event.setCanceled(true); });
+   }
+
+   @SubscribeEvent
+   public static void onRightClickEmpty(net.minecraftforge.event.entity.player.PlayerInteractEvent.RightClickEmpty event) {
+      Player player = event.getEntity();
+      if (player == null || player.level().isClientSide) return;
+      InjuryHelper.getCapability(player).ifPresent(cap -> { if (cap.isDowned()) event.setCanceled(true); });
+   }
+
    // Run at the very beginning so other mods never see the (now-cancelled) death
    // and therefore don't spawn 'ghost' corpses/items. Skips if someone else has
    // already cancelled it for safety.
@@ -158,6 +256,8 @@ public class InjuryEvents {
          InjuryHelper.getCapability(player).ifPresent(cap -> {
             // Clear the downed flag so subsequent logic treats the player as dead.
             cap.setDowned(false, null);
+            // Ensure client exits downed state immediately (remove shader)
+            InjuryNetwork.sendToPlayer(new org.lupz.doomsdayessentials.injury.network.UpdateDownedStatePacket(false, 0L), player);
 
             // Increment the injury level once per actual death.
             if (!player.getPersistentData().getBoolean("doomsessentials_injury_processed")) {
@@ -423,6 +523,8 @@ public class InjuryEvents {
          if (cap.isDowned()) {
             // Clear downed flag first to avoid loops
             cap.setDowned(false, null);
+            // Ensure client exits downed state immediately (remove shader)
+            InjuryNetwork.sendToPlayer(new org.lupz.doomsdayessentials.injury.network.UpdateDownedStatePacket(false, 0L), player);
 
             // Mark intentional kill and remember we've processed the kill to avoid duplicate messages
             player.getPersistentData().putBoolean("doomsessentials_force_death", true);
@@ -522,44 +624,24 @@ public class InjuryEvents {
    static class InjuryDeathData {
       private final int injuryLevel;
       private final int deathCount;
-      private final boolean showTitle;
 
-      public InjuryDeathData(int injuryLevel, int deathCount, boolean showTitle) {
+      public InjuryDeathData(int injuryLevel, int deathCount) {
          this.injuryLevel = injuryLevel;
          this.deathCount = deathCount;
-         this.showTitle = showTitle;
-      }
-
-      public int getInjuryLevel() {
-         return this.injuryLevel;
-      }
-
-      public int getDeathCount() {
-         return this.deathCount;
-      }
-
-      public boolean shouldShowTitle() {
-         return this.showTitle;
       }
    }
 
-   private static class ReviveData {
+   static class ReviveData {
       private final UUID targetUUID;
       private final net.minecraft.world.InteractionHand hand;
-      private int ticks;
+      private int ticks = 0;
 
-      private ReviveData(UUID targetUUID, net.minecraft.world.InteractionHand hand) {
+      public ReviveData(UUID targetUUID, net.minecraft.world.InteractionHand hand) {
          this.targetUUID = targetUUID;
          this.hand = hand;
-         this.ticks = 0;
       }
 
-      private void increment() {
-         this.ticks++;
-      }
-
-      private boolean isComplete() {
-         return this.ticks >= REVIVE_DURATION_TICKS;
-      }
+      public void increment() { this.ticks++; }
+      public boolean isComplete() { return this.ticks >= REVIVE_DURATION_TICKS; }
    }
 } 

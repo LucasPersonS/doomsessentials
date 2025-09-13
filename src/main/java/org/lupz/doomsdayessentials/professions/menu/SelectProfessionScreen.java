@@ -80,10 +80,6 @@ public class SelectProfessionScreen extends Screen {
 	}
 
 	private void select(String id) {
-		if ("cacador".equals(id)) {
-			this.minecraft.player.displayClientMessage(Component.literal("Em breve."), true);
-			return;
-		}
 		ProfessionNetwork.selectProfession(id);
 		this.minecraft.setScreen(null);
 	}

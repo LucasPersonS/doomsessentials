@@ -1,10 +1,7 @@
 package org.lupz.doomsdayessentials.utils;
 
 public final class DebugFlags {
-    private DebugFlags() {}
+	private DebugFlags() {}
 
-    /**
-     * Global switch to enable/disable verbose particle-pipeline logging.
-     */
-    public static boolean PARTICLE_DBG = false;
+	public static boolean PARTICLE_DBG = org.lupz.dooms.core.debug.DebugFlags.PARTICLE_DBG;
 } 

@@ -64,6 +64,9 @@ public class InjuryHelper {
             if (player instanceof net.minecraft.server.level.ServerPlayer sp) {
                 sp.awardStat(net.minecraft.stats.Stats.CUSTOM.get(net.minecraft.stats.Stats.DEATHS), -1);
             }
+            // Put player into crawling (swimming) pose while downed
+            player.setPose(net.minecraft.world.entity.Pose.SWIMMING);
+            player.setSwimming(true);
             if (player instanceof ServerPlayer sp) {
                 InjuryNetwork.sendToPlayer(new UpdateDownedStatePacket(true, downedUntil), sp);
             }
@@ -76,6 +79,9 @@ public class InjuryHelper {
             cap.setDowned(false, null);
             player.clearFire();
             player.removeAllEffects();
+            // Restore normal standing pose
+            player.setPose(net.minecraft.world.entity.Pose.STANDING);
+            player.setSwimming(false);
             if (player instanceof ServerPlayer sp) {
                 InjuryNetwork.sendToPlayer(new UpdateDownedStatePacket(false, 0), sp);
                 InjuryNetwork.sendToPlayer(new UpdateInjuryLevelPacket(cap.getInjuryLevel()), sp);
@@ -198,11 +204,14 @@ public class InjuryHelper {
                         InjuryNetwork.sendToPlayer(new org.lupz.doomsdayessentials.injury.network.UpdateInjuryLevelPacket(newLevel), sp);
 
                     if (newLevel <= 0) {
-                        player.sendSystemMessage(Component.translatable("injury.healed.full"));
+                        revivePlayer(player);
                     } else {
-                        player.sendSystemMessage(Component.translatable("injury.healed.partial", newLevel));
+                        // Particles and sound feedback
+                        if (player.level() instanceof ServerLevel serverLevel) {
+                            serverLevel.sendParticles(ParticleTypes.HEART, player.getX(), player.getY() + 1.0, player.getZ(), 6, 0.5, 0.5, 0.5, 0.02);
+                        }
+                        player.playNotifySound(SoundEvents.EXPERIENCE_ORB_PICKUP, net.minecraft.sounds.SoundSource.PLAYERS, 0.6f, 1.6f);
                     }
-                    player.playSound(SoundEvents.PLAYER_LEVELUP, 1.0F, 1.5F);
                 }
             });
         }

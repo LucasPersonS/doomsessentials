@@ -6,7 +6,9 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.ResourceKey;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.level.Level;
 import net.minecraftforge.registries.ForgeRegistries;
 import org.lupz.doomsdayessentials.EssentialsMod;
@@ -53,7 +55,7 @@ public class TerritoryAreaLoader {
                 JsonObject obj = entry.getValue().getAsJsonObject();
                 try {
                     String dimStr = obj.get("dimension").getAsString();
-                    ResourceKey<Level> dim = ResourceKey.create(net.minecraft.core.registries.Registries.DIMENSION, new net.minecraft.resources.ResourceLocation(dimStr));
+                    ResourceKey<Level> dim = keyFromString(dimStr);
                     JsonObject p1 = obj.getAsJsonObject("pos1");
                     JsonObject p2 = obj.getAsJsonObject("pos2");
                     BlockPos bp1 = new BlockPos(p1.get("x").getAsInt(), p1.get("y").getAsInt(), p1.get("z").getAsInt());
@@ -68,5 +70,9 @@ public class TerritoryAreaLoader {
         } catch (IOException e) {
             EssentialsMod.LOGGER.error("Failed to read territory_areas.json", e);
         }
+    }
+
+    private static ResourceKey<Level> keyFromString(String dimStr) {
+        return ResourceKey.create(Registries.DIMENSION, ResourceLocation.parse(dimStr));
     }
 } 

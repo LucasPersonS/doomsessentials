@@ -10,11 +10,11 @@ import net.minecraftforge.common.util.INBTSerializable;
 import net.minecraftforge.common.util.LazyOptional;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import net.minecraft.resources.ResourceLocation;
 
 public class TrackerCapabilityProvider implements ICapabilityProvider, INBTSerializable<CompoundTag> {
     public static final Capability<TrackerCapability> TRACKER_CAPABILITY = CapabilityManager.get(new CapabilityToken<>() {});
-    public static final net.minecraft.resources.ResourceLocation TRACKER_CAPABILITY_ID =
-            new net.minecraft.resources.ResourceLocation("doomsdayessentials", "tracker");
+    public static final ResourceLocation TRACKER_CAPABILITY_ID = ResourceLocation.fromNamespaceAndPath("doomsdayessentials", "tracker");
 
     private TrackerCapability capability;
     private final LazyOptional<TrackerCapability> optional = LazyOptional.of(this::getOrCreate);

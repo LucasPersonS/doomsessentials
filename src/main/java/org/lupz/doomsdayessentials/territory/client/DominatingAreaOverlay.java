@@ -7,7 +7,7 @@ import net.minecraftforge.client.gui.overlay.IGuiOverlay;
 import org.lupz.doomsdayessentials.EssentialsMod;
 
 public class DominatingAreaOverlay {
-    private static final ResourceLocation TEX = new ResourceLocation(EssentialsMod.MOD_ID, "textures/misc/area_dominating.png");
+    private static final ResourceLocation TEX = ResourceLocation.fromNamespaceAndPath(EssentialsMod.MOD_ID, "textures/misc/area_dominating.png");
 
     public static final IGuiOverlay OVERLAY = (gui, graphics, partial, width, height) -> {
         if (!TerritoryClientState.running) return;

@@ -72,10 +72,10 @@ public final class EngineerShopUtil {
             Map<String, Entry> defaultRecipes = new HashMap<>();
 
             Map<ResourceLocation, Integer> costs = new HashMap<>();
-            costs.put(new ResourceLocation("minecraft", "diamond"), 3);
-            costs.put(new ResourceLocation("minecraft", "stick"), 2);
+            costs.put(ResourceLocation.withDefaultNamespace("diamond"), 3);
+            costs.put(ResourceLocation.withDefaultNamespace("stick"), 2);
 
-            Entry exampleEntry = new Entry(new ResourceLocation("minecraft", "diamond_pickaxe"), 1, costs);
+            Entry exampleEntry = new Entry(ResourceLocation.withDefaultNamespace("diamond_pickaxe"), 1, costs);
             defaultRecipes.put("example_recipe", exampleEntry);
 
             try (Writer writer = Files.newBufferedWriter(RECIPE_PATH)) {

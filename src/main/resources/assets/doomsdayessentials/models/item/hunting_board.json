@@ -1,6 +1,6 @@
 {
-  "parent": "item/generated",
+  "parent": "block/cube_all",
   "textures": {
-    "layer0": "doomsdayessentials:block/huntingmodel"
+    "all": "doomsdayessentials:block/huntingmodel"
   }
 } 

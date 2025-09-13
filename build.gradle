@@ -85,6 +85,7 @@ minecraft {
             mods {
                 "${mod_id}" {
                     source sourceSets.main
+                    source project(":dooms-core").sourceSets.main
                 }
             }
         }
@@ -143,6 +144,7 @@ dependencies {
     minecraft "net.minecraftforge:forge:${minecraft_version}-${forge_version}"
     implementation fg.deobf("software.bernie.geckolib:geckolib-forge-${minecraft_version}:${geckolib_version}")
     implementation fg.deobf("com.eliotlash.mclib:mclib:20")
+    implementation project(":dooms-core")
 
     // TACZ gun mod (Forge 1.20.1). Using release 1.1.6 as in docs
     implementation fg.deobf("curse.maven:timeless-and-classics-zero-1028108:6632240-sources-6633203")

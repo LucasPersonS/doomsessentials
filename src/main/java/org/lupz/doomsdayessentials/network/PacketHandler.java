@@ -81,6 +81,24 @@ public class PacketHandler {
                 .consumerMainThread(ToggleRecyclerPacket::handle)
                 .add();
 
+        CHANNEL.messageBuilder(org.lupz.doomsdayessentials.professions.bounty.PlaceBountyPacket.class, index++, NetworkDirection.PLAY_TO_SERVER)
+                .encoder(org.lupz.doomsdayessentials.professions.bounty.PlaceBountyPacket::encode)
+                .decoder(org.lupz.doomsdayessentials.professions.bounty.PlaceBountyPacket::decode)
+                .consumerMainThread(org.lupz.doomsdayessentials.professions.bounty.PlaceBountyPacket::handle)
+                .add();
+
+        CHANNEL.messageBuilder(org.lupz.doomsdayessentials.professions.bounty.RequestBountiesPacket.class, index++, NetworkDirection.PLAY_TO_SERVER)
+                .encoder(org.lupz.doomsdayessentials.professions.bounty.RequestBountiesPacket::encode)
+                .decoder(org.lupz.doomsdayessentials.professions.bounty.RequestBountiesPacket::decode)
+                .consumerMainThread(org.lupz.doomsdayessentials.professions.bounty.RequestBountiesPacket::handle)
+                .add();
+
+        CHANNEL.messageBuilder(org.lupz.doomsdayessentials.professions.bounty.BountiesListPacket.class, index++, NetworkDirection.PLAY_TO_CLIENT)
+                .encoder(org.lupz.doomsdayessentials.professions.bounty.BountiesListPacket::encode)
+                .decoder(org.lupz.doomsdayessentials.professions.bounty.BountiesListPacket::decode)
+                .consumerMainThread(org.lupz.doomsdayessentials.professions.bounty.BountiesListPacket::handle)
+                .add();
+
         CHANNEL.messageBuilder(org.lupz.doomsdayessentials.professions.network.UseProfessionSkillPacket.class, index++, NetworkDirection.PLAY_TO_SERVER)
                 .encoder(org.lupz.doomsdayessentials.professions.network.UseProfessionSkillPacket::encode)
                 .decoder(org.lupz.doomsdayessentials.professions.network.UseProfessionSkillPacket::decode)

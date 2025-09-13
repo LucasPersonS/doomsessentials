@@ -11,7 +11,7 @@ import org.lupz.doomsdayessentials.EssentialsMod;
  * Displays a small banner on screen whenever a territory event is running but contested (no guild capturing).
  */
 public class ContestedAreaOverlay {
-    private static final ResourceLocation TEXTURE = new ResourceLocation(EssentialsMod.MOD_ID, "textures/misc/area_contested.png");
+    private static final ResourceLocation TEXTURE = ResourceLocation.fromNamespaceAndPath(EssentialsMod.MOD_ID, "textures/misc/area_contested.png");
 
     public static final IGuiOverlay OVERLAY = (gui, graphics, partial, width, height) -> {
         if (!TerritoryClientState.running) return;

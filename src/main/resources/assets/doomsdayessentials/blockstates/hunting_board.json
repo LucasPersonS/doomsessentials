@@ -1,0 +1,8 @@
+{
+  "variants": {
+    "facing=north": { "model": "doomsdayessentials:block/hunting_board" },
+    "facing=south": { "model": "doomsdayessentials:block/hunting_board", "y": 180 },
+    "facing=west": {  "model": "doomsdayessentials:block/hunting_board", "y": 270 },
+    "facing=east": {  "model": "doomsdayessentials:block/hunting_board", "y": 90 }
+  }
+} 

@@ -94,7 +94,7 @@ public class EssentialsConfig {
                 .defineInRange("downedHealthPool", 20.0, 1.0, 1000.0);
         DOWNED_BLEED_OUT_SECONDS = BUILDER
                 .comment("How long (in seconds) a player can be downed before they bleed out and die.")
-                .defineInRange("downedBleedOutSeconds", 180, 10, 600);
+                .defineInRange("downedBleedOutSeconds", 60, 10, 600);
         RESET_INJURY_ON_DEATH = BUILDER.comment("If true, a player's injury level will be reset to 0 upon death.").define("resetInjuryOnDeath", false);
         BUILDER.pop();
 

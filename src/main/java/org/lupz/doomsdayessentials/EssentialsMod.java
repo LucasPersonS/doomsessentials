@@ -104,6 +104,8 @@ public class EssentialsMod {
             // Eclipse infection command removed; replaced by Frequency system
             Class.forName("org.lupz.doomsdayessentials.command.EclipseScoreCommand");
             Class.forName("org.lupz.doomsdayessentials.command.NightMarketCommand");
+            // Ensure core teleport manager static listener is loaded
+            Class.forName("org.lupz.dooms.core.teleport.DelayedTeleportManager");
         } catch (ClassNotFoundException e) {
             LOGGER.error("Failed to load command class", e);
         }
@@ -115,11 +117,22 @@ public class EssentialsMod {
             org.lupz.doomsdayessentials.territory.TerritoryEventManager.get();
             org.lupz.doomsdayessentials.territory.ResourceGeneratorManager.get();
             PacketHandler.register();
-            InjuryNetwork.register();
-            EngineerNetwork.register();
+            org.lupz.doomsdayessentials.injury.network.InjuryNetwork.register();
+            org.lupz.doomsdayessentials.professions.network.EngineerNetwork.register();
             org.lupz.doomsdayessentials.professions.ProfissaoManager.loadProfessions();
             RecycleRecipeManager.loadRecipes();
             org.lupz.doomsdayessentials.item.BlockedItemManager.get();
+            // Install core bridge via reflection to avoid early class resolution
+            try {
+                Class<?> cs = Class.forName("org.lupz.dooms.core.service.CoreServices");
+                Class<?> nb = Class.forName("org.lupz.dooms.core.service.NetworkBridge");
+                Class<?> impl = Class.forName("org.lupz.doomsdayessentials.core.NetworkBridgeImpl");
+                Object instance = impl.getConstructor().newInstance();
+                java.lang.reflect.Method set = cs.getMethod("setNetworkBridge", nb);
+                set.invoke(null, instance);
+            } catch (Throwable t) {
+                LOGGER.warn("Core network bridge not installed", t);
+            }
             org.lupz.doomsdayessentials.utils.SkyColorManager.get();
         });
     }
@@ -155,6 +168,11 @@ public class EssentialsMod {
                      org.lupz.doomsdayessentials.event.eclipse.market.MarketBlocks.NIGHT_MARKET_BLOCK_ENTITY.get(),
                      ctx -> new org.lupz.doomsdayessentials.client.renderer.NightMarketBlockRenderer()
                  );
+                 // Hunting Board renderer (GeoLib)
+                 net.minecraft.client.renderer.blockentity.BlockEntityRenderers.register(
+                     org.lupz.doomsdayessentials.block.ModBlocks.HUNTING_BOARD_BLOCK_ENTITY.get(),
+                     ctx -> new org.lupz.doomsdayessentials.client.renderer.HuntingBoardBlockRenderer()
+                 );
 
                 // Faceless renderer
                 net.minecraft.client.renderer.entity.EntityRenderers.register(org.lupz.doomsdayessentials.entity.ModEntities.FACELESS.get(), org.lupz.doomsdayessentials.client.renderer.FacelessRenderer::new);
@@ -172,7 +190,7 @@ public class EssentialsMod {
         public static void registerLayerDefinitions(net.minecraftforge.client.event.EntityRenderersEvent.RegisterLayerDefinitions event) {
             event.registerLayerDefinition(org.lupz.doomsdayessentials.client.model.CrownModel.LAYER_LOCATION,
                     org.lupz.doomsdayessentials.client.model.CrownModel::createBodyLayer);
-            event.registerLayerDefinition(RecycleModel2.LAYER_LOCATION, RecycleModel2::createBodyLayer);
+            event.registerLayerDefinition(org.lupz.doomsdayessentials.client.model.RecycleModel2.LAYER_LOCATION, org.lupz.doomsdayessentials.client.model.RecycleModel2::createBodyLayer);
         }
     }
 } 

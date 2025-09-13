@@ -23,14 +23,28 @@ public class InjuryClientState {
 
     public static void updateDownedState(boolean downed, long until) {
         setDowned(downed, until);
-        // Safely update the client screen depending on the new state
         net.minecraft.client.Minecraft mc = net.minecraft.client.Minecraft.getInstance();
         if (downed) {
-            // Open the Downed screen
-            mc.setScreen(new org.lupz.doomsdayessentials.injury.client.DownedScreen());
-        } else if (mc.screen instanceof org.lupz.doomsdayessentials.injury.client.DownedScreen) {
-            // Close the Downed screen if it was open
-            mc.setScreen(null);
+            try {
+                net.minecraft.resources.ResourceLocation art = net.minecraft.resources.ResourceLocation.parse("minecraft:shaders/post/art.json");
+                mc.gameRenderer.loadEffect(art);
+            } catch (Exception e) {
+                try {
+                    net.minecraft.resources.ResourceLocation blur = net.minecraft.resources.ResourceLocation.parse("minecraft:shaders/post/blur.json");
+                    mc.gameRenderer.loadEffect(blur);
+                } catch (Exception ignored) {}
+            }
+            // Do not open any Screen; a HUD overlay will render the "Desistir" action
+            if (mc.screen instanceof org.lupz.doomsdayessentials.injury.client.DownedScreen) {
+                mc.setScreen(null);
+            }
+        } else {
+            try {
+                mc.gameRenderer.shutdownEffect();
+            } catch (Exception ignored) {}
+            if (mc.screen instanceof org.lupz.doomsdayessentials.injury.client.DownedScreen) {
+                mc.setScreen(null);
+            }
         }
     }
 } 

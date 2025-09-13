@@ -13,3 +13,4 @@ plugins {
 }
 
 rootProject.name = 'doomsessentials'
+include 'dooms-core'
