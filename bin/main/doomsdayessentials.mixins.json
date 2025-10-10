@@ -1,0 +1,15 @@
+{
+	"required": true,
+	"minVersion": "0.8",
+	"package": "org.lupz.doomsdayessentials.mixin",
+	"compatibilityLevel": "JAVA_17",
+	"refmap": "doomsdayessentials.refmap.json",
+	"verbose": true,
+	"client": [
+		"client.PlayerRendererMixin",
+		"client.PlayerModelMixin"
+	],
+	"injectors": {
+		"defaultRequire": 1
+	}
+} 

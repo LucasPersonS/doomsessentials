@@ -1,0 +1,24 @@
+{
+	"defaults": {
+		"texture": "doomsdayessentials:textures/gui/killcards/default_kill.png",
+		"sound": "doomsdayessentials:sounds/default/base1"
+	},
+	"weapons": {
+		"doomsday:kuronami": {
+			"texture": "doomsdayessentials:textures/gui/killcards/kuronami_killbanner.png",
+			"sound": "doomsdayessentials:kuronamiks"
+		},
+		"doomsday:kuronami_purple": {
+			"texture": "doomsdayessentials:textures/gui/killcards/kuronami_killbanner.png",
+			"sound": "doomsdayessentials:kuronamiks"
+		},
+		"doomsday:kuronami_red": {
+			"texture": "doomsdayessentials:textures/gui/killcards/kuronami_killbanner.png",
+			"sound": "doomsdayessentials:kuronamiks"
+		},
+		"doomsday:kuronami_black": {
+			"texture": "doomsdayessentials:textures/gui/killcards/kuronami_killbanner.png",
+			"sound": "doomsdayessentials:kuronamiks"
+		}
+	}
+} 

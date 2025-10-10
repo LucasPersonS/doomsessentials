@@ -7,13 +7,12 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraftforge.common.MinecraftForge;
 // Tick listener removed – production now timestamp based
 import net.minecraftforge.registries.ForgeRegistries;
 import org.lupz.doomsdayessentials.EssentialsMod;
-import org.lupz.doomsdayessentials.territory.TerritoryAreaLoader;
+// import kept intentionally if TerritoryAreaLoader side-effects are required
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -213,6 +212,131 @@ public class ResourceGeneratorManager {
             }
         }
         return list;
+    }
+
+    /**
+     * Deposits items from a player's inventory into the guild storage (generators) matching item ids.
+     * Returns the total number of items removed from the player's inventory and added to storage.
+     */
+    public int depositFromInventory(net.minecraft.server.level.ServerPlayer player, String guildName) {
+        java.util.List<ResourceAreaData> dests = getGeneratorsForGuild(guildName);
+        if (dests.isEmpty()) return 0;
+        int moved = 0;
+        // Build quick index: itemId -> list of entries to store into
+        java.util.Map<String, java.util.List<ResourceAreaData.LootEntry>> byId = new java.util.HashMap<>();
+        for (ResourceAreaData d : dests) {
+            accrue(d);
+            for (ResourceAreaData.LootEntry e : d.lootEntries) {
+                byId.computeIfAbsent(e.id, k -> new java.util.ArrayList<>()).add(e);
+            }
+        }
+
+        for (int i = 0; i < player.getInventory().getContainerSize(); i++) {
+            ItemStack stack = player.getInventory().getItem(i);
+            if (stack.isEmpty()) continue;
+            String id = ForgeRegistries.ITEMS.getKey(stack.getItem()).toString();
+            java.util.List<ResourceAreaData.LootEntry> slots = byId.get(id);
+            if (slots == null || slots.isEmpty()) continue; // only deposit items produced by the guild generators
+
+            int remaining = stack.getCount();
+            for (ResourceAreaData.LootEntry e : slots) {
+                int free = 0;
+                for (ResourceAreaData d : dests) {
+                    for (ResourceAreaData.LootEntry le : d.lootEntries) {
+                        if (le == e) { free = Math.max(0, d.storageCap - e.stored); break; }
+                    }
+                }
+                if (free <= 0) continue;
+                int add = Math.min(free, remaining);
+                if (add <= 0) continue;
+                e.stored += add;
+                remaining -= add;
+                moved += add;
+                if (remaining == 0) break;
+            }
+            if (moved > 0 && remaining != stack.getCount()) {
+                stack.shrink(stack.getCount() - remaining);
+                player.getInventory().setItem(i, remaining > 0 ? stack : ItemStack.EMPTY);
+            }
+        }
+        if (moved > 0) save();
+        return moved;
+    }
+
+    /**
+     * Moves up to totalCount items from all generator storages owned by defender to attacker at random.
+     * Returns the number of items transferred.
+     */
+    public int plunder(String defenderGuild, String attackerGuild, int totalCount) {
+        if (totalCount <= 0) return 0;
+        java.util.List<ResourceAreaData> sources = getGeneratorsForGuild(defenderGuild);
+        if (sources.isEmpty()) return 0;
+        // Accrue and compute total available
+        int available = 0;
+        for (ResourceAreaData d : sources) {
+            accrue(d);
+            for (ResourceAreaData.LootEntry e : d.lootEntries) available += e.stored;
+        }
+        if (available == 0) return 0;
+
+        int toMove = Math.min(totalCount, available);
+        java.util.Random rng = new java.util.Random();
+        int moved = 0;
+        while (toMove > 0) {
+            // Pick a random non-empty entry
+            ResourceAreaData.LootEntry chosen = null;
+            for (int tries = 0; tries < 50 && chosen == null; tries++) {
+                ResourceAreaData d = sources.get(rng.nextInt(sources.size()));
+                if (d.lootEntries.isEmpty()) continue;
+                ResourceAreaData.LootEntry e = d.lootEntries.get(rng.nextInt(d.lootEntries.size()));
+                if (e.stored > 0) { chosen = e; }
+            }
+            if (chosen == null) break;
+            int take = Math.min(chosen.stored, toMove);
+            chosen.stored -= take;
+            moved += take;
+            toMove -= take;
+        }
+
+        // Credit attacker into one of its generators (or create a placeholder entry if none)
+        if (moved > 0) {
+            java.util.List<ResourceAreaData> dests = getGeneratorsForGuild(attackerGuild);
+            if (dests.isEmpty()) {
+                // Create a virtual generator entry to store plundered generic items (no specific id).
+                // We will distribute into the first available generator once they claim one later.
+                // For now, simply discard item identity and add to the first entry if any exists later.
+                // To preserve identity, we try to mirror the ids by pushing back into matching entries below.
+            }
+            // Distribute per id into attacker generators (match ids if possible)
+            for (ResourceAreaData src : sources) {
+                for (ResourceAreaData.LootEntry e : src.lootEntries) {
+                    int movedForId = Math.min(totalCount, moved); // approximate proportional distribution already done
+                    if (movedForId <= 0) break;
+                    int delta = Math.min(movedForId, e.perHour > 0 ? movedForId : 0);
+                    if (delta <= 0) continue;
+                    // Find or create entry in attacker with same id
+                    ResourceAreaData target = dests.isEmpty() ? null : dests.get(0);
+                    if (target == null) {
+                        target = createIfAbsent("plunder_" + attackerGuild);
+                        target.ownerGuild = attackerGuild;
+                        target.storageCap = Math.max(target.storageCap, 9999);
+                        dests = java.util.List.of(target);
+                    }
+                    ResourceAreaData.LootEntry match = null;
+                    for (ResourceAreaData.LootEntry te : target.lootEntries) {
+                        if (java.util.Objects.equals(te.id, e.id)) { match = te; break; }
+                    }
+                    if (match == null) {
+                        match = new ResourceAreaData.LootEntry(e.id, e.perHour);
+                        target.lootEntries.add(match);
+                    }
+                    match.stored = Math.min(target.storageCap, match.stored + delta);
+                    moved -= delta;
+                }
+            }
+            save();
+        }
+        return totalCount - toMove;
     }
 
     private void load() {

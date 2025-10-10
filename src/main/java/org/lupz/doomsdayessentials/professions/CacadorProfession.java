@@ -43,7 +43,7 @@ public final class CacadorProfession {
     }
 
     public static boolean isHunter(Player player) {
-        return player.getPersistentData().getBoolean(TAG_IS_HUNTER);
+        return player != null && player.getPersistentData().getBoolean(TAG_IS_HUNTER);
     }
 
     public static void useMarkSkill(ServerPlayer player) {

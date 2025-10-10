@@ -36,5 +36,6 @@ public class BountyBoardScreen extends AbstractContainerScreen<BountyBoardMenu> 
 		this.renderBackground(g);
 		super.render(g, mouseX, mouseY, partialTick);
 		// No extra texts; controls are player-head items inside the container slots
+		this.renderTooltip(g, mouseX, mouseY);
 	}
 } 

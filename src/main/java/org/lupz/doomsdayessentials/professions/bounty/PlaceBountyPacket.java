@@ -16,7 +16,7 @@ public class PlaceBountyPacket {
 			ServerPlayer sp = ctx.get().getSender(); if (sp==null) return;
 			ServerPlayer target = sp.server.getPlayerList().getPlayerByName(msg.targetName);
 			if (target==null) return;
-			BountyManager.placeBounty(sp, target.getUUID(), msg.gears);
+			BountyManager.placeBounty(sp, target.getUUID(), org.lupz.doomsdayessentials.item.ModItems.GEARS.get(), msg.gears);
 		});
 		ctx.get().setPacketHandled(true);
 	}

@@ -16,11 +16,12 @@ import java.util.concurrent.ConcurrentHashMap;
 public final class BountyConversationManager {
 	private BountyConversationManager() {}
 
-	private enum Stage { NONE, ASK_NAME, ASK_AMOUNT }
+	private enum Stage { NONE, ASK_NAME, ASK_REWARD_ITEM, ASK_AMOUNT }
 	private static class State {
 		Stage stage = Stage.NONE;
 		long expiresAt;
 		String pendingName;
+		net.minecraft.world.item.Item pendingItem;
 	}
 
 	private static final Map<UUID, State> STATES = new ConcurrentHashMap<>();
@@ -31,7 +32,8 @@ public final class BountyConversationManager {
 		st.stage = Stage.ASK_NAME;
 		st.expiresAt = player.level().getGameTime() + TIMEOUT_TICKS;
 		STATES.put(player.getUUID(), st);
-		player.sendSystemMessage(Component.literal("§eEscreva o nickname da vítima"));
+		player.sendSystemMessage(Component.literal("§6§l» §e§lMURAL §6§l« §7Digite o §f§lNICK §7da vítima (TAB completa)."));
+		pushPlayerTabCompletions(player);
 	}
 
 	@SubscribeEvent
@@ -43,28 +45,45 @@ public final class BountyConversationManager {
 		event.setCanceled(true);
 		String msg = event.getRawText().trim();
 		long now = sp.level().getGameTime();
-		if (now > st.expiresAt) { STATES.remove(sp.getUUID()); sp.sendSystemMessage(Component.literal("§cOperação cancelada por tempo excedido.")); return; }
+		if (now > st.expiresAt) { STATES.remove(sp.getUUID()); clearTabCompletions(sp); sp.sendSystemMessage(Component.literal("§cOperação cancelada por tempo excedido.")); return; }
 		if (st.stage == Stage.ASK_NAME) {
 			ServerPlayer target = sp.server.getPlayerList().getPlayerByName(msg);
 			if (target == null) {
-				sp.sendSystemMessage(Component.literal("§cJogador não encontrado. Tente novamente."));
+				sp.sendSystemMessage(Component.literal("§cJogador não encontrado. §7Digite novamente (TAB ajuda)."));
 				st.expiresAt = now + TIMEOUT_TICKS;
+				pushPlayerTabCompletions(sp);
 				return;
 			}
 			st.pendingName = target.getName().getString();
+			st.stage = Stage.ASK_REWARD_ITEM;
+			st.expiresAt = now + TIMEOUT_TICKS;
+			sp.sendSystemMessage(Component.literal("§6§l» §e§lRECOMPENSA §6§l« §7Digite o item (§fSucata§7/§fPlaca de Metal§7/§fFragmentos de Metal§7/§fLâmina de Metal§7/§fEngrenagens§7)."));
+			pushItemTabCompletions(sp);
+			return;
+		}
+		if (st.stage == Stage.ASK_REWARD_ITEM) {
+			net.minecraft.world.item.Item chosen = parseRewardItem(msg);
+			if (chosen == null) {
+				sp.sendSystemMessage(Component.literal("§cItem não encontrado. §7Tente novamente (TAB ajuda)."));
+				st.expiresAt = now + TIMEOUT_TICKS;
+				pushItemTabCompletions(sp);
+				return;
+			}
+			st.pendingItem = chosen;
 			st.stage = Stage.ASK_AMOUNT;
 			st.expiresAt = now + TIMEOUT_TICKS;
-			sp.sendSystemMessage(Component.literal("§eDigite a quantia de gears"));
+			sp.sendSystemMessage(Component.literal("§6§l» §e§lQUANTIA §6§l« §7Digite a quantidade."));
+			clearTabCompletions(sp);
 			return;
 		}
 		if (st.stage == Stage.ASK_AMOUNT) {
-			int gears;
-			try { gears = Integer.parseInt(msg); } catch (Exception ex) { sp.sendSystemMessage(Component.literal("§cQuantidade inválida. Digite um número.")); return; }
+			int amount;
+			try { amount = Integer.parseInt(msg); } catch (Exception ex) { sp.sendSystemMessage(Component.literal("§cQuantidade inválida. Digite um número.")); return; }
 			ServerPlayer target = sp.server.getPlayerList().getPlayerByName(st.pendingName);
 			if (target == null) { sp.sendSystemMessage(Component.literal("§cJogador offline. Operação cancelada.")); STATES.remove(sp.getUUID()); return; }
-			boolean ok = BountyManager.placeBounty(sp, target.getUUID(), gears);
+			boolean ok = BountyManager.placeBounty(sp, target.getUUID(), st.pendingItem, amount);
 			if (ok) sp.sendSystemMessage(Component.literal("§aRecompensa colocada com sucesso"));
-			else sp.sendSystemMessage(Component.literal("§cGears insuficientes."));
+			else sp.sendSystemMessage(Component.literal("§cItens insuficientes."));
 			STATES.remove(sp.getUUID());
 		}
 	}
@@ -77,11 +96,59 @@ public final class BountyConversationManager {
 			boolean expired = now > en.getValue().expiresAt;
 			if (expired) {
 				ServerPlayer sp = net.minecraftforge.server.ServerLifecycleHooks.getCurrentServer().getPlayerList().getPlayer(en.getKey());
-				if (sp != null) sp.sendSystemMessage(Component.literal("§cOperação cancelada por tempo excedido."));
+				if (sp != null) { clearTabCompletions(sp); sp.sendSystemMessage(Component.literal("§cOperação cancelada por tempo excedido.")); }
 			}
 			return expired;
 		});
 	}
 
 	public static boolean isInConversation(ServerPlayer sp) { State st = STATES.get(sp.getUUID()); return st != null && st.stage != Stage.NONE; }
+
+	private static void pushPlayerTabCompletions(ServerPlayer player) {
+		try {
+			java.util.List<String> names = new java.util.ArrayList<>();
+			for (ServerPlayer p : player.getServer().getPlayerList().getPlayers()) names.add(p.getGameProfile().getName());
+			player.connection.send(new net.minecraft.network.protocol.game.ClientboundCustomChatCompletionsPacket(net.minecraft.network.protocol.game.ClientboundCustomChatCompletionsPacket.Action.ADD, names));
+		} catch (Throwable ignored) {}
+	}
+
+	private static void pushItemTabCompletions(ServerPlayer player) {
+		try {
+			java.util.List<String> names = new java.util.ArrayList<>();
+			names.add("Sucata");
+			names.add("Placa de Metal");
+			names.add("Fragmentos de Metal");
+			names.add("Lâmina de Metal");
+			names.add("Engrenagens");
+			player.connection.send(new net.minecraft.network.protocol.game.ClientboundCustomChatCompletionsPacket(net.minecraft.network.protocol.game.ClientboundCustomChatCompletionsPacket.Action.SET, names));
+		} catch (Throwable ignored) {}
+	}
+
+	private static void clearTabCompletions(ServerPlayer player) {
+		try {
+			player.connection.send(new net.minecraft.network.protocol.game.ClientboundCustomChatCompletionsPacket(net.minecraft.network.protocol.game.ClientboundCustomChatCompletionsPacket.Action.SET, java.util.List.of()));
+		} catch (Throwable ignored) {}
+	}
+
+	private static net.minecraft.world.item.Item parseRewardItem(String name) {
+		String n = normalize(name);
+		// Synonyms and direct matches
+		if (n.startsWith("sucata") || n.contains("scrap")) return org.lupz.doomsdayessentials.item.ModItems.SCRAPMETAL.get();
+		if (n.startsWith("placa de metal") || n.startsWith("placa") || n.contains("sheetmetal") || n.contains("metal plate")) return org.lupz.doomsdayessentials.item.ModItems.SHEETMETAL.get();
+		if (n.startsWith("fragmento") || n.startsWith("fragmentos") || n.contains("metal fragment")) return org.lupz.doomsdayessentials.item.ModItems.METAL_FRAGMENTS.get();
+		if (n.startsWith("lamina") || n.startsWith("lamina de metal") || n.contains("metalblade") || n.equals("blade")) return org.lupz.doomsdayessentials.item.ModItems.METALBLADE.get();
+		if (n.startsWith("engrenagem") || n.startsWith("engrenagens") || n.contains("gear") || n.equals("doomsday:gears") || n.equals("doomsdayessentials:gears")) return org.lupz.doomsdayessentials.item.ModItems.GEARS.get();
+		return null;
+	}
+
+	private static String normalize(String s) {
+		String lower = s.trim().toLowerCase(java.util.Locale.ROOT);
+		try {
+			java.text.Normalizer.Form form = java.text.Normalizer.Form.NFD;
+			String norm = java.text.Normalizer.normalize(lower, form);
+			return norm.replaceAll("\\p{InCombiningDiacriticalMarks}+", "");
+		} catch (Throwable t) {
+			return lower;
+		}
+	}
 } 

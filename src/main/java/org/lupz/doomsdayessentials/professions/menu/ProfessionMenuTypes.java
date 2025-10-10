@@ -7,7 +7,6 @@ import net.minecraftforge.registries.DeferredRegister;
 import net.minecraftforge.registries.ForgeRegistries;
 import net.minecraftforge.registries.RegistryObject;
 import org.lupz.doomsdayessentials.EssentialsMod;
-import org.lupz.doomsdayessentials.professions.menu.EngineerCraftMenu;
 
 /**
  * Holds menu type registrations for the profession GUI(s).
@@ -55,6 +54,47 @@ public final class ProfessionMenuTypes {
                 var be = (org.lupz.doomsdayessentials.block.RecycleBlockEntity) inv.player.level().getBlockEntity(pos);
                 return new org.lupz.doomsdayessentials.menu.RecycleMenu(windowId, inv, be);
             }));
+
+    public static final RegistryObject<MenuType<org.lupz.doomsdayessentials.guild.menu.GuildMainMenu>> GUILD_MAIN_MENU = MENUS.register(
+            "guild_main_menu",
+            () -> IForgeMenuType.create((windowId, inv, data) -> new org.lupz.doomsdayessentials.guild.menu.GuildMainMenu(windowId, inv)));
+
+    public static final RegistryObject<MenuType<org.lupz.doomsdayessentials.guild.menu.GuildStorageMenu>> GUILD_STORAGE_MENU = MENUS.register(
+            "guild_storage_menu",
+            () -> IForgeMenuType.create((windowId, inv, data) -> {
+                int page = data != null ? data.readVarInt() : 0;
+                return new org.lupz.doomsdayessentials.guild.menu.GuildStorageMenu(windowId, inv, page);
+            }));
+
+    public static final RegistryObject<MenuType<org.lupz.doomsdayessentials.guild.menu.GuildMembersMenu>> GUILD_MEMBERS_MENU = MENUS.register(
+            "guild_members_menu",
+            () -> IForgeMenuType.create((windowId, inv, data) -> new org.lupz.doomsdayessentials.guild.menu.GuildMembersMenu(windowId, inv)));
+
+    public static final RegistryObject<MenuType<org.lupz.doomsdayessentials.guild.menu.GuildMemberActionsMenu>> GUILD_MEMBER_ACTIONS_MENU = MENUS.register(
+            "guild_member_actions_menu",
+            () -> IForgeMenuType.create((windowId, inv, data) -> {
+                java.util.UUID target = data != null && data.readableBytes() >= 16 ? data.readUUID() : java.util.UUID.randomUUID();
+                return new org.lupz.doomsdayessentials.guild.menu.GuildMemberActionsMenu(windowId, inv, target);
+            }));
+
+    public static final RegistryObject<MenuType<org.lupz.doomsdayessentials.guild.menu.GuildAlliancesMenu>> GUILD_ALLIANCES_MENU = MENUS.register(
+            "guild_alliances_menu",
+            () -> IForgeMenuType.create((windowId, inv, data) -> new org.lupz.doomsdayessentials.guild.menu.GuildAlliancesMenu(windowId, inv)));
+
+    public static final RegistryObject<MenuType<org.lupz.doomsdayessentials.guild.menu.GuildStorageLogMenu>> GUILD_STORAGE_LOG_MENU = MENUS.register(
+            "guild_storage_log_menu",
+            () -> IForgeMenuType.create((windowId, inv, data) -> {
+                String g = data != null ? data.readUtf() : "";
+                return new org.lupz.doomsdayessentials.guild.menu.GuildStorageLogMenu(windowId, inv, g);
+            }));
+
+    public static final RegistryObject<MenuType<org.lupz.doomsdayessentials.guild.menu.GuildUpgradeMenu>> GUILD_UPGRADE_MENU = MENUS.register(
+            "guild_upgrade_menu",
+            () -> IForgeMenuType.create((windowId, inv, data) -> new org.lupz.doomsdayessentials.guild.menu.GuildUpgradeMenu(windowId, inv)));
+
+    public static final RegistryObject<MenuType<org.lupz.doomsdayessentials.guild.menu.GuildResourceDepositMenu>> GUILD_RESOURCE_DEPOSIT_MENU = MENUS.register(
+            "guild_resource_deposit_menu",
+            () -> IForgeMenuType.create((windowId, inv, data) -> new org.lupz.doomsdayessentials.guild.menu.GuildResourceDepositMenu(windowId, inv)));
 
     private ProfessionMenuTypes() {}
 

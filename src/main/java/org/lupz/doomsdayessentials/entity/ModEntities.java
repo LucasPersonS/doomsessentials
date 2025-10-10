@@ -25,6 +25,12 @@ public final class ModEntities {
                     .clientTrackingRange(64)
                     .build("sentry"));
 
+	public static final RegistryObject<EntityType<DummyEntity>> DUMMY = ENTITIES.register("dummy",
+			() -> EntityType.Builder.<DummyEntity>of(DummyEntity::new, MobCategory.MISC)
+					.sized(0.6f, 1.8f)
+					.clientTrackingRange(48)
+					.build("dummy"));
+
     public static void register(IEventBus bus){
         ENTITIES.register(bus);
         bus.addListener(ModEntities::onAttributeCreate);
@@ -33,5 +39,6 @@ public final class ModEntities {
     private static void onAttributeCreate(EntityAttributeCreationEvent e){
         e.put(FACELESS.get(), FacelessEntity.createAttributes().build());
         e.put(SENTRY.get(), org.lupz.doomsdayessentials.entity.SentryEntity.createAttributes().build());
+		e.put(DUMMY.get(), DummyEntity.createAttributes().build());
     }
 } 

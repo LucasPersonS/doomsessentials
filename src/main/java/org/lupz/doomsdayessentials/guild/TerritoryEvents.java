@@ -7,7 +7,6 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.block.Block;
-import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.event.TickEvent;
 import net.minecraftforge.event.level.BlockEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
@@ -82,7 +81,6 @@ public class TerritoryEvents {
             }
 
             // Cannot place within 50-block radius of another guild's totem
-            int minDistanceSq = 50 * 50;
             for (Guild other : manager.getAllGuilds()) {
                 if (other.getTotemPosition() == null) continue;
                 if (other.getName().equals(guild.getName())) continue;
@@ -151,7 +149,7 @@ public class TerritoryEvents {
         ServerLevel level = player.serverLevel();
         GuildsManager manager = GuildsManager.get(level);
         BlockPos pos = e.getPos();
-        // Handle totem break: only leader, remove territory
+        // Handle totem break: only leader, remove territory or victory plunder if enemy during war
         if (e.getState().getBlock() == ModBlocks.TOTEM_BLOCK.get() || e.getState().getBlock() == ModBlocks.TOTEM_BLOCK_TOP.get()) {
             Guild ownerGuild = manager.getGuildAt(pos);
             if (ownerGuild == null || ownerGuild.getTotemPosition() == null) {
@@ -194,7 +192,15 @@ public class TerritoryEvents {
                 return;
             }
 
-            // Remove territory
+            // If enemy during war, treat as victory: plunder and end war
+            if (!isMember && underWar) {
+                Guild attackerGuild = manager.getGuildByMember(player.getUUID());
+                if (attackerGuild != null) {
+                    manager.onAttackerVictory(attackerGuild.getName(), ownerGuild.getName());
+                }
+            }
+
+            // Remove territory regardless
             ownerGuild.setTotemPosition(null);
             manager.setDirty();
             player.sendSystemMessage(Component.literal("Totem removido. Território liberado.").withStyle(ChatFormatting.YELLOW));

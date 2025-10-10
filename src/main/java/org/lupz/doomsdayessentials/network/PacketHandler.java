@@ -57,28 +57,11 @@ public class PacketHandler {
                 .consumerMainThread(BuyShopItemPacket::handle)
                 .add();
 
-        CHANNEL.messageBuilder(TerritoryProgressPacket.class, index++, NetworkDirection.PLAY_TO_CLIENT)
-                .encoder(TerritoryProgressPacket::encode)
-                .decoder(TerritoryProgressPacket::decode)
-                .consumerMainThread(TerritoryProgressPacket::handle)
-                .add();
-
-        CHANNEL.messageBuilder(org.lupz.doomsdayessentials.network.packet.s2c.TerritoryMarkerPacket.class, index++, NetworkDirection.PLAY_TO_CLIENT)
-                .encoder(org.lupz.doomsdayessentials.network.packet.s2c.TerritoryMarkerPacket::encode)
-                .decoder(org.lupz.doomsdayessentials.network.packet.s2c.TerritoryMarkerPacket::decode)
-                .consumerMainThread(org.lupz.doomsdayessentials.network.packet.s2c.TerritoryMarkerPacket::handle)
-                .add();
-
-        CHANNEL.messageBuilder(BuyEngineerItemPacket.class, index++, NetworkDirection.PLAY_TO_SERVER)
-                .encoder(BuyEngineerItemPacket::encode)
-                .decoder(BuyEngineerItemPacket::decode)
-                .consumerMainThread(BuyEngineerItemPacket::handle)
-                .add();
-
-        CHANNEL.messageBuilder(ToggleRecyclerPacket.class, index++, NetworkDirection.PLAY_TO_SERVER)
-                .encoder(ToggleRecyclerPacket::encode)
-                .decoder(ToggleRecyclerPacket::decode)
-                .consumerMainThread(ToggleRecyclerPacket::handle)
+        CHANNEL.messageBuilder
+                (org.lupz.doomsdayessentials.recycler.network.ToggleRecyclerPacket.class, index++, NetworkDirection.PLAY_TO_SERVER)
+                .encoder(org.lupz.doomsdayessentials.recycler.network.ToggleRecyclerPacket::encode)
+                .decoder(org.lupz.doomsdayessentials.recycler.network.ToggleRecyclerPacket::decode)
+                .consumerMainThread(org.lupz.doomsdayessentials.recycler.network.ToggleRecyclerPacket::handle)
                 .add();
 
         CHANNEL.messageBuilder(org.lupz.doomsdayessentials.professions.bounty.PlaceBountyPacket.class, index++, NetworkDirection.PLAY_TO_SERVER)
@@ -105,43 +88,63 @@ public class PacketHandler {
                 .consumerMainThread(org.lupz.doomsdayessentials.professions.network.UseProfessionSkillPacket::handle)
                 .add();
 
-        CHANNEL.messageBuilder(org.lupz.doomsdayessentials.network.packet.s2c.MadnessEffectPacket.class, index++, NetworkDirection.PLAY_TO_CLIENT)
-                .encoder(org.lupz.doomsdayessentials.network.packet.s2c.MadnessEffectPacket::encode)
-                .decoder(org.lupz.doomsdayessentials.network.packet.s2c.MadnessEffectPacket::decode)
-                .consumerMainThread(org.lupz.doomsdayessentials.network.packet.s2c.MadnessEffectPacket::handle)
+        CHANNEL.messageBuilder
+                (org.lupz.doomsdayessentials.network.packet.s2c.SyncFrequencyPacket.class, index++, NetworkDirection.PLAY_TO_CLIENT)
+                .encoder(org.lupz.doomsdayessentials.network.packet.s2c.SyncFrequencyPacket::encode)
+                .decoder(org.lupz.doomsdayessentials.network.packet.s2c.SyncFrequencyPacket::decode)
+                .consumerMainThread(org.lupz.doomsdayessentials.network.packet.s2c.SyncFrequencyPacket::handle)
                 .add();
 
-        CHANNEL.messageBuilder(org.lupz.doomsdayessentials.network.packet.s2c.SkyTintPacket.class, index++, NetworkDirection.PLAY_TO_CLIENT)
-                .encoder(org.lupz.doomsdayessentials.network.packet.s2c.SkyTintPacket::encode)
-                .decoder(org.lupz.doomsdayessentials.network.packet.s2c.SkyTintPacket::decode)
-                .consumerMainThread(org.lupz.doomsdayessentials.network.packet.s2c.SkyTintPacket::handle)
+        CHANNEL.messageBuilder(org.lupz.doomsdayessentials.network.StartSlidePacket.class, index++, NetworkDirection.PLAY_TO_SERVER)
+                .encoder(org.lupz.doomsdayessentials.network.StartSlidePacket::encode)
+                .decoder(org.lupz.doomsdayessentials.network.StartSlidePacket::new)
+                .consumerMainThread(org.lupz.doomsdayessentials.network.StartSlidePacket::handle)
                 .add();
 
+        CHANNEL.messageBuilder(org.lupz.doomsdayessentials.network.CancelSlidePacket.class, index++, NetworkDirection.PLAY_TO_SERVER)
+                .encoder(org.lupz.doomsdayessentials.network.CancelSlidePacket::encode)
+                .decoder(org.lupz.doomsdayessentials.network.CancelSlidePacket::new)
+                .consumerMainThread(org.lupz.doomsdayessentials.network.CancelSlidePacket::handle)
+                .add();
+
+        CHANNEL.messageBuilder(org.lupz.doomsdayessentials.network.packet.s2c.StartSlideS2CPacket.class, index++, NetworkDirection.PLAY_TO_CLIENT)
+                .encoder(org.lupz.doomsdayessentials.network.packet.s2c.StartSlideS2CPacket::encode)
+                .decoder(org.lupz.doomsdayessentials.network.packet.s2c.StartSlideS2CPacket::new)
+                .consumerMainThread(org.lupz.doomsdayessentials.network.packet.s2c.StartSlideS2CPacket::handle)
+                .add();
+
+        CHANNEL.messageBuilder(org.lupz.doomsdayessentials.network.packet.s2c.EndSlideS2CPacket.class, index++, NetworkDirection.PLAY_TO_CLIENT)
+                .encoder(org.lupz.doomsdayessentials.network.packet.s2c.EndSlideS2CPacket::encode)
+                .decoder(org.lupz.doomsdayessentials.network.packet.s2c.EndSlideS2CPacket::new)
+                .consumerMainThread(org.lupz.doomsdayessentials.network.packet.s2c.EndSlideS2CPacket::handle)
+                .add();
+
+        CHANNEL.messageBuilder(org.lupz.doomsdayessentials.professions.bounty.HuntedStatePacket.class, index++, NetworkDirection.PLAY_TO_CLIENT)
+                .encoder(org.lupz.doomsdayessentials.professions.bounty.HuntedStatePacket::encode)
+                .decoder(org.lupz.doomsdayessentials.professions.bounty.HuntedStatePacket::decode)
+                .consumerMainThread(org.lupz.doomsdayessentials.professions.bounty.HuntedStatePacket::handle)
+                .add();
+
+        CHANNEL.messageBuilder(org.lupz.doomsdayessentials.lootbox.network.LootboxFinishPacket.class, index++, NetworkDirection.PLAY_TO_SERVER)
+                .encoder(org.lupz.doomsdayessentials.lootbox.network.LootboxFinishPacket::encode)
+                .decoder(org.lupz.doomsdayessentials.lootbox.network.LootboxFinishPacket::decode)
+                .consumerMainThread(org.lupz.doomsdayessentials.lootbox.network.LootboxFinishPacket::handle)
+                .add();
+
+        CHANNEL.messageBuilder(org.lupz.doomsdayessentials.killlog.network.TakeKillLogItemsPacket.class, index++, NetworkDirection.PLAY_TO_SERVER)
+                .encoder(org.lupz.doomsdayessentials.killlog.network.TakeKillLogItemsPacket::encode)
+                .decoder(org.lupz.doomsdayessentials.killlog.network.TakeKillLogItemsPacket::decode)
+                .consumerMainThread(org.lupz.doomsdayessentials.killlog.network.TakeKillLogItemsPacket::handle)
+                .add();
+
+        // ProfessionSelection opener (S2C) – open selection screen on client
         CHANNEL.messageBuilder(org.lupz.doomsdayessentials.professions.menu.ProfessionSelectionOpener.class, index++, NetworkDirection.PLAY_TO_CLIENT)
                 .encoder(org.lupz.doomsdayessentials.professions.menu.ProfessionSelectionOpener::encode)
                 .decoder(org.lupz.doomsdayessentials.professions.menu.ProfessionSelectionOpener::decode)
                 .consumerMainThread(org.lupz.doomsdayessentials.professions.menu.ProfessionSelectionOpener::handle)
                 .add();
 
-
-        CHANNEL.messageBuilder(org.lupz.doomsdayessentials.network.SentryShootSoundPacket.class, index++, NetworkDirection.PLAY_TO_CLIENT)
-                .encoder(org.lupz.doomsdayessentials.network.SentryShootSoundPacket::encode)
-                .decoder(org.lupz.doomsdayessentials.network.SentryShootSoundPacket::decode)
-                .consumerMainThread(org.lupz.doomsdayessentials.network.SentryShootSoundPacket::handle)
-                .add();
-
-        CHANNEL.messageBuilder(org.lupz.doomsdayessentials.network.MountSentryWeaponPacket.class, index++, NetworkDirection.PLAY_TO_SERVER)
-                .encoder(org.lupz.doomsdayessentials.network.MountSentryWeaponPacket::encode)
-                .decoder(org.lupz.doomsdayessentials.network.MountSentryWeaponPacket::decode)
-                .consumerMainThread(org.lupz.doomsdayessentials.network.MountSentryWeaponPacket::handle)
-                .add();
-
-        CHANNEL.messageBuilder(org.lupz.doomsdayessentials.network.packet.s2c.ClosedZonePacket.class, index++, NetworkDirection.PLAY_TO_CLIENT)
-                .encoder(org.lupz.doomsdayessentials.network.packet.s2c.ClosedZonePacket::encode)
-                .decoder(org.lupz.doomsdayessentials.network.packet.s2c.ClosedZonePacket::decode)
-                .consumerMainThread(org.lupz.doomsdayessentials.network.packet.s2c.ClosedZonePacket::handle)
-                .add();
-
+        // Register eclipse packets at the end to avoid shifting existing IDs
         CHANNEL.messageBuilder(org.lupz.doomsdayessentials.network.packet.s2c.EclipseStatePacket.class, index++, NetworkDirection.PLAY_TO_CLIENT)
                 .encoder(org.lupz.doomsdayessentials.network.packet.s2c.EclipseStatePacket::encode)
                 .decoder(org.lupz.doomsdayessentials.network.packet.s2c.EclipseStatePacket::decode)
@@ -154,10 +157,11 @@ public class PacketHandler {
                 .consumerMainThread(org.lupz.doomsdayessentials.network.packet.s2c.EclipseCyclePacket::handle)
                 .add();
 
-        CHANNEL.messageBuilder(org.lupz.doomsdayessentials.network.packet.s2c.SyncFrequencyPacket.class, index++, NetworkDirection.PLAY_TO_CLIENT)
-                .encoder(org.lupz.doomsdayessentials.network.packet.s2c.SyncFrequencyPacket::encode)
-                .decoder(org.lupz.doomsdayessentials.network.packet.s2c.SyncFrequencyPacket::decode)
-                .consumerMainThread(org.lupz.doomsdayessentials.network.packet.s2c.SyncFrequencyPacket::handle)
+        // Sky tint S2C (sent on login by SkyColorManager)
+        CHANNEL.messageBuilder(org.lupz.doomsdayessentials.network.packet.s2c.SkyTintPacket.class, index++, NetworkDirection.PLAY_TO_CLIENT)
+                .encoder(org.lupz.doomsdayessentials.network.packet.s2c.SkyTintPacket::encode)
+                .decoder(org.lupz.doomsdayessentials.network.packet.s2c.SkyTintPacket::decode)
+                .consumerMainThread(org.lupz.doomsdayessentials.network.packet.s2c.SkyTintPacket::handle)
                 .add();
 
         // AbductionBeamPacket removed along with Photon dependency.

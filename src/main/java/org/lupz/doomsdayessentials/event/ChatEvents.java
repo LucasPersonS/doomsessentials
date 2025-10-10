@@ -21,6 +21,13 @@ public class ChatEvents {
         ServerPlayer sender = event.getPlayer();
         String message = event.getRawText();
 
+        // If a bounty conversation is active for this player, let the conversation manager handle it exclusively
+        try {
+            if (org.lupz.doomsdayessentials.professions.bounty.BountyConversationManager.isInConversation(sender)) {
+                return; // do not cancel; BountyConversationManager will cancel and handle
+            }
+        } catch (Throwable ignored) {}
+
         event.setCanceled(true);
         // Mention notifications
         ChatUtils.processMentions(sender, message);

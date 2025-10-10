@@ -43,12 +43,12 @@ public class TerritoryRewardMenu extends AbstractContainerMenu {
         this.guildName = g != null ? g.getName() : null;
         buildContents();
 
-        // 6x9 grid slots (double chest)
-        for (int row = 0; row < 6; ++row) {
-            for (int col = 0; col < 9; ++col) {
-                this.addSlot(new ReadOnlySlot(container, col + row * 9, 8 + col * 18, 18 + row * 18));
-            }
-        }
+        // 6x9 grid slots (double chest) + player inventory aligned (read-only)
+        for (int row = 0; row < 6; ++row) for (int col = 0; col < 9; ++col) this.addSlot(new ReadOnlySlot(container, col + row * 9, 8 + col * 18, 18 + row * 18));
+        int invTopY = 84 + (6 - 3) * 18; // 138
+        int hotbarY = 142 + (6 - 3) * 18; // 196
+        for (int row = 0; row < 3; ++row) for (int col = 0; col < 9; ++col) this.addSlot(new ReadOnlySlot(playerInv, col + row * 9 + 9, 8 + col * 18, invTopY + row * 18));
+        for (int col = 0; col < 9; ++col) this.addSlot(new ReadOnlySlot(playerInv, col, 8 + col * 18, hotbarY));
     }
 
     private void buildContents() {

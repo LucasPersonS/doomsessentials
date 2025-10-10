@@ -86,6 +86,12 @@ public class PlayerEventHandler {
             // Tick combatente cooldown
             int acd = event.player.getPersistentData().getInt("combatenteAdrenalineCooldown");
             if (acd > 0) event.player.getPersistentData().putInt("combatenteAdrenalineCooldown", acd - 1);
+            int scd = event.player.getPersistentData().getInt("slideCooldown");
+            if (scd > 0) event.player.getPersistentData().putInt("slideCooldown", scd - 1);
+            // Tick sliding
+            if (event.player instanceof net.minecraft.server.level.ServerPlayer sp) {
+                org.lupz.doomsdayessentials.movement.SlideHandler.tick(sp);
+            }
         }
     }
 }

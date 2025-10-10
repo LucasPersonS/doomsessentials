@@ -74,12 +74,32 @@ public class ProfissoesMenu extends AbstractContainerMenu {
 
     private void createProfessionItem(int slot, net.minecraft.world.item.Item vanillaItem, String professionKey) {
         ItemStack stack = new ItemStack(vanillaItem);
-        stack.setHoverName(Component.translatable("profession." + professionKey + ".gui.name"));
+        // Colored title based on profession via style
+        Component baseName = Component.translatable("profession." + professionKey + ".gui.name");
+        int color = switch (professionKey) {
+            case "medico" -> 0x78C8FF;
+            case "engenheiro" -> 0xE6B866;
+            case "rastreador" -> 0xA7FFAE;
+            case "cacador" -> 0xFF8A65;
+            case "combatente" -> 0xFF5555;
+            default -> 0xFFFFFF;
+        };
+        stack.setHoverName(baseName.copy().withStyle(style -> style.withColor(color)));
 
-        List<Component> lore = new ArrayList<>();
+        java.util.List<Component> lore = new java.util.ArrayList<>();
         for (int i = 1; i <= 6; i++) {
             String key = "profession." + professionKey + ".gui.lore" + i;
-            lore.add(Component.translatable(key));
+            Component line = Component.translatable(key);
+            String lower = line.getString().toLowerCase(java.util.Locale.ROOT);
+            if (lower.startsWith("passiva")) {
+                lore.add(line.copy().withStyle(s -> s.withColor(0xE6B866)));
+            } else if (lower.startsWith("skill")) {
+                lore.add(line.copy().withStyle(s -> s.withColor(0x78C8FF)));
+            } else if (lower.startsWith("utilidade")) {
+                lore.add(line.copy().withStyle(s -> s.withColor(0xA7FFAE)));
+            } else {
+                lore.add(line.copy().withStyle(s -> s.withColor(0xCCCCCC)));
+            }
         }
 
         if (!lore.isEmpty()) {

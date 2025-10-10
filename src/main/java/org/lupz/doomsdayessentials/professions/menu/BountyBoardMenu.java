@@ -7,6 +7,7 @@ import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.inventory.AbstractContainerMenu;
 import net.minecraft.world.inventory.ClickType;
+import net.minecraftforge.server.ServerLifecycleHooks;
 import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
@@ -15,6 +16,7 @@ import org.lupz.doomsdayessentials.professions.bounty.BountyManager;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
 public class BountyBoardMenu extends AbstractContainerMenu {
 	private static final int SIZE = 54;
@@ -49,26 +51,31 @@ public class BountyBoardMenu extends AbstractContainerMenu {
 			BountyManager.Bounty b = all.get(i);
 			ItemStack head = new ItemStack(Items.PLAYER_HEAD);
 			String targetName = resolveName(b.target);
-			head.setHoverName(Component.literal("§f" + targetName));
+			head.setHoverName(Component.literal("§f" + targetName + " §7(§cClique para aceitar§7)"));
 			List<Component> lore = new ArrayList<>();
-			lore.add(Component.literal("§7Recompensa: §e" + b.gears + " gears"));
+			String rewardName = new ItemStack(b.rewardItem).getHoverName().getString();
+			lore.add(Component.literal("§7Recompensa: §e" + b.amount + "x §f" + rewardName));
 			lore.add(Component.literal("§7Colocada por: §f" + resolveName(b.placedBy)));
+			lore.add(Component.literal("§6Clique para aceitar a caçada"));
 			addLore(head, lore);
+			// Set target UUID NBT to retrieve on click
+			net.minecraft.nbt.CompoundTag tag = head.getOrCreateTag();
+			tag.putUUID("BountyTarget", b.target);
 			container.setItem(slot++, head);
 		}
 
 		// controls
-		ItemStack prev = new ItemStack(Items.PLAYER_HEAD);
+		ItemStack prev = new ItemStack(org.lupz.doomsdayessentials.item.ModItems.GUI_BACK.get());
 		prev.setHoverName(Component.literal("§ePágina Anterior"));
 		addLore(prev, List.of(Component.literal("§7Clique para voltar")));
 		container.setItem(SLOT_PREV, prev);
 
-		ItemStack place = new ItemStack(Items.PLAYER_HEAD);
+		ItemStack place = new ItemStack(org.lupz.doomsdayessentials.item.ModItems.GUI_REWARD.get());
 		place.setHoverName(Component.literal("§aColocar Recompensa"));
 		addLore(place, List.of(Component.literal("§7Clique para iniciar")));
 		container.setItem(SLOT_PLACE, place);
 
-		ItemStack next = new ItemStack(Items.PLAYER_HEAD);
+		ItemStack next = new ItemStack(org.lupz.doomsdayessentials.item.ModItems.GUI_NEXT.get());
 		next.setHoverName(Component.literal("§ePróxima página"));
 		addLore(next, List.of(Component.literal("§7Clique para avançar")));
 		container.setItem(SLOT_NEXT, next);
@@ -83,7 +90,7 @@ public class BountyBoardMenu extends AbstractContainerMenu {
 	}
 
 	private String resolveName(java.util.UUID id) {
-		var server = net.minecraftforge.server.ServerLifecycleHooks.getCurrentServer();
+		var server = ServerLifecycleHooks.getCurrentServer();
 		if (server != null) {
 			var p = server.getPlayerList().getPlayer(id);
 			if (p != null) return p.getName().getString();
@@ -112,7 +119,21 @@ public class BountyBoardMenu extends AbstractContainerMenu {
 		}
 		if (slotId == SLOT_PLACE && clickPlayer instanceof net.minecraft.server.level.ServerPlayer sp) {
 			org.lupz.doomsdayessentials.professions.bounty.BountyConversationManager.start(sp);
+			sp.closeContainer();
+			sp.sendSystemMessage(Component.literal("§6§l» §e§lMURAL §6§l« §7Digite §f§l@NICK §7ou escolha um jogador com TAB"));
 			return;
+		}
+		// Accept hunt when clicking on a head in the content area
+		if (slotId >= 0 && slotId < 45 && clickPlayer instanceof net.minecraft.server.level.ServerPlayer sp) {
+			ItemStack clicked = container.getItem(slotId);
+			if (!clicked.isEmpty() && clicked.is(Items.PLAYER_HEAD) && clicked.hasTag() && clicked.getTag().hasUUID("BountyTarget")) {
+				UUID targetId = clicked.getTag().getUUID("BountyTarget");
+				boolean ok = BountyManager.acceptBounty(sp, targetId);
+				if (ok) {
+					sp.closeContainer();
+				}
+				return;
+			}
 		}
 		// ignore taking items
 		super.clicked(slotId, dragType, clickType, clickPlayer);

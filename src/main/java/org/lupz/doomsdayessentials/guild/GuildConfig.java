@@ -34,7 +34,9 @@ public class GuildConfig {
     public static final ForgeConfigSpec.LongValue WAR_COOLDOWN_HOURS;
     public static final ForgeConfigSpec.IntValue WAR_MAX_DEATHS;
     public static final ForgeConfigSpec.IntValue WAR_MIN_ONLINE_DEFENDERS;
+    public static final ForgeConfigSpec.IntValue WAR_MIN_ONLINE_ATTACKERS;
     public static final ForgeConfigSpec.BooleanValue INCLUDE_ALLIES_IN_WAR;
+    public static final ForgeConfigSpec.IntValue PLUNDER_ITEM_COUNT;
 
     // ---------------------------------------------------------------------
     // Reinforced block settings
@@ -72,15 +74,19 @@ public class GuildConfig {
         // War section ------------------------------------------------------
         BUILDER.comment("War / invasion settings").push("war");
         WAR_DURATION_MINUTES = BUILDER.comment("Duration (in minutes) of an active war.")
-                .defineInRange("warDurationMinutes", 30L, 1L, 1440L);
-        WAR_COOLDOWN_HOURS = BUILDER.comment("Cooldown (in hours) before a new war can be started in the same territory.")
-                .defineInRange("warCooldownHours", 8L, 0L, 168L);
+                .defineInRange("warDurationMinutes", 90L, 1L, 1440L);
+        WAR_COOLDOWN_HOURS = BUILDER.comment("Cooldown (in hours) before a new war can be started in the same territory (also used for post-victory shield & failure pair-ban).")
+                .defineInRange("warCooldownHours", 168L, 0L, 1680L);
         WAR_MAX_DEATHS = BUILDER.comment("Number of deaths allowed for a player during war before being locked out.")
                 .defineInRange("warMaxDeaths", 2, 1, 100);
         WAR_MIN_ONLINE_DEFENDERS = BUILDER.comment("Minimum online defenders required to start a war.")
-                .defineInRange("warMinOnlineDefenders", 3, 1, 50);
+                .defineInRange("warMinOnlineDefenders", 5, 1, 50);
+        WAR_MIN_ONLINE_ATTACKERS = BUILDER.comment("Minimum online attackers required to start a war.")
+                .defineInRange("warMinOnlineAttackers", 5, 1, 50);
         INCLUDE_ALLIES_IN_WAR = BUILDER.comment("If true, all allies of the two main guilds will also enter war automatically.")
                 .define("includeAlliesInWar", true);
+        PLUNDER_ITEM_COUNT = BUILDER.comment("Number of random items to plunder from the defender on victory.")
+                .defineInRange("plunderItemCount", 200, 1, 100000);
         BUILDER.pop();
 
         // Reinforced block section ---------------------------------------

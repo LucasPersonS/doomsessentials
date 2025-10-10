@@ -24,93 +24,76 @@ import java.util.UUID;
 @Mod.EventBusSubscriber(modid = EssentialsMod.MOD_ID)
 public class KillEventHandler {
 
-    @SubscribeEvent(priority = EventPriority.LOWEST)
-    public static void onLivingDeath(LivingDeathEvent event) {
-        if (event.isCanceled()) {
-            return;
-        }
-        
-        if (event.getEntity().level().isClientSide()) {
-            return;
-        }
+	@SubscribeEvent(priority = EventPriority.LOWEST)
+	public static void onLivingDeath(LivingDeathEvent event) {
+		if (event.isCanceled()) {
+			return;
+		}
+		
+		if (event.getEntity().level().isClientSide()) {
+			return;
+		}
 
-        if (!(event.getEntity() instanceof Player victim)) {
-            return;
-        }
+		// Allow any living victim (players or mobs)
+		LivingEntity victim = event.getEntity();
 
-        DamageSource source = event.getSource();
-        Entity killer = source.getEntity();
-        Entity directKiller = source.getDirectEntity();
+		DamageSource source = event.getSource();
+		Entity killer = source.getEntity();
+		Entity directKiller = source.getDirectEntity();
 
-        String victimName = victim.getDisplayName().getString();
-        UUID victimUUID = victim.getUUID();
-        String victimTypeId = ForgeRegistries.ENTITY_TYPES.getKey(victim.getType()).toString();
+		// Only broadcast when a PLAYER is the killer (PvP or PvE)
+		if (!(killer instanceof Player) || killer == victim) {
+			return;
+		}
+		Player killerPlayer = (Player) killer;
 
-        UUID killerUUID = null;
-        String killerName = null;
-        String killerTypeId = "minecraft:player";
+		String victimName = victim.getDisplayName().getString();
+		UUID victimUUID = victim.getUUID();
+		String victimTypeId = ForgeRegistries.ENTITY_TYPES.getKey(victim.getType()).toString();
 
-        ItemStack weapon = ItemStack.EMPTY;
-        String weaponName = "SUICIDE";
-        String weaponId = "minecraft:air";
+		UUID killerUUID = killerPlayer.getUUID();
+		String killerName = killerPlayer.getDisplayName().getString();
+		String killerTypeId = ForgeRegistries.ENTITY_TYPES.getKey(killerPlayer.getType()).toString();
 
-        if (killer instanceof Player && killer != victim) {
-            killerUUID = killer.getUUID();
-            killerName = killer.getDisplayName().getString();
-            killerTypeId = ForgeRegistries.ENTITY_TYPES.getKey(killer.getType()).toString();
+		ItemStack weapon = ItemStack.EMPTY;
+		String weaponName = "Fists";
+		String weaponId = "minecraft:air";
 
-            if (killer instanceof LivingEntity livingKiller) {
-                weapon = livingKiller.getMainHandItem();
-                if (!weapon.isEmpty()) {
-                    weaponName = weapon.getDisplayName().getString();
-                    ResourceLocation key = ForgeRegistries.ITEMS.getKey(weapon.getItem());
-                    if (key != null) {
-                        weaponId = key.toString();
-                    }
-               // BEGIN NEW BLOCK: fallback to GunId if display name looks generic
-                    String descId = weapon.getItem().getDescriptionId();
-                    boolean genericName = weaponName.equals(descId) || weaponName.equalsIgnoreCase("Gun") || weaponName.startsWith("item.");
-                    if (genericName && weapon.hasTag() && weapon.getTag().contains("GunId", net.minecraft.nbt.Tag.TAG_STRING)) {
-                        String gunId = weapon.getTag().getString("GunId");
-                        if (!gunId.isEmpty()) {
-                            weaponName = formatGunId(gunId);
-                        }
-                    }
-                    // END NEW BLOCK
-                } else {
-                    weaponName = "Fists";
-                }
-            }
-        } else if (killer instanceof LivingEntity && killer != victim) {
-            killerName = killer.getDisplayName().getString();
-            killerTypeId = ForgeRegistries.ENTITY_TYPES.getKey(killer.getType()).toString();
-            weaponName = killerName;
-        } else {
-            // Environmental or self-inflicted deaths
-            killerName = null; // No specific killer
-            killerTypeId = null; // No killer entity
-            switch (source.getMsgId()) {
-                case "fall" -> weaponName = "FALL";
-                case "inFire", "onFire", "lava" -> weaponName = "FIRE";
-                case "explosion", "explosion.player" -> weaponName = "EXPLOSION";
-                case "outOfWorld" -> weaponName = "VOID";
-                case "genericKill" -> weaponName = "/kill";
-                default -> weaponName = "SUICIDE";
-            }
-        }
-        
-        KillFeedPacket packet = new KillFeedPacket(killerUUID, killerName, victimUUID, victimName, weaponName, weaponId, killerTypeId != null ? killerTypeId : victimTypeId);
-        PacketHandler.CHANNEL.send(PacketDistributor.ALL.noArg(), packet);
-    }
+		weapon = killerPlayer.getMainHandItem();
+		if (!weapon.isEmpty()) {
+			weaponName = weapon.getDisplayName().getString();
+			ResourceLocation key = ForgeRegistries.ITEMS.getKey(weapon.getItem());
+			if (key != null) {
+				weaponId = key.toString();
+			}
+			// If TACZ style, prefer GunId NBT for both display and id mapping
+			CompoundTag tag = weapon.getTag();
+			if (tag != null && tag.contains("GunId", net.minecraft.nbt.Tag.TAG_STRING)) {
+				String gunIdRaw = tag.getString("GunId");
+				if (!gunIdRaw.isEmpty()) {
+					String normalizedId = gunIdRaw.contains(":") ? gunIdRaw : ("tacz:" + gunIdRaw);
+					weaponId = normalizedId;
+					weaponName = formatGunId(gunIdRaw.contains(":") ? gunIdRaw.split(":",2)[1] : gunIdRaw);
+					
+					// Debug log
+					System.out.println("KillEventHandler: GunId from NBT: " + gunIdRaw);
+					System.out.println("KillEventHandler: Normalized weaponId: " + weaponId);
+				}
+			}
+		}
 
-    private static String formatGunId(String gunId) {
-        // Replace underscores with spaces and capitalize words
-        String[] parts = gunId.replace('_', ' ').split(" ");
-        StringBuilder sb = new StringBuilder();
-        for (String part : parts) {
-            if (part.isEmpty()) continue;
-            sb.append(Character.toUpperCase(part.charAt(0))).append(part.substring(1)).append(" ");
-        }
-        return sb.toString().trim();
-    }
+		KillFeedPacket packet = new KillFeedPacket(killerUUID, killerName, victimUUID, victimName, weaponName, weaponId, victimTypeId);
+		PacketHandler.CHANNEL.send(PacketDistributor.ALL.noArg(), packet);
+	}
+
+	private static String formatGunId(String gunId) {
+		// Replace underscores with spaces and capitalize words
+		String[] parts = gunId.replace('_', ' ').split(" ");
+		StringBuilder sb = new StringBuilder();
+		for (String part : parts) {
+			if (part.isEmpty()) continue;
+			sb.append(Character.toUpperCase(part.charAt(0))).append(part.substring(1)).append(" ");
+		}
+		return sb.toString().trim();
+	}
 } 
