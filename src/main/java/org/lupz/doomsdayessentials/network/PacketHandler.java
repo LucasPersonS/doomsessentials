@@ -165,5 +165,18 @@ public class PacketHandler {
                 .add();
 
         // AbductionBeamPacket removed along with Photon dependency.
+
+        CHANNEL.messageBuilder(org.lupz.doomsdayessentials.network.packet.s2c.SyncRarityMapPacket.class, index++, NetworkDirection.PLAY_TO_CLIENT)
+                .encoder(org.lupz.doomsdayessentials.network.packet.s2c.SyncRarityMapPacket::encode)
+                .decoder(org.lupz.doomsdayessentials.network.packet.s2c.SyncRarityMapPacket::decode)
+                .consumerMainThread(org.lupz.doomsdayessentials.network.packet.s2c.SyncRarityMapPacket::handle)
+                .add();
+
+        // Guild storage UI actions (P2S)
+        CHANNEL.messageBuilder(org.lupz.doomsdayessentials.guild.menu.GuildStorageActionPacket.class, index++, NetworkDirection.PLAY_TO_SERVER)
+                .encoder(org.lupz.doomsdayessentials.guild.menu.GuildStorageActionPacket::encode)
+                .decoder(org.lupz.doomsdayessentials.guild.menu.GuildStorageActionPacket::decode)
+                .consumerMainThread(org.lupz.doomsdayessentials.guild.menu.GuildStorageActionPacket::handle)
+                .add();
     }
-} 
+}

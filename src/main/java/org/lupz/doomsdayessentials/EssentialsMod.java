@@ -118,6 +118,10 @@ public class EssentialsMod {
             // Ensure killlog features are loaded
             Class.forName("org.lupz.doomsdayessentials.killlog.AdminKillLogger");
             Class.forName("org.lupz.doomsdayessentials.killlog.KillLogCommand");
+            // Ensure rarity command and tooltip overlay are loaded
+            Class.forName("org.lupz.doomsdayessentials.rarity.RarityCommand");
+            Class.forName("org.lupz.doomsdayessentials.rarity.client.RarityTooltipOverlay");
+            Class.forName("org.lupz.doomsdayessentials.rarity.client.RarityTooltipComponents");
         } catch (ClassNotFoundException e) {
             LOGGER.error("Failed to load command class", e);
         }
@@ -215,6 +219,9 @@ public class EssentialsMod {
 
                 // Ensure killcard assets are loaded once at client init
                 org.lupz.doomsdayessentials.killfeed.client.KillcardAssets.reload();
+
+                // Ensure rarity assets are loaded once at client init
+                org.lupz.doomsdayessentials.rarity.RarityAssetsClient.reload();
 				// Force-load slide renderer subscriber to ensure event listeners are registered
 				try { Class.forName("org.lupz.doomsdayessentials.client.renderer.slide.PlayerSlideVanillaHide"); } catch (ClassNotFoundException ignored) {}
             });
