@@ -204,7 +204,11 @@ public class GuildMainMenu extends AbstractContainerMenu {
         if (guild == null) guild = gm.getGuildByMember(sp.getUUID());
 
         if (slotId == SLOT_REWARDS && clickType == ClickType.PICKUP) {
-            sp.openMenu(new net.minecraft.world.SimpleMenuProvider((id, inv, p) -> new org.lupz.doomsdayessentials.guild.menu.GuildStorageMenu(id, inv, 0), Component.literal("Cofre da Organização")));
+            // Open guild storage
+            sp.openMenu(new net.minecraft.world.SimpleMenuProvider(
+                    (id, inv, p) -> new org.lupz.doomsdayessentials.guild.menu.GuildStorageMenu(id, inv, 0),
+                    Component.literal("Cofre da Organização"))
+            );
             return;
         }
         if (slotId == SLOT_DEPOSIT && clickType == ClickType.PICKUP) {
