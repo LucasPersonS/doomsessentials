@@ -7,6 +7,7 @@ import net.minecraft.world.entity.ai.attributes.AttributeModifier;
 import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.entity.player.Player;
 import net.minecraftforge.event.entity.living.LivingDeathEvent;
+import net.minecraftforge.event.entity.living.LivingHurtEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
 import org.lupz.doomsdayessentials.EssentialsMod;
@@ -25,6 +26,9 @@ public final class CombatenteProfession {
 
     private static final String TAG_ADRENALINE_COOLDOWN = "combatenteAdrenalineCooldown";
     private static final String TAG_ADRENALINE_END_TICK = "combatenteAdrenalineEnd";
+    private static final String TAG_ULTIMO_HOMEM_ACTIVE = "combatenteUltimoHomemActive";
+    private static final String TAG_ULTIMO_HOMEM_END_TICK = "combatenteUltimoHomemEnd";
+    private static final String TAG_ULTIMO_HOMEM_USED = "combatenteUltimoHomemUsed";
 
     private CombatenteProfession() {}
 
@@ -41,6 +45,9 @@ public final class CombatenteProfession {
             return;
         }
 
+        // Clear all other profession tags to prevent conflicts
+        ProfissaoManager.clearAllProfessionTags(player);
+        
         player.getPersistentData().putBoolean(TAG_IS_COMBATENTE, true);
         player.sendSystemMessage(Component.translatable("profession.combatente.become"));
 
@@ -52,6 +59,9 @@ public final class CombatenteProfession {
         player.getPersistentData().putBoolean(TAG_IS_COMBATENTE, false);
         player.getPersistentData().remove(TAG_ADRENALINE_COOLDOWN);
         player.getPersistentData().remove(TAG_ADRENALINE_END_TICK);
+        player.getPersistentData().remove(TAG_ULTIMO_HOMEM_ACTIVE);
+        player.getPersistentData().remove(TAG_ULTIMO_HOMEM_END_TICK);
+        player.getPersistentData().remove(TAG_ULTIMO_HOMEM_USED);
         player.sendSystemMessage(Component.translatable("profession.combatente.leave"));
 
         if (player.getAttribute(Attributes.MAX_HEALTH) != null) {
@@ -124,5 +134,86 @@ public final class CombatenteProfession {
         int remaining = (int) Math.max(0, newEnd - now);
         player.addEffect(new MobEffectInstance(MobEffects.MOVEMENT_SPEED, remaining, 1, true, false));
         player.addEffect(new MobEffectInstance(MobEffects.DAMAGE_RESISTANCE, remaining, 1, true, false));
+    }
+
+    /**
+     * Passive: 30% damage resistance
+     */
+    @SubscribeEvent
+    public static void onDamage(LivingHurtEvent event) {
+        if (!(event.getEntity() instanceof Player player)) return;
+        if (!"combatente".equalsIgnoreCase(ProfissaoManager.getProfession(player.getUUID()))) return;
+        
+        // 30% damage reduction
+        event.setAmount(event.getAmount() * 0.7f);
+    }
+
+    /**
+     * Último Homem: When reaching 0 health, become immortal for 5s then die
+     */
+    @SubscribeEvent
+    public static void onDeath(LivingDeathEvent event) {
+        if (!(event.getEntity() instanceof net.minecraft.server.level.ServerPlayer player)) return;
+        if (!"combatente".equalsIgnoreCase(ProfissaoManager.getProfession(player.getUUID()))) return;
+        
+        // Check if already used Último Homem in this life
+        if (player.getPersistentData().getBoolean(TAG_ULTIMO_HOMEM_USED)) return;
+        
+        // Cancel death and activate immortality
+        event.setCanceled(true);
+        player.setHealth(1.0f);
+        
+        // Mark as active and set expiration
+        player.getPersistentData().putBoolean(TAG_ULTIMO_HOMEM_ACTIVE, true);
+        player.getPersistentData().putLong(TAG_ULTIMO_HOMEM_END_TICK, player.level().getGameTime() + 100); // 5s = 100 ticks
+        player.getPersistentData().putBoolean(TAG_ULTIMO_HOMEM_USED, true);
+        
+        // Apply visual effects
+        player.addEffect(new MobEffectInstance(MobEffects.GLOWING, 100, 0));
+        player.addEffect(new MobEffectInstance(MobEffects.DAMAGE_RESISTANCE, 100, 4)); // High resistance
+        
+        player.sendSystemMessage(Component.literal("§c§lÚLTIMO HOMEM ATIVADO! Você tem 5 segundos!"));
+    }
+
+    /**
+     * Tick handler for Último Homem ability
+     */
+    public static void tickCombatente(Player player) {
+        if (player.level().isClientSide) return;
+        if (!"combatente".equalsIgnoreCase(ProfissaoManager.getProfession(player.getUUID()))) return;
+        
+        var tag = player.getPersistentData();
+        
+        // Handle cooldown
+        if (tag.contains(TAG_ADRENALINE_COOLDOWN)) {
+            int cd = tag.getInt(TAG_ADRENALINE_COOLDOWN);
+            if (cd > 0) {
+                cd--;
+                tag.putInt(TAG_ADRENALINE_COOLDOWN, cd);
+            }
+        }
+        
+        // Handle Último Homem timer
+        if (tag.getBoolean(TAG_ULTIMO_HOMEM_ACTIVE)) {
+            long endTick = tag.getLong(TAG_ULTIMO_HOMEM_END_TICK);
+            long now = player.level().getGameTime();
+            
+            if (now >= endTick) {
+                // Time's up - kill the player
+                tag.putBoolean(TAG_ULTIMO_HOMEM_ACTIVE, false);
+                player.kill();
+                player.sendSystemMessage(Component.literal("§4Você sucumbiu às feridas..."));
+            } else {
+                // Keep player at minimum health
+                if (player.getHealth() < 1.0f) {
+                    player.setHealth(1.0f);
+                }
+            }
+        }
+        
+        // Reset Último Homem on respawn (when health is full again)
+        if (player.getHealth() >= player.getMaxHealth() && tag.getBoolean(TAG_ULTIMO_HOMEM_USED)) {
+            tag.putBoolean(TAG_ULTIMO_HOMEM_USED, false);
+        }
     }
 } 

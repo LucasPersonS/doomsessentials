@@ -62,6 +62,18 @@ public final class ProfissaoManager {
         saveProfessions();
     }
 
+    /**
+     * Clear all profession tags from player NBT to prevent conflicts
+     */
+    public static void clearAllProfessionTags(net.minecraft.world.entity.player.Player player) {
+        player.getPersistentData().putBoolean("isRastreador", false);
+        player.getPersistentData().putBoolean("isMedico", false);
+        player.getPersistentData().putBoolean("isEngenheiro", false);
+        player.getPersistentData().putBoolean("isArmeiro", false);
+        player.getPersistentData().putBoolean("isCacador", false);
+        player.getPersistentData().putBoolean("isCombatente", false);
+    }
+
     public static boolean hasProfession(UUID playerUUID) {
         return playerProfessions.containsKey(playerUUID);
     }

@@ -34,6 +34,9 @@ import software.bernie.geckolib.core.animatable.GeoAnimatable;
 import software.bernie.geckolib.core.animatable.instance.AnimatableInstanceCache;
 import software.bernie.geckolib.util.GeckoLibUtil;
 import software.bernie.geckolib.core.animation.AnimatableManager;
+import software.bernie.geckolib.core.animation.AnimationController;
+import software.bernie.geckolib.core.animation.RawAnimation;
+import software.bernie.geckolib.core.object.PlayState;
 
 import java.util.ArrayList;
 import java.util.EnumMap;
@@ -71,6 +74,7 @@ public class EscavadeiraControllerBlockEntity extends BlockEntity implements Men
 	private int warmupRemaining = 0;
 	private int fuelBurnCredits = 0; // how many future consumption cycles are covered
 	private Profile profile = Profile.MIXED;
+	private ItemStack weapon = ItemStack.EMPTY; // Weapon for rendering
 	private final Random random = new Random();
 
 	private final AnimatableInstanceCache geoCache = GeckoLibUtil.createInstanceCache(this);
@@ -247,6 +251,7 @@ public class EscavadeiraControllerBlockEntity extends BlockEntity implements Men
 		this.profile = Profile.values()[tag.getInt("Profile")] ;
 		if (tag.contains("FuelInv")) fuel.deserializeNBT(tag.getCompound("FuelInv"));
 		if (tag.contains("OutInv")) output.deserializeNBT(tag.getCompound("OutInv"));
+		if (tag.contains("Weapon")) this.weapon = ItemStack.of(tag.getCompound("Weapon"));
 	}
 
 	@Override
@@ -262,6 +267,7 @@ public class EscavadeiraControllerBlockEntity extends BlockEntity implements Men
 		tag.putInt("Profile", profile.ordinal());
 		tag.put("FuelInv", fuel.serializeNBT());
 		tag.put("OutInv", output.serializeNBT());
+		if (!weapon.isEmpty()) tag.put("Weapon", weapon.save(new CompoundTag()));
 	}
 
 	@Override
@@ -297,30 +303,38 @@ public class EscavadeiraControllerBlockEntity extends BlockEntity implements Men
 
 	private List<EscavadeiraConfig.ResourceEntry> entriesStone() {
 		List<EscavadeiraConfig.ResourceEntry> l = new ArrayList<>();
-		l.add(new EscavadeiraConfig.ResourceEntry(new ResourceLocation("minecraft:stone"), 6, 12, 0.7));
-		l.add(new EscavadeiraConfig.ResourceEntry(new ResourceLocation("minecraft:cobblestone"), 6, 12, 0.3));
+        l.add(new EscavadeiraConfig.ResourceEntry(ResourceLocation.parse("minecraft:stone"), 6, 12, 0.7));
+        l.add(new EscavadeiraConfig.ResourceEntry(ResourceLocation.parse("minecraft:cobblestone"), 6, 12, 0.3));
 		return l;
 	}
 	private List<EscavadeiraConfig.ResourceEntry> entriesMetal() {
 		List<EscavadeiraConfig.ResourceEntry> l = new ArrayList<>();
-		l.add(new EscavadeiraConfig.ResourceEntry(new ResourceLocation("minecraft:iron_ore"), 2, 5, 0.6));
-		l.add(new EscavadeiraConfig.ResourceEntry(new ResourceLocation("minecraft:copper_ore"), 3, 6, 0.4));
+        l.add(new EscavadeiraConfig.ResourceEntry(ResourceLocation.parse("minecraft:iron_ore"), 2, 5, 0.6));
+        l.add(new EscavadeiraConfig.ResourceEntry(ResourceLocation.parse("minecraft:copper_ore"), 3, 6, 0.4));
 		return l;
 	}
 	private List<EscavadeiraConfig.ResourceEntry> entriesCoal() {
 		List<EscavadeiraConfig.ResourceEntry> l = new ArrayList<>();
-		l.add(new EscavadeiraConfig.ResourceEntry(new ResourceLocation("minecraft:coal"), 4, 8, 1.0));
+        l.add(new EscavadeiraConfig.ResourceEntry(ResourceLocation.parse("minecraft:coal"), 4, 8, 1.0));
 		return l;
 	}
 	private List<EscavadeiraConfig.ResourceEntry> entriesPrecious() {
 		List<EscavadeiraConfig.ResourceEntry> l = new ArrayList<>();
-		l.add(new EscavadeiraConfig.ResourceEntry(new ResourceLocation("minecraft:gold_ore"), 1, 3, 0.6));
-		l.add(new EscavadeiraConfig.ResourceEntry(new ResourceLocation("minecraft:raw_gold"), 1, 2, 0.4));
+        l.add(new EscavadeiraConfig.ResourceEntry(ResourceLocation.parse("minecraft:gold_ore"), 1, 3, 0.6));
+        l.add(new EscavadeiraConfig.ResourceEntry(ResourceLocation.parse("minecraft:raw_gold"), 1, 2, 0.4));
 		return l;
 	}
 
 	@Override
-	public void registerControllers(AnimatableManager.ControllerRegistrar controllers) { }
+	public void registerControllers(AnimatableManager.ControllerRegistrar controllers) {
+		controllers.add(new AnimationController<>(this, "controller", 0, state -> {
+			if (this.isRunning()) {
+				state.getController().setAnimation(RawAnimation.begin().thenLoop("turn_on"));
+				return PlayState.CONTINUE;
+			}
+			return PlayState.STOP;
+		}));
+	}
 
 	@Override
 	public AnimatableInstanceCache getAnimatableInstanceCache() {
@@ -345,5 +359,20 @@ public class EscavadeiraControllerBlockEntity extends BlockEntity implements Men
 			default:
 				return base; // MIXED
 		}
+	}
+
+	/**
+	 * Returns the weapon to render on the arma_boca bone
+	 */
+	public ItemStack getWeapon() {
+		return weapon;
+	}
+
+	/**
+	 * Sets the weapon to render
+	 */
+	public void setWeapon(ItemStack weapon) {
+		this.weapon = weapon;
+		setChanged();
 	}
 } 

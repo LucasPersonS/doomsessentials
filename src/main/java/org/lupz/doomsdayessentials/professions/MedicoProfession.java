@@ -10,6 +10,8 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.properties.BedPart;
+import net.minecraft.world.effect.MobEffectInstance;
+import net.minecraft.world.effect.MobEffects;
 import org.lupz.doomsdayessentials.config.EssentialsConfig;
 import org.lupz.doomsdayessentials.injury.InjuryHelper;
 import org.lupz.doomsdayessentials.injury.InjuryItems;
@@ -118,6 +120,10 @@ public final class MedicoProfession {
         }
 
         for (Player p : healedPlayers) {
+            // Apply Regeneration II for 10 seconds and Absorption I for 30 seconds
+            p.addEffect(new MobEffectInstance(MobEffects.REGENERATION, 200, 1)); // Regen II for 10s
+            p.addEffect(new MobEffectInstance(MobEffects.ABSORPTION, 600, 0)); // Absorption I for 30s
+            
             player.sendSystemMessage(Component.translatable("item.doomsdayessentials.medic_kit.healed_player", p.getDisplayName()).withStyle(net.minecraft.ChatFormatting.GREEN));
             p.sendSystemMessage(Component.translatable("item.doomsdayessentials.medic_kit.healed_by_medic", player.getDisplayName()).withStyle(net.minecraft.ChatFormatting.GREEN));
 

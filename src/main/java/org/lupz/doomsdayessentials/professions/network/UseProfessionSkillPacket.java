@@ -3,6 +3,7 @@ package org.lupz.doomsdayessentials.professions.network;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraftforge.network.NetworkEvent;
+import org.lupz.doomsdayessentials.professions.ArmeiroProfession;
 import org.lupz.doomsdayessentials.professions.CombatenteProfession;
 import org.lupz.doomsdayessentials.professions.EngenheiroProfession;
 import org.lupz.doomsdayessentials.professions.MedicoProfession;
@@ -29,16 +30,22 @@ public class UseProfessionSkillPacket {
 			if (player == null) return;
 			String profession = ProfissaoManager.getProfession(player.getUUID());
 			if (profession == null) return;
-			switch (profession.toLowerCase()) {
+
+			// Trust the profession manager as the single source of truth
+			// Each profession's skill method will validate internally
+			String resolved = profession.toLowerCase();
+
+			switch (resolved) {
 				case "medico" -> MedicoProfession.useHealingAbility(player);
-				case "rastreador" -> RastreadorProfession.useGlowAbility(player);
+				case "rastreador" -> RastreadorProfession.useTrapAbility(player);
 				case "combatente" -> CombatenteProfession.activateAdrenaline(player);
 				case "engenheiro" -> EngenheiroProfession.useTurretSkill(player);
 				case "cacador" -> org.lupz.doomsdayessentials.professions.CacadorProfession.useMarkSkill(player);
+				case "armeiro" -> ArmeiroProfession.useSuppressionFire(player);
 				default -> {
 				}
 			}
 		});
 		ctx.get().setPacketHandled(true);
 	}
-} 
+}

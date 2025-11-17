@@ -21,7 +21,7 @@ public class AnimationManager {
 	private static final Map<UUID, Baseline> BASELINES = new HashMap<>();
 
 	private static class Baseline {
-		float headX, headY, headZ, headOffZ;
+		float headX, headZ, headOffZ;
 		float rArmX, rArmY, rArmZ, rArmOffY, rArmOffZ;
 		float lArmX, lArmY, lArmZ;
 		float rLegX, rLegY, rLegZ;
@@ -29,7 +29,8 @@ public class AnimationManager {
 
 		static Baseline capture(PlayerModel<?> model) {
 			Baseline b = new Baseline();
-			b.headX = model.head.xRot; b.headY = model.head.yRot; b.headZ = model.head.zRot; b.headOffZ = model.head.z;
+			// Don't store headY (yRot) at all - let vanilla head tracking control it completely
+			b.headX = model.head.xRot; b.headZ = model.head.zRot; b.headOffZ = model.head.z;
 			b.rArmX = model.rightArm.xRot; b.rArmY = model.rightArm.yRot; b.rArmZ = model.rightArm.zRot; b.rArmOffY = model.rightArm.y; b.rArmOffZ = model.rightArm.z;
 			b.lArmX = model.leftArm.xRot; b.lArmY = model.leftArm.yRot; b.lArmZ = model.leftArm.zRot;
 			b.rLegX = model.rightLeg.xRot; b.rLegY = model.rightLeg.yRot; b.rLegZ = model.rightLeg.zRot;
@@ -38,7 +39,8 @@ public class AnimationManager {
 		}
 
 		void applyTo(PlayerModel<?> model) {
-			model.head.xRot = headX; model.head.yRot = headY; model.head.zRot = headZ; model.head.z = headOffZ;
+			// Don't touch headY - leave it completely under vanilla control
+			model.head.xRot = headX; model.head.zRot = headZ; model.head.z = headOffZ;
 			model.rightArm.xRot = rArmX; model.rightArm.yRot = rArmY; model.rightArm.zRot = rArmZ; model.rightArm.y = rArmOffY; model.rightArm.z = rArmOffZ;
 			model.leftArm.xRot = lArmX; model.leftArm.yRot = lArmY; model.leftArm.zRot = lArmZ;
 			model.rightLeg.xRot = rLegX; model.rightLeg.yRot = rLegY; model.rightLeg.zRot = rLegZ;

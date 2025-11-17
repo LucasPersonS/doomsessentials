@@ -1,6 +1,5 @@
 package org.lupz.doomsdayessentials.client.renderer;
 
-import com.mojang.blaze3d.vertex.PoseStack;
 import net.minecraft.client.renderer.blockentity.BlockEntityRendererProvider;
 import net.minecraft.core.BlockPos;
 import org.lupz.doomsdayessentials.blockentity.EscavadeiraControllerBlockEntity;

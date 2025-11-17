@@ -76,21 +76,26 @@ public final class ModBlocks {
 	public static final RegistryObject<Item> RECYCLE_BLOCK_ITEM = ModItems.ITEMS.register("recycle_block",
 			() -> new RecycleBlockItem(RECYCLE_BLOCK.get(), new Item.Properties()));
 
-	public static final RegistryObject<BlockEntityType<RecycleBlockEntity>> RECYCLE_BLOCK_ENTITY =
-			BLOCK_ENTITIES.register("recycle_block_entity", () ->
-					BlockEntityType.Builder.of(RecycleBlockEntity::new, RECYCLE_BLOCK.get()).build(null));
+    public static final RegistryObject<BlockEntityType<RecycleBlockEntity>> RECYCLE_BLOCK_ENTITY =
+            BLOCK_ENTITIES.register("recycle_block_entity", () ->
+                    BlockEntityType.Builder.of(RecycleBlockEntity::new, RECYCLE_BLOCK.get()).build(null));
 
-	// Hunting Board block (with BlockItem)
-	public static final RegistryObject<Block> HUNTING_BOARD = registerBlock("hunting_board",
-			() -> new org.lupz.doomsdayessentials.block.HuntingBoardBlock(BlockBehaviour.Properties.copy(Blocks.OAK_PLANKS).lightLevel(s -> 15).strength(1.5F).noOcclusion()));
-	public static final RegistryObject<BlockEntityType<org.lupz.doomsdayessentials.block.HuntingBoardBlockEntity>> HUNTING_BOARD_BLOCK_ENTITY =
-			BLOCK_ENTITIES.register("hunting_board_block_entity", () -> BlockEntityType.Builder.of(org.lupz.doomsdayessentials.block.HuntingBoardBlockEntity::new, HUNTING_BOARD.get()).build(null));
+    // Hunting Board block (with custom GeoItem BlockItem)
+    public static final RegistryObject<Block> HUNTING_BOARD = BLOCKS.register("hunting_board",
+            () -> new org.lupz.doomsdayessentials.block.HuntingBoardBlock(BlockBehaviour.Properties.copy(Blocks.OAK_PLANKS).lightLevel(s -> 15).strength(1.5F).noOcclusion()));
+    public static final RegistryObject<BlockEntityType<org.lupz.doomsdayessentials.block.HuntingBoardBlockEntity>> HUNTING_BOARD_BLOCK_ENTITY =
+            BLOCK_ENTITIES.register("hunting_board_block_entity", () -> BlockEntityType.Builder.of(org.lupz.doomsdayessentials.block.HuntingBoardBlockEntity::new, HUNTING_BOARD.get()).build(null));
 
-	private static <T extends Block> RegistryObject<T> registerBlock(String name, Supplier<T> block) {
-		RegistryObject<T> toReturn = BLOCKS.register(name, block);
-		ModItems.ITEMS.register(name, () -> new BlockItem(toReturn.get(), new Item.Properties()));
-		return toReturn;
-	}
+    // Register hunting board item separately with GeckoLib renderer
+    static {
+        ModItems.ITEMS.register("hunting_board", () -> new org.lupz.doomsdayessentials.item.HuntingBoardBlockItem(HUNTING_BOARD.get(), new Item.Properties()));
+    }
+
+    private static <T extends Block> RegistryObject<T> registerBlock(String name, Supplier<T> block) {
+        RegistryObject<T> toReturn = BLOCKS.register(name, block);
+        ModItems.ITEMS.register(name, () -> new BlockItem(toReturn.get(), new Item.Properties()));
+        return toReturn;
+    }
 
     public static void register(IEventBus eventBus) {
         BLOCKS.register(eventBus);

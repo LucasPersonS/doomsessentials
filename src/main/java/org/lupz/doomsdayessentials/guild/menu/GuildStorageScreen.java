@@ -25,11 +25,9 @@ public class GuildStorageScreen extends AbstractContainerScreen<GuildStorageMenu
     private FilterButton filterButton;
     private int btnSize = 20;
     private int btnGap = 2;
-    private int currentPage = 0;
-    private int maxPages = 1;
     
     // Button positions
-    private int prevX, nextX, filterX, sortX, upgX, logsX;
+    private int prevX, nextX, sortX, upgX, logsX;
     private int btnY;
     
     // Current filter
@@ -49,8 +47,8 @@ public class GuildStorageScreen extends AbstractContainerScreen<GuildStorageMenu
         int x = (width - imageWidth) / 2;
         int y = (height - imageHeight) / 2;
         
-        // Add search box at the top
-        this.searchBox = new EditBox(this.font, x + 8, y - 25, 90, 16, Component.literal("Buscar"));
+        // Add search box at the top (moved up to avoid overlap)
+        this.searchBox = new EditBox(this.font, x + 8, y - 35, 90, 16, Component.literal("Buscar"));
         this.searchBox.setMaxLength(50);
         this.searchBox.setBordered(true);
         this.searchBox.setVisible(true);
@@ -59,19 +57,18 @@ public class GuildStorageScreen extends AbstractContainerScreen<GuildStorageMenu
         this.searchBox.setResponder(this::onSearchChanged);
         this.addRenderableWidget(this.searchBox);
         
-        // Add filter button next to search
-        this.filterButton = new FilterButton(x + 102, y - 26, 55, 18, currentFilter);
+        // Add filter button next to search (also moved up)
+        this.filterButton = new FilterButton(x + 102, y - 36, 55, 18, currentFilter);
         this.addRenderableWidget(this.filterButton);
         
-        // Calculate button positions - Back first, Next last
+        // Calculate button positions - Back first, Next last (removed duplicate filter button)
         btnY = y + imageHeight + 5;
-        int totalWidth = (6 * btnSize) + (5 * btnGap);
+        int totalWidth = (5 * btnSize) + (4 * btnGap);  // 5 buttons now
         int startX = x + (imageWidth - totalWidth) / 2;
         
-        // Rearranged order: Back, Filter, Sort, Upgrade, Logs, Next
+        // Rearranged order: Back, Sort, Upgrade, Logs, Next (filter is only at top)
         prevX = startX;  // Back button
-        filterX = prevX + btnSize + btnGap;
-        sortX = filterX + btnSize + btnGap;
+        sortX = prevX + btnSize + btnGap;
         upgX = sortX + btnSize + btnGap;
         logsX = upgX + btnSize + btnGap;
         nextX = logsX + btnSize + btnGap;  // Next button at the end
@@ -98,22 +95,22 @@ public class GuildStorageScreen extends AbstractContainerScreen<GuildStorageMenu
         graphics.fill(x, y, x + imageWidth, y + 14, 0xFF1e1e1e);
         graphics.fill(x+1, y+1, x + imageWidth-1, y + 13, 0xFF3a3a3a);
         
-        // Draw title with page info
+        // Draw title
         String titleText = title.getString();
-        if (menu.getMaxPages() > 1) {
-            titleText += String.format(" §7(Pág %d/%d)", menu.getCurrentPage() + 1, menu.getMaxPages());
-        }
         graphics.drawCenteredString(font, titleText, x + imageWidth / 2, y + 4, 0xE0FFAA);
         
-        // Search background
-        graphics.fill(x + 6, y - 27, x + 100, y - 9, 0xFF000000);
-        graphics.fill(x + 7, y - 26, x + 99, y - 10, 0xFF3C3C3C);
+        // Search background (adjusted for new position)
+        graphics.fill(x + 6, y - 37, x + 100, y - 19, 0xFF000000);
+        graphics.fill(x + 7, y - 36, x + 99, y - 20, 0xFF3C3C3C);
         
-        // Storage capacity info (items, not slots)
-        int usedItems = menu.getUsedItems();
-        int maxCapacity = menu.getMaxCapacity();
-        String storageInfo = String.format("§7%d/%d itens", usedItems, maxCapacity);
-        graphics.drawString(font, storageInfo, x + 162, y - 24, 0xFFFFFF);
+        // Storage capacity info below the search bar to avoid overlap
+        String capacityText = menu.getUsedItems() + "/" + menu.getMaxCapacity() + " itens";
+        String pageText = "Página " + (menu.getCurrentPage() + 1) + "/" + menu.getMaxPages();
+        
+        // Draw capacity on left side below search bar
+        graphics.drawString(this.font, capacityText, x + 8, y - 15, 0xFFFFFF);
+        // Draw page info on right side below filter button
+        graphics.drawString(this.font, pageText, x + imageWidth - font.width(pageText) - 8, y - 15, 0xFFFFFF);
     }
 
     @Override
@@ -136,22 +133,23 @@ public class GuildStorageScreen extends AbstractContainerScreen<GuildStorageMenu
                 Component.literal(isFirstPage ? "§eVoltar ao Menu" : "§ePágina Anterior"), 
                 java.util.List.of(Component.literal(isFirstPage ? "§7Voltar ao menu principal" : "§7Navegar para página anterior")));
         ItemStack tipNext = makeTooltipStack(Items.ARROW, Component.literal("§ePróxima Página"), 
-                java.util.List.of(Component.literal("§7Navegar para próxima página")));
-        ItemStack tipFilter = makeTooltipStack(Items.HOPPER, Component.literal("§bFiltro"), 
-                java.util.List.of(Component.literal("§7Filtro atual: " + currentFilter.name())));
+                java.util.List.of(Component.literal("§7Navegar para próxima página"),
+                                 Component.literal("§7Nível de armazenamento: " + menu.getStorageLevel()),
+                                 Component.literal("§7Página atual: " + (menu.getCurrentPage() + 1) + "/" + menu.getMaxPages())));
         ItemStack tipSort = makeTooltipStack(Items.COMPARATOR, Component.literal("§bOrganizar"), 
                 java.util.List.of(Component.literal("§7Organiza itens por categoria")));
         ItemStack tipUpg = makeTooltipStack(Items.ENCHANTED_BOOK, Component.literal("§aAprimorar (Nível " + menu.getStorageLevel() + ")"), 
                 java.util.List.of(Component.literal("§7Capacidade atual: " + menu.getMaxCapacity() + " itens"),
+                                 Component.literal("§7Páginas disponíveis: " + menu.getMaxPages()),
                                  Component.literal("§7Clique para aprimorar")));
         ItemStack tipLogs = makeTooltipStack(Items.BOOK, Component.literal("§eHistórico"), 
                 java.util.List.of(Component.literal("§7Ver logs do cofre")));
         
-        // Render buttons in new order
+        // Render buttons in new order (no duplicate filter button)
+        // Next button is available if current page is less than max pages
         boolean canNext = menu.getCurrentPage() < menu.getMaxPages() - 1;
         
         drawButtonTexture(graphics, prevX, btnY, mouseX, mouseY, BACK_ICON, tipPrev, true);  // Always enabled (back or previous)
-        drawButtonItem(graphics, filterX, btnY, mouseX, mouseY, new ItemStack(Items.HOPPER), tipFilter, true);
         drawButtonItem(graphics, sortX, btnY, mouseX, mouseY, new ItemStack(Items.COMPARATOR), tipSort, true);
         drawButtonItem(graphics, upgX, btnY, mouseX, mouseY, new ItemStack(Items.ENCHANTED_BOOK), tipUpg, true);
         drawButtonItem(graphics, logsX, btnY, mouseX, mouseY, new ItemStack(Items.BOOK), tipLogs, true);
@@ -241,10 +239,6 @@ public class GuildStorageScreen extends AbstractContainerScreen<GuildStorageMenu
             PacketHandler.CHANNEL.sendToServer(new GuildStorageActionPacket(GuildStorageActionPacket.Action.PREV_PAGE));
             return true;
         }
-        if (isInside((int)mouseX, (int)mouseY, filterX, btnY, btnSize, btnSize)) {
-            PacketHandler.CHANNEL.sendToServer(new GuildStorageActionPacket(GuildStorageActionPacket.Action.FILTER_CYCLE));
-            return true;
-        }
         if (isInside((int)mouseX, (int)mouseY, sortX, btnY, btnSize, btnSize)) {
             PacketHandler.CHANNEL.sendToServer(new GuildStorageActionPacket(GuildStorageActionPacket.Action.SORT));
             return true;
@@ -257,6 +251,7 @@ public class GuildStorageScreen extends AbstractContainerScreen<GuildStorageMenu
             PacketHandler.CHANNEL.sendToServer(new GuildStorageActionPacket(GuildStorageActionPacket.Action.OPEN_LOGS));
             return true;
         }
+        // Next button: always available up to max pages
         if (menu.getCurrentPage() < menu.getMaxPages() - 1 && isInside((int)mouseX, (int)mouseY, nextX, btnY, btnSize, btnSize)) {
             PacketHandler.CHANNEL.sendToServer(new GuildStorageActionPacket(GuildStorageActionPacket.Action.NEXT_PAGE));
             return true;
@@ -328,10 +323,10 @@ public class GuildStorageScreen extends AbstractContainerScreen<GuildStorageMenu
         
         private String getFilterName(GuildStorageMenu.Filter f) {
             return switch(f) {
-                case ALL -> "§fTodos";
-                case BLOCKS -> "§6Blocos";
-                case ITEMS -> "§eItens";
-                case TOOLS -> "§bFerramentas";
+                case ALL -> "Todos";
+                case BLOCKS -> "Blocos";
+                case ITEMS -> "Itens";
+                case TOOLS -> "Ferramentas";
                 case WEAPONS -> "§cArmas";
                 case ARMOR -> "§9Armaduras";
                 case FOOD -> "§aComida";

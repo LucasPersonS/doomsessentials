@@ -12,7 +12,7 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.lupz.doomsdayessentials.EssentialsMod;
 
-@Mixin(PlayerModel.class)
+@Mixin(value = PlayerModel.class)
 public abstract class PlayerModelMixin<T extends LivingEntity> {
 	@Inject(method = "setupAnim(Lnet/minecraft/world/entity/LivingEntity;FFFFF)V", at = @At("HEAD"), cancellable = true)
 	private void de$setupAnimHead(T entity, float limbSwing, float limbSwingAmount, float ageInTicks, float netHeadYaw, float headPitch, CallbackInfo ci) {

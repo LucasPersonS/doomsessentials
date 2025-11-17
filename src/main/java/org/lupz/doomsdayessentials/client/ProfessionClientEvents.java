@@ -43,15 +43,20 @@ public class ProfessionClientEvents {
 		if (event.phase != TickEvent.Phase.END) return;
 		Minecraft mc = Minecraft.getInstance();
 		while (KeyBindings.USE_SKILL.consumeClick()) {
-			SentryEntity s = getLookedSentry();
-			if (s != null && mc.player != null) {
+			// Check if player is trying to mount a weapon on a sentry (TACZ gun + looking at sentry)
+			if (mc.player != null) {
 				ItemStack inHand = mc.player.getMainHandItem();
 				var key = net.minecraft.core.registries.BuiltInRegistries.ITEM.getKey(inHand.getItem());
 				if (key != null && "tacz".equals(key.getNamespace())) {
-					PacketHandler.CHANNEL.sendToServer(new MountSentryWeaponPacket(s.getId()));
-					continue;
+					// Only check for sentry if holding TACZ gun
+					SentryEntity s = getLookedSentry();
+					if (s != null) {
+						PacketHandler.CHANNEL.sendToServer(new MountSentryWeaponPacket(s.getId()));
+						continue; // Skip profession skill packet
+					}
 				}
 			}
+			// Always send profession skill packet unless sentry weapon was mounted
 			PacketHandler.CHANNEL.sendToServer(new org.lupz.doomsdayessentials.professions.network.UseProfessionSkillPacket());
 		}
 	}

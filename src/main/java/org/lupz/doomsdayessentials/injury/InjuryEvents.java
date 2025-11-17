@@ -35,6 +35,7 @@ public class InjuryEvents {
    private static final Map<UUID, DamageSource> downedPlayerOriginalSources = new HashMap<>();
    private static final Map<UUID, ReviveData> reviveProgress = new HashMap<>();
    private static final int REVIVE_DURATION_TICKS = 600; // 30 seconds
+   private static final int MEDICO_REVIVE_DURATION_TICKS = 100; // 5 seconds for Médicos
 
    public static void clearDownedSource(UUID playerUUID) {
       downedPlayerOriginalSources.remove(playerUUID);
@@ -127,7 +128,8 @@ public class InjuryEvents {
                } else {
                   data.increment();
                   if (data.ticks % 20 == 0) { // Update every second
-                     int secondsLeft = Math.max(0, (REVIVE_DURATION_TICKS - data.ticks) / 20);
+                     int duration = data.getRequiredTicks();
+                     int secondsLeft = Math.max(0, (duration - data.ticks) / 20);
                      reviver.displayClientMessage(net.minecraft.network.chat.Component.literal("§eReanimando... " + secondsLeft + "s"), true);
                   }
 
@@ -603,8 +605,11 @@ public class InjuryEvents {
       InjuryHelper.getCapability(target).ifPresent(cap -> {
          if (cap.isDowned()) {
             if (!reviveProgress.containsKey(reviver.getUUID())) {
-                reviveProgress.put(reviver.getUUID(), new ReviveData(target.getUUID(), event.getHand()));
-                reviver.sendSystemMessage(net.minecraft.network.chat.Component.literal("§eReanimando " + target.getDisplayName().getString() + "..."));
+                // Check if reviver is a Médico for faster revive
+                boolean isMedico = "medico".equalsIgnoreCase(org.lupz.doomsdayessentials.professions.ProfissaoManager.getProfession(reviver.getUUID()));
+                reviveProgress.put(reviver.getUUID(), new ReviveData(target.getUUID(), event.getHand(), isMedico));
+                String timeStr = isMedico ? "5s" : "30s";
+                reviver.sendSystemMessage(net.minecraft.network.chat.Component.literal("§eReanimando " + target.getDisplayName().getString() + "... (" + timeStr + ")"));
             }
             // Force the server to start tracking the right-click "use" action so we can detect release
             if (reviver instanceof net.minecraft.server.level.ServerPlayer sp) {
@@ -634,14 +639,17 @@ public class InjuryEvents {
    static class ReviveData {
       private final UUID targetUUID;
       private final net.minecraft.world.InteractionHand hand;
+      private final int requiredTicks;
       private int ticks = 0;
 
-      public ReviveData(UUID targetUUID, net.minecraft.world.InteractionHand hand) {
+      public ReviveData(UUID targetUUID, net.minecraft.world.InteractionHand hand, boolean isMedico) {
          this.targetUUID = targetUUID;
          this.hand = hand;
+         this.requiredTicks = isMedico ? MEDICO_REVIVE_DURATION_TICKS : REVIVE_DURATION_TICKS;
       }
 
       public void increment() { this.ticks++; }
-      public boolean isComplete() { return this.ticks >= REVIVE_DURATION_TICKS; }
+      public int getRequiredTicks() { return this.requiredTicks; }
+      public boolean isComplete() { return this.ticks >= this.requiredTicks; }
    }
 } 

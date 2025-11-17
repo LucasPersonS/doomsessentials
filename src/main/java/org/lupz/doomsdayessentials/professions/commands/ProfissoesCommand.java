@@ -8,6 +8,7 @@ import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.arguments.IntegerArgumentType;
+import net.minecraft.commands.arguments.GameProfileArgument;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
 import org.lupz.doomsdayessentials.professions.menu.ProfissoesMenuProvider;
@@ -43,6 +44,10 @@ public final class ProfissoesCommand {
                             .then(Commands.argument("args", StringArgumentType.greedyString())
                                 .suggests(ProfissoesCommand::suggestAllItems)
                                 .executes(ProfissoesCommand::addShopItem)))
+                        .then(Commands.literal("reset")
+                            .requires(src -> src.hasPermission(2))
+                            .then(Commands.argument("player", GameProfileArgument.gameProfile())
+                                .executes(ProfissoesCommand::resetPlayerProfession)))
         );
     }
 
@@ -212,5 +217,55 @@ public final class ProfissoesCommand {
         }
         
         return b.buildFuture();
+    }
+
+    private static int resetPlayerProfession(CommandContext<CommandSourceStack> ctx) {
+        try {
+            var profiles = GameProfileArgument.getGameProfiles(ctx, "player");
+            if (profiles.isEmpty()) {
+                ctx.getSource().sendFailure(Component.literal("§cJogador não encontrado."));
+                return 0;
+            }
+            
+            var profile = profiles.iterator().next();
+            UUID targetUUID = profile.getId();
+            String targetName = profile.getName();
+            
+            // Get current profession before removing
+            String currentProfession = org.lupz.doomsdayessentials.professions.ProfissaoManager.getProfession(targetUUID);
+            
+            if (currentProfession == null) {
+                ctx.getSource().sendFailure(Component.literal("§c" + targetName + " não possui uma profissão."));
+                return 0;
+            }
+            
+            // Remove from registry
+            org.lupz.doomsdayessentials.professions.ProfissaoManager.removeProfession(targetUUID);
+            
+            // If player is online, clean up their state
+            ServerPlayer targetPlayer = ctx.getSource().getServer().getPlayerList().getPlayer(targetUUID);
+            if (targetPlayer != null) {
+                // Clear all profession tags
+                org.lupz.doomsdayessentials.professions.ProfissaoManager.clearAllProfessionTags(targetPlayer);
+                
+                // Call profession-specific cleanup
+                switch (currentProfession.toLowerCase()) {
+                    case "medico" -> org.lupz.doomsdayessentials.professions.MedicoProfession.onLeaveMedico(targetPlayer);
+                    case "combatente" -> org.lupz.doomsdayessentials.professions.CombatenteProfession.onLeave(targetPlayer);
+                    case "rastreador" -> org.lupz.doomsdayessentials.professions.RastreadorProfession.onLeave(targetPlayer);
+                    case "engenheiro" -> org.lupz.doomsdayessentials.professions.EngenheiroProfession.onLeave(targetPlayer);
+                    case "armeiro" -> org.lupz.doomsdayessentials.professions.ArmeiroProfession.onLeave(targetPlayer);
+                    case "cacador" -> org.lupz.doomsdayessentials.professions.CacadorProfession.onLeave(targetPlayer);
+                }
+                
+                targetPlayer.sendSystemMessage(Component.literal("§eSua profissão foi resetada por um administrador."));
+            }
+            
+            ctx.getSource().sendSuccess(() -> Component.literal("§aProfissão de " + targetName + " (" + currentProfession + ") foi resetada com sucesso."), true);
+            return 1;
+        } catch (Exception e) {
+            ctx.getSource().sendFailure(Component.literal("§cErro ao resetar profissão: " + e.getMessage()));
+            return 0;
+        }
     }
 } 

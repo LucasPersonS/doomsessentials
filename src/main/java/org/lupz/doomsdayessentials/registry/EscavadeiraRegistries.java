@@ -21,6 +21,7 @@ import org.lupz.doomsdayessentials.client.screen.EscavadeiraScreen;
 import org.lupz.doomsdayessentials.menu.EscavadeiraMenu;
 import org.lupz.doomsdayessentials.block.escavadeira.EscavadeiraControllerBlock;
 import org.lupz.doomsdayessentials.blockentity.EscavadeiraControllerBlockEntity;
+import org.lupz.doomsdayessentials.item.EscavadeiraBlockItem;
 
 @Mod.EventBusSubscriber(modid = EscavadeiraRegistries.MODID, bus = Mod.EventBusSubscriber.Bus.MOD)
 public final class EscavadeiraRegistries {
@@ -48,25 +49,25 @@ public final class EscavadeiraRegistries {
 	}
 
 	private static void escavadeiraBlock(RegisterEvent.RegisterHelper<Block> helper) {
-		ResourceLocation id = new ResourceLocation(MODID, "escavadeira_controller");
+    ResourceLocation id = ResourceLocation.fromNamespaceAndPath(MODID, "escavadeira_controller");
 		ESCAVADEIRA_CONTROLLER_BLOCK = new EscavadeiraControllerBlock(Block.Properties.of().strength(5.0F, 30.0F).requiresCorrectToolForDrops());
 		helper.register(id, ESCAVADEIRA_CONTROLLER_BLOCK);
 	}
 
 	private static void escavadeiraBlockItem(RegisterEvent.RegisterHelper<Item> helper) {
-		ResourceLocation id = new ResourceLocation(MODID, "escavadeira_controller");
-		ESCAVADEIRA_CONTROLLER_ITEM = new BlockItem(ESCAVADEIRA_CONTROLLER_BLOCK, new Item.Properties());
+    ResourceLocation id = ResourceLocation.fromNamespaceAndPath(MODID, "escavadeira_controller");
+		ESCAVADEIRA_CONTROLLER_ITEM = new EscavadeiraBlockItem(ESCAVADEIRA_CONTROLLER_BLOCK, new Item.Properties());
 		helper.register(id, ESCAVADEIRA_CONTROLLER_ITEM);
 	}
 
 	private static void escavadeiraBlockEntity(RegisterEvent.RegisterHelper<BlockEntityType<?>> helper) {
-		ResourceLocation id = new ResourceLocation(MODID, "escavadeira_controller");
+    ResourceLocation id = ResourceLocation.fromNamespaceAndPath(MODID, "escavadeira_controller");
 		ESCAVADEIRA_CONTROLLER_BE = BlockEntityType.Builder.of(EscavadeiraControllerBlockEntity::new, ESCAVADEIRA_CONTROLLER_BLOCK).build(null);
 		helper.register(id, ESCAVADEIRA_CONTROLLER_BE);
 	}
 
 	private static void escavadeiraMenu(RegisterEvent.RegisterHelper<MenuType<?>> helper) {
-		ResourceLocation id = new ResourceLocation(MODID, "escavadeira_menu");
+    ResourceLocation id = ResourceLocation.fromNamespaceAndPath(MODID, "escavadeira_menu");
 		ESCAVADEIRA_MENU_TYPE = net.minecraftforge.common.extensions.IForgeMenuType.create(EscavadeiraMenu::fromNetwork);
 		helper.register(id, ESCAVADEIRA_MENU_TYPE);
 	}

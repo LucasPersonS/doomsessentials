@@ -1,0 +1,7 @@
+{
+  "variants": {
+    "": {
+      "model": "doomsdayessentials:block/storage_block"
+    }
+  }
+}

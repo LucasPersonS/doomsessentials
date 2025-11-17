@@ -8,6 +8,8 @@ import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.inventory.AbstractContainerMenu;
 import net.minecraft.world.inventory.ClickType;
+import net.minecraft.world.inventory.ContainerData;
+import net.minecraft.world.inventory.SimpleContainerData;
 import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.ItemStack;
 import org.jetbrains.annotations.NotNull;
@@ -34,14 +36,33 @@ public class GuildStorageMenu extends AbstractContainerMenu {
     private static final int SLOT_UPGRADE = 50; // lower right book
     public enum Filter { ALL, BLOCKS, ITEMS, TOOLS, WEAPONS, ARMOR, FOOD, POTIONS, ENCHANTED }
     private String searchText = "";
+    
+    // Container data for syncing to client: [0] = currentPage, [1] = storageLevel
+    private final ContainerData data;
     public GuildStorageMenu(int windowId, Inventory inv, int page) {
         super(ProfessionMenuTypes.GUILD_STORAGE_MENU.get(), windowId);
         this.player = inv.player;
         this.page = Math.max(0, page);
+        
+        // Initialize container data for syncing
         if (player instanceof ServerPlayer sp) {
             ServerLevel lvl = sp.serverLevel();
             this.guild = GuildsManager.get(lvl).getGuildByMember(sp.getUUID());
+            // Ensure we have latest guild data on menu open
+            if (this.guild != null) {
+                GuildsManager gm = GuildsManager.get(lvl);
+                this.guild = gm.getGuild(this.guild.getName()); // Get fresh copy
+            }
+            // Server side: create data that will be synced
+            this.data = new SimpleContainerData(2);
+            this.data.set(0, this.page);
+            this.data.set(1, getStorageLevel());
+        } else {
+            // Client side: create data that will receive synced values
+            this.data = new SimpleContainerData(2);
         }
+        
+        this.addDataSlots(this.data);
         rebuild();
         // storage view slots (6 rows from y=18 like a large chest) with extended stack size (32k)
         for (int row = 0; row < 6; ++row) {
@@ -73,14 +94,22 @@ public class GuildStorageMenu extends AbstractContainerMenu {
     }
     
     public int getCurrentPage() {
+        // Use synced data on client, actual page on server
+        if (player.level().isClientSide()) {
+            return data.get(0);
+        }
         return page;
     }
     
     public int getMaxPages() {
-        if (guild == null) return 1;
-        GuildsManager gm = GuildsManager.get(((ServerPlayer)player).serverLevel());
-        var storage = gm.getOrCreateStorage(guild.getName());
-        return Math.max(1, (storage.size() + 53) / 54);
+        // Max pages should be based on storage level from manager (always fresh)
+        if (guild == null || !(player instanceof ServerPlayer sp)) return 5;
+        GuildsManager gm = GuildsManager.get(sp.serverLevel());
+        Guild freshGuild = gm.getGuild(guild.getName());
+        if (freshGuild == null) return 5;
+        // Level 1 = 5 pages (base), each additional level adds 1 page
+        // Level 1: 5 pages, Level 2: 6 pages, ..., Level 10: 14 pages
+        return 4 + freshGuild.getStorageLevel();
     }
     
     public int getUsedItems() {
@@ -103,12 +132,45 @@ public class GuildStorageMenu extends AbstractContainerMenu {
     }
     
     public int getStorageLevel() {
-        if (guild == null) return 1;
-        return guild.getStorageLevel();
+        // Use synced data on client
+        if (player.level().isClientSide()) {
+            return data.get(1);
+        }
+        // Always get fresh storage level from manager on server
+        if (guild == null || !(player instanceof ServerPlayer sp)) return 1;
+        GuildsManager gm = GuildsManager.get(sp.serverLevel());
+        Guild freshGuild = gm.getGuild(guild.getName());
+        if (freshGuild == null) return 1;
+        return freshGuild.getStorageLevel();
     }
     
     public Filter getFilter() {
         return filter;
+    }
+    
+    public void refreshGuild() {
+        if (player instanceof ServerPlayer sp) {
+            ServerLevel lvl = sp.serverLevel();
+            GuildsManager gm = GuildsManager.get(lvl);
+            Guild memberGuild = gm.getGuildByMember(sp.getUUID());
+            if (memberGuild != null) {
+                // Always get the fresh copy from the manager
+                this.guild = gm.getGuild(memberGuild.getName());
+            }
+        }
+    }
+    
+    public boolean areAllSlotsOnPageFull() {
+        if (guild == null) return false;
+        
+        // Check if all 54 visible slots in the view have items
+        for (int i = 0; i < 54; i++) {
+            ItemStack stack = view.getItem(i);
+            if (stack.isEmpty()) {
+                return false;
+            }
+        }
+        return true; // All 54 slots are occupied
     }
     private void rebuild() {
         if (!(player instanceof ServerPlayer sp) || guild == null) return;
@@ -187,6 +249,20 @@ public class GuildStorageMenu extends AbstractContainerMenu {
         stack.getOrCreateTagElement("display").put("Lore", tag);
     }
     @Override
+    public void broadcastChanges() {
+        super.broadcastChanges();
+        // Update synced data on server
+        if (!player.level().isClientSide()) {
+            this.data.set(0, this.page);
+            this.data.set(1, getStorageLevel());
+        }
+        // Periodically refresh guild data (but not every tick)
+        if (player.level().getGameTime() % 20 == 0) { // Every second
+            refreshGuild();
+        }
+    }
+    
+    @Override
     public void clicked(int slotId, int dragType, @NotNull ClickType clickType, @NotNull Player clickPlayer) {
         if (!(clickPlayer instanceof ServerPlayer sp) || guild == null) { super.clicked(slotId, dragType, clickType, clickPlayer); return; }
         GuildsManager gm = GuildsManager.get(sp.serverLevel());
@@ -199,18 +275,30 @@ public class GuildStorageMenu extends AbstractContainerMenu {
                 return;
             } else {
                 page--;
+                this.data.set(0, this.page); // Update synced data immediately
                 rebuild();
                 broadcastChanges();
                 return;
             }
         }
         if (allowControlAction && slotId == SLOT_NEXT) {
-            // Calculate max pages properly
-            int maxPages = Math.max(1, (storage.size() + 53) / 54);
-            if (page < maxPages - 1) {
+            // Get the actual max pages from fresh data
+            int maxAllowedPages = getMaxPages(); // This now fetches fresh data
+            
+            if (page < maxAllowedPages - 1) {
+                // Expand storage if needed
+                int newSize = (page + 2) * 54; // Ensure next page exists
+                while (storage.size() < newSize) {
+                    storage.add(ItemStack.EMPTY);
+                }
                 page++;
+                this.data.set(0, this.page); // Update synced data immediately
                 rebuild();
                 broadcastChanges();
+                gm.setDirty();
+                sp.sendSystemMessage(Component.literal("§aPágina " + (page + 1) + "/" + maxAllowedPages));
+            } else {
+                sp.sendSystemMessage(Component.literal("§cÚltima página. Aprimore o cofre para mais páginas."));
             }
             return;
         }
@@ -255,10 +343,16 @@ public class GuildStorageMenu extends AbstractContainerMenu {
             boolean debited = bank.consume(guild.getName(), scrapId, cost);
             if (!debited) { sp.sendSystemMessage(Component.literal("§cFalha ao debitar recursos da organização.")); return; }
             boolean ok = gm.upgradeStorageLevel(guild.getName());
-            // Update the guild object to reflect new level
-            this.guild = gm.getGuildByMember(sp.getUUID());
-            rebuild();
-            broadcastChanges();
+            if (ok) {
+                // Force refresh guild data from manager
+                refreshGuild();
+                // Get the new level directly from manager to ensure it's current
+                int newLevel = getStorageLevel();
+                this.data.set(1, newLevel); // Update synced data immediately
+                sp.sendSystemMessage(Component.literal("§aArmazenamento aprimorado! Nível " + newLevel));
+                rebuild();
+                broadcastChanges();
+            }
             return;
         }
         // Handle pickup (non-shift) with improved anti-dupe protection

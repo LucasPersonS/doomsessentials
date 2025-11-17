@@ -23,6 +23,48 @@ public final class OrganizacaoMenuCommand {
         register(event.getDispatcher());
     }
 
+    private static int createGuild(CommandSourceStack source, String name, String tag) {
+        try {
+            ServerPlayer p = source.getPlayerOrException();
+            net.minecraft.server.level.ServerLevel level = source.getLevel();
+            org.lupz.doomsdayessentials.guild.GuildsManager gm = org.lupz.doomsdayessentials.guild.GuildsManager.get(level);
+            
+            // Check if player is already in a guild
+            org.lupz.doomsdayessentials.guild.Guild existing = gm.getGuildByMember(p.getUUID());
+            if (existing != null) {
+                source.sendFailure(Component.literal("§cVocê já pertence a organização '" + existing.getName() + "'."));
+                return 0;
+            }
+            
+            // Check if guild name already exists
+            if (gm.getGuild(name) != null) {
+                source.sendFailure(Component.literal("§cJá existe uma organização com o nome '" + name + "'."));
+                return 0;
+            }
+            
+            // Validate name and tag length
+            if (name.length() < 3 || name.length() > 16) {
+                source.sendFailure(Component.literal("§cO nome da organização deve ter entre 3 e 16 caracteres."));
+                return 0;
+            }
+            
+            if (tag.length() < 2 || tag.length() > 6) {
+                source.sendFailure(Component.literal("§cA tag da organização deve ter entre 2 e 6 caracteres."));
+                return 0;
+            }
+            
+            // Create the guild
+            gm.createGuild(name, tag, p.getUUID());
+            source.sendSuccess(() -> Component.literal("§aOrganização '§6" + name + "§a' [§6" + tag + "§a] criada com sucesso!"), true);
+            source.sendSuccess(() -> Component.literal("§eVocê é agora o líder da organização. Use §6/organizacao§e para gerenciar."), false);
+            
+            return 1;
+        } catch (Exception e) {
+            source.sendFailure(Component.literal("§cErro ao criar organização: " + e.getMessage()));
+            return 0;
+        }
+    }
+
     private static int deleteOwnGuild(CommandSourceStack source) {
         try {
             ServerPlayer p = source.getPlayerOrException();
@@ -67,6 +109,18 @@ public final class OrganizacaoMenuCommand {
             .then(Commands.literal("menu").executes(ctx -> openMenu(ctx.getSource())))
             // New: upgrade subcommand opens the upgrade GUI
             .then(Commands.literal("upgrade").executes(ctx -> openUpgrade(ctx.getSource())))
+            // Create guild: /organizacao criar <nome> <tag>
+            .then(Commands.literal("criar")
+                .then(Commands.argument("nome", com.mojang.brigadier.arguments.StringArgumentType.word())
+                    .then(Commands.argument("tag", com.mojang.brigadier.arguments.StringArgumentType.word())
+                        .executes(ctx -> createGuild(
+                            ctx.getSource(),
+                            com.mojang.brigadier.arguments.StringArgumentType.getString(ctx, "nome"),
+                            com.mojang.brigadier.arguments.StringArgumentType.getString(ctx, "tag")
+                        ))
+                    )
+                )
+            )
             // Admin: reset upgrades for a guild (set storage level back to 1)
             .then(Commands.literal("resetupgrades")
                 .requires(src -> src.hasPermission(3))

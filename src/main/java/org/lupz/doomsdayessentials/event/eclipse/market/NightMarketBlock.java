@@ -11,17 +11,25 @@ import net.minecraft.world.inventory.MerchantMenu;
 import net.minecraft.world.item.trading.MerchantOffers;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.BaseEntityBlock;
-import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.RenderShape;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.shapes.CollisionContext;
+import net.minecraft.world.phys.shapes.Shapes;
 import net.minecraft.world.phys.shapes.VoxelShape;
 import org.jetbrains.annotations.Nullable;
 
 public class NightMarketBlock extends BaseEntityBlock {
-    private static final VoxelShape SHAPE = Block.box(-8, 0, -8, 24, 32, 24);
+    // Pixel-perfect hitbox based on night_market.geo.json model bounds
+    // Model coordinates: origin at center (0,0,0). Convert by: (modelX + 8)/16, modelY/16, (modelZ + 8)/16
+    // Note: Model is multi-block (6 blocks wide). Focusing on main interactable base/tent area.
+    private static final VoxelShape SHAPE = Shapes.or(
+        // Main floor/base structures from origin[-20,0,-21] to [20,12,17]
+        Shapes.box((-20+8)/16.0, 0, (-21+8)/16.0, (20+8)/16.0, 12/16.0, (17+8)/16.0),
+        // Main tent canopy for interaction
+        Shapes.box((-19+8)/16.0, 9/16.0, (-8+8)/16.0, (14+8)/16.0, 17/16.0, (8+8)/16.0)
+    );
 
     public NightMarketBlock(Properties props){ super(props); }
 

@@ -94,7 +94,7 @@ public final class EscavadeiraConfig {
 		public static ResourceEntry parse(String s) {
 			try {
 				String[] parts = s.split(";");
-				ResourceLocation id = new ResourceLocation(parts[0].trim().toLowerCase(Locale.ROOT));
+                ResourceLocation id = ResourceLocation.parse(parts[0].trim().toLowerCase(Locale.ROOT));
 				int min = 1, max = 1; double chance = 1.0;
 				for (int i = 1; i < parts.length; i++) {
 					String p = parts[i];

@@ -9,6 +9,8 @@ import net.minecraftforge.fml.common.Mod;
 import org.lupz.doomsdayessentials.EssentialsMod;
 import org.lupz.doomsdayessentials.professions.capability.TrackerCapabilityProvider;
 import org.lupz.doomsdayessentials.professions.EngenheiroProfession;
+import net.minecraftforge.event.TickEvent;
+import org.lupz.doomsdayessentials.professions.ArmeiroProfession;
 
 /**
  * Re-apply profession passive bonuses when the player logs in or respawns.
@@ -36,12 +38,8 @@ public final class ProfessionEvents {
             net.minecraft.world.entity.player.Player newPlayer = event.getEntity();
             java.util.UUID uuid = newPlayer.getUUID();
 
-            if (event.getOriginal().getPersistentData().getBoolean("isRastreador")) {
-                newPlayer.getPersistentData().putBoolean("isRastreador", true);
-            }
-            if (event.getOriginal().getPersistentData().getBoolean("isEngenheiro")) {
-                newPlayer.getPersistentData().putBoolean("isEngenheiro", true);
-            }
+            // Don't copy NBT tags - let apply() set them based on manager state
+            // This prevents abandoned professions from being restored
 
             apply(newPlayer);
             event.getOriginal().getCapability(TrackerCapabilityProvider.TRACKER_CAPABILITY).ifPresent(oldCap -> {
@@ -60,6 +58,26 @@ public final class ProfessionEvents {
             case "rastreador" -> RastreadorProfession.applyBonuses(player);
             case "engenheiro" -> EngenheiroProfession.applyBonuses(player);
             // Add future professions here
+        }
+    }
+
+    @SubscribeEvent
+    public static void onPlayerTick(TickEvent.PlayerTickEvent event) {
+        if (event.phase != TickEvent.Phase.END) return;
+        if (event.player.level().isClientSide) return;
+
+        Player player = event.player;
+        String prof = ProfissaoManager.getProfession(player.getUUID());
+        if (prof == null) return;
+
+        // Call tick handlers for each profession
+        switch (prof.toLowerCase()) {
+            case "combatente" -> CombatenteProfession.tickCombatente(player);
+            case "rastreador" -> RastreadorProfession.tickTracker(player);
+            case "engenheiro" -> EngenheiroProfession.tickEngineer(player);
+            case "medico" -> MedicoProfession.tickMedico(player);
+            case "armeiro" -> ArmeiroProfession.tickArmeiro(player);
+            // Caçador doesn't have tick handler currently
         }
     }
 } 

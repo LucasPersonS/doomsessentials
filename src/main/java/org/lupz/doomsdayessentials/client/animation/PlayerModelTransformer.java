@@ -20,7 +20,8 @@ public class PlayerModelTransformer {
 	public PlayerModel<?> getRawModel() { return model; }
 
 	public void resetToVanillaDefaults() {
-		reset(model.head);
+		// Reset head but preserve yRot for vanilla head tracking
+		model.head.xRot = 0; model.head.zRot = 0; model.head.x = 0; model.head.y = 0; model.head.z = 0;
 		reset(model.hat);
 		reset(model.jacket);
 		reset(model.body);
@@ -30,7 +31,7 @@ public class PlayerModelTransformer {
 		reset(model.rightLeg); model.rightLeg.x = -1.9F;model.rightLeg.y = 12.0F; model.rightLeg.z = 0.0F; model.rightPants.copyFrom(model.rightLeg);
 	}
 
-	private void reset(ModelPart p) { p.xRot = 0; p.yRot = 0; p.zRot = 0; p.x = 0; p.y = 0; p.z = 0; }
+	private void reset(ModelPart p) { p.xRot = 0; p.yRot = 0; p.zRot = 0; p.x = 0; p.y = 0; p.z = 0; } // Don't reset yRot - let vanilla head tracking control it
 
 	// Head rotations (degrees absolute)
 	public PlayerModelTransformer rotateHeadPitch(float deg) { model.head.xRot = (float)Math.toRadians(deg); return this; }

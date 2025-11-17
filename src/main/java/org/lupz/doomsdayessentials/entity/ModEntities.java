@@ -31,6 +31,20 @@ public final class ModEntities {
 					.clientTrackingRange(48)
 					.build("dummy"));
 
+	public static final RegistryObject<EntityType<TrapEntity>> TRAP = ENTITIES.register("trap",
+			() -> EntityType.Builder.<TrapEntity>of(TrapEntity::new, MobCategory.MISC)
+					.sized(1.0f, 0.25f)
+					.clientTrackingRange(64)
+					.build("trap"));
+
+    // New Airdrop entity registration
+    public static final RegistryObject<EntityType<AirdropEntity>> AIRDROP = ENTITIES.register("airdrop",
+            () -> EntityType.Builder.<AirdropEntity>of(AirdropEntity::new, MobCategory.MISC)
+                    .sized(1.0f, 1.2f)
+                    .clientTrackingRange(64)
+                    .updateInterval(2)
+                    .build("airdrop"));
+
     public static void register(IEventBus bus){
         ENTITIES.register(bus);
         bus.addListener(ModEntities::onAttributeCreate);
@@ -40,5 +54,6 @@ public final class ModEntities {
         e.put(FACELESS.get(), FacelessEntity.createAttributes().build());
         e.put(SENTRY.get(), org.lupz.doomsdayessentials.entity.SentryEntity.createAttributes().build());
 		e.put(DUMMY.get(), DummyEntity.createAttributes().build());
+        // No attributes needed for AIRDROP (non-mob entity)
     }
 } 

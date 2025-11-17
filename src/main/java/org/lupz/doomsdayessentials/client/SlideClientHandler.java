@@ -11,7 +11,7 @@ import org.lupz.doomsdayessentials.network.PacketHandler;
 import org.lupz.doomsdayessentials.network.StartSlidePacket;
 import org.lupz.doomsdayessentials.network.CancelSlidePacket;
 import org.lupz.doomsdayessentials.client.animation.AnimationManager;
-import org.lupz.doomsdayessentials.client.animation.SlidingAnimator;
+import org.lupz.doomsdayessentials.client.animation.SlidingAnimator; // Still needed for instanceof check on line 30
 
 @Mod.EventBusSubscriber(modid = EssentialsMod.MOD_ID, value = Dist.CLIENT, bus = Mod.EventBusSubscriber.Bus.FORGE)
 public class SlideClientHandler {
@@ -60,8 +60,7 @@ public class SlideClientHandler {
 
 		EssentialsMod.LOGGER.debug("[SlideClient] Sending StartSlidePacket from client for {}", mc.player.getGameProfile().getName());
 		PacketHandler.CHANNEL.sendToServer(new StartSlidePacket());
-		AnimationManager.setAnimator(mc.player, new SlidingAnimator());
-		EssentialsMod.LOGGER.debug("[SlideClient] Local animator set to SlidingAnimator for {}", mc.player.getGameProfile().getName());
+		// Don't set animator here - wait for server confirmation via StartSlideS2CPacket
 		lastSendMs = now;
 		slideKeyConsumed = true;
 	}

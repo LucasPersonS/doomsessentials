@@ -33,10 +33,13 @@ public final class RarityAssetsClient {
 
     private static boolean loaded;
     private static final Map<String, RarityManager.RarityTier> ITEM_TO_TIER = new HashMap<>();
+    // Composite key: itemId + "|" + variantId (e.g., TACZ GunId)
+    private static final Map<String, RarityManager.RarityTier> VARIANT_TO_TIER = new HashMap<>();
 
     public static void reload() {
         loaded = false;
         ITEM_TO_TIER.clear();
+        VARIANT_TO_TIER.clear();
         ensureLoaded();
     }
 
@@ -61,6 +64,21 @@ public final class RarityAssetsClient {
                         } catch (Exception ignored) {}
                     }
                 }
+                // Parse variants object if present: { "variants": { "common": ["item|variant", ...], ... } }
+                if (root.has("variants") && root.get("variants").isJsonObject()) {
+                    JsonObject varRoot = root.getAsJsonObject("variants");
+                    for (Map.Entry<String, JsonElement> e : varRoot.entrySet()) {
+                        String tierKey = e.getKey().toLowerCase(Locale.ROOT);
+                        RarityManager.RarityTier tier = RarityManager.RarityTier.fromString(tierKey);
+                        if (tier == null || !e.getValue().isJsonArray()) continue;
+                        for (JsonElement el : e.getValue().getAsJsonArray()) {
+                            try {
+                                String composite = el.getAsString(); // "itemId|variantId"
+                                VARIANT_TO_TIER.put(composite, tier);
+                            } catch (Exception ignored) {}
+                        }
+                    }
+                }
             }
         } catch (Exception ignored) {}
     }
@@ -72,5 +90,31 @@ public final class RarityAssetsClient {
         var key = net.minecraftforge.registries.ForgeRegistries.ITEMS.getKey(stack.getItem());
         if (key == null) return null;
         return ITEM_TO_TIER.get(key.toString());
+    }
+
+    /** Resolve variant rarity from assets mapping (itemId|gunId), or null. */
+    public static RarityManager.RarityTier getVariantRarityFromAssets(ItemStack stack) {
+        if (stack == null || stack.isEmpty()) return null;
+        ensureLoaded();
+        var key = net.minecraftforge.registries.ForgeRegistries.ITEMS.getKey(stack.getItem());
+        if (key == null) return null;
+        String itemId = key.toString().toLowerCase(java.util.Locale.ROOT);
+        var tag = stack.getTag();
+        if (tag == null) return null;
+        // Support multiple possible TACZ NBT key variants
+        String gunId = null;
+        for (String k : new String[]{"GunId", "gunId", "gun_id"}) {
+            if (tag.contains(k)) {
+                try {
+                    String v = tag.getString(k);
+                    if (v != null && !v.isEmpty()) { gunId = v; break; }
+                } catch (Throwable ignored) {}
+            }
+        }
+        if (gunId == null || gunId.isEmpty()) return null;
+        // Normalize gunId to include namespace if missing and lowercase for consistent matching
+        String normalizedGunId = gunId.contains(":") ? gunId : ("tacz:" + gunId);
+        normalizedGunId = normalizedGunId.toLowerCase(java.util.Locale.ROOT);
+        return VARIANT_TO_TIER.get(itemId + "|" + normalizedGunId);
     }
 }

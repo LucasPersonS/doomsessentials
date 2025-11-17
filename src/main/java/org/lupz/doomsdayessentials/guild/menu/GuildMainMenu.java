@@ -29,10 +29,9 @@ public class GuildMainMenu extends AbstractContainerMenu {
     private Guild guild;
 
     // Centered, proportional layout (rows 2-4 around center columns 2,4,6)
-    private static final int SLOT_REWARDS = 20;            // row2 col2
+    private static final int SLOT_OPEN_UPGRADES = 20;      // row2 col2 (moved from col8)
     private static final int SLOT_DEPOSIT = 22;            // row2 col4
     private static final int SLOT_TERRITORY_REWARDS = 24;  // row2 col6
-    private static final int SLOT_OPEN_UPGRADES = 26;      // row2 col8
     private static final int SLOT_ALLIANCE = 29;           // row3 col2
     private static final int SLOT_MEMBERS = 31;            // row3 col4
     private static final int SLOT_INVADIR = 33;            // row3 col6
@@ -96,13 +95,6 @@ public class GuildMainMenu extends AbstractContainerMenu {
                 }
             }
         } else {
-            // Rewards / Storage
-            ItemStack rewards = new ItemStack(Items.CHEST);
-            rewards.setHoverName(Component.literal("§aCofre & Recompensas"));
-            addLore(rewards, new java.util.ArrayList<>(java.util.List.of(
-                    Component.literal("§7Clique para abrir o cofre global da organização."))));
-            container.setItem(SLOT_REWARDS, rewards);
-
             // Deposit Resources (Guild Bank)
             ItemStack deposit = new ItemStack(Items.IRON_INGOT);
             deposit.setHoverName(Component.literal("§bDepositar Recursos"));
@@ -203,14 +195,6 @@ public class GuildMainMenu extends AbstractContainerMenu {
         GuildsManager gm = GuildsManager.get(level);
         if (guild == null) guild = gm.getGuildByMember(sp.getUUID());
 
-        if (slotId == SLOT_REWARDS && clickType == ClickType.PICKUP) {
-            // Open guild storage
-            sp.openMenu(new net.minecraft.world.SimpleMenuProvider(
-                    (id, inv, p) -> new org.lupz.doomsdayessentials.guild.menu.GuildStorageMenu(id, inv, 0),
-                    Component.literal("Cofre da Organização"))
-            );
-            return;
-        }
         if (slotId == SLOT_DEPOSIT && clickType == ClickType.PICKUP) {
             sp.openMenu(new net.minecraft.world.SimpleMenuProvider(
                 (id, inv, p) -> new org.lupz.doomsdayessentials.guild.menu.GuildResourceDepositMenu(id, inv),

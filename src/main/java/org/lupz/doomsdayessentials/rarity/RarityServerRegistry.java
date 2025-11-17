@@ -60,6 +60,16 @@ public final class RarityServerRegistry {
         return Collections.unmodifiableMap(new HashMap<>(VARIANT_TO_TIER));
     }
 
+    /** Replace all entries and broadcast once. */
+    public static synchronized void replaceAll(Map<String, RarityManager.RarityTier> items,
+                                               Map<String, RarityManager.RarityTier> variants) {
+        ITEM_TO_TIER.clear();
+        if (items != null) ITEM_TO_TIER.putAll(items);
+        VARIANT_TO_TIER.clear();
+        if (variants != null) VARIANT_TO_TIER.putAll(variants);
+        broadcastFull();
+    }
+
     public static void broadcastFull() {
         MinecraftServer server = ServerLifecycleHooks.getCurrentServer();
         if (server == null) return;

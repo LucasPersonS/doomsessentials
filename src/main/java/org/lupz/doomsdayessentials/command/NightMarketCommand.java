@@ -9,9 +9,13 @@ import net.minecraft.commands.Commands;
 import net.minecraft.network.chat.Component;
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.InteractionHand;
+import net.minecraft.world.item.ItemStack;
 import net.minecraftforge.event.RegisterCommandsEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
+import net.minecraftforge.registries.ForgeRegistries;
 import org.lupz.doomsdayessentials.EssentialsMod;
 import org.lupz.doomsdayessentials.event.eclipse.market.MarketBlocks;
 import org.lupz.doomsdayessentials.event.eclipse.market.NightMarketManager;
@@ -106,7 +110,58 @@ public final class NightMarketCommand {
                     ctx.getSource().sendSuccess(() -> Component.literal("Trades cleared."), true);
                     return 1;
                 }))
+                .then(Commands.literal("addheld")
+                    .then(Commands.argument("sellCount", IntegerArgumentType.integer(1))
+                        .then(Commands.argument("maxUses", IntegerArgumentType.integer(1))
+                            .then(Commands.argument("xp", IntegerArgumentType.integer(0))
+                                .then(Commands.argument("priceMult", FloatArgumentType.floatArg(0f))
+                                    .executes(NightMarketCommand::addHeldItemTrade)
+                                )
+                            )
+                        )
+                    )
+                )
             )
         );
+    }
+
+    private static int addHeldItemTrade(com.mojang.brigadier.context.CommandContext<CommandSourceStack> ctx) {
+        // Check if the command source is a player
+        if (!(ctx.getSource().getEntity() instanceof ServerPlayer player)) {
+            ctx.getSource().sendFailure(Component.literal("Only players can use this command."));
+            return 0;
+        }
+
+        // Get the held item
+        ItemStack heldItem = player.getItemInHand(InteractionHand.MAIN_HAND);
+        if (heldItem.isEmpty()) {
+            ctx.getSource().sendFailure(Component.literal("You must hold an item in your main hand."));
+            return 0;
+        }
+
+        // Get command arguments
+        int sellCount = IntegerArgumentType.getInteger(ctx, "sellCount");
+        int maxUses = IntegerArgumentType.getInteger(ctx, "maxUses");
+        int xp = IntegerArgumentType.getInteger(ctx, "xp");
+        float priceMult = FloatArgumentType.getFloat(ctx, "priceMult");
+
+        // Get the item's resource location
+        String itemId = ForgeRegistries.ITEMS.getKey(heldItem.getItem()).toString();
+
+        // Add the trade (held item as buy1, no buy2, same item as sell)
+        boolean success = NightMarketManager.addOffer(
+            itemId, 1,  // buy1: 1 of the held item
+            null, 0,    // no buy2
+            itemId, sellCount,  // sell: sellCount of the same item
+            maxUses, xp, priceMult
+        );
+
+        if (success) {
+            ctx.getSource().sendSuccess(() -> Component.literal("Trade added: 1x " + heldItem.getHoverName().getString() + " -> " + sellCount + "x " + heldItem.getHoverName().getString()), true);
+            return 1;
+        } else {
+            ctx.getSource().sendFailure(Component.literal("Failed to add trade. Invalid item."));
+            return 0;
+        }
     }
 } 

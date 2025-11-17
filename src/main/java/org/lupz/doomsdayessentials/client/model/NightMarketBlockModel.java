@@ -10,14 +10,12 @@ public class NightMarketBlockModel extends GeoModel<NightMarketBlockEntity> {
 
     @Override
     public ResourceLocation getModelResource(NightMarketBlockEntity animatable) {
-        // Matches existing file at assets/doomsdayessentials/geo/black_market.geo.json
-        return rl("geo/black_market.geo.json");
+        return rl("geo/night_market.geo.json");
     }
 
     @Override
     public ResourceLocation getTextureResource(NightMarketBlockEntity animatable) {
-        // Provide your texture here; placeholder path
-        return rl("textures/entity/black_market.png");
+        return rl("textures/block/night_market.png");
     }
 
     @Override

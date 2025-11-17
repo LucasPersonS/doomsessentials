@@ -15,7 +15,7 @@ public final class MarketBlocks {
     public static final DeferredRegister<BlockEntityType<?>> BLOCK_ENTITIES = DeferredRegister.create(ForgeRegistries.BLOCK_ENTITY_TYPES, EssentialsMod.MOD_ID);
 
     public static final RegistryObject<Block> NIGHT_MARKET_BLOCK = BLOCKS.register("night_market_block",
-            () -> new NightMarketBlock(net.minecraft.world.level.block.state.BlockBehaviour.Properties.of().strength(2.0f).noOcclusion()));
+            () -> new NightMarketBlock(net.minecraft.world.level.block.state.BlockBehaviour.Properties.of().strength(-1.0f, 3600000.0f).noOcclusion()));
 
     public static final RegistryObject<BlockEntityType<NightMarketBlockEntity>> NIGHT_MARKET_BLOCK_ENTITY = BLOCK_ENTITIES.register("night_market_block_entity",
             () -> BlockEntityType.Builder.of(NightMarketBlockEntity::new, NIGHT_MARKET_BLOCK.get()).build(null));
@@ -23,7 +23,7 @@ public final class MarketBlocks {
     public static void register(IEventBus bus){
         BLOCKS.register(bus);
         BLOCK_ENTITIES.register(bus);
-        // Block item registration via ModItems: fallback quick inline
-        org.lupz.doomsdayessentials.item.ModItems.ITEMS.register("night_market_block", () -> new net.minecraft.world.item.BlockItem(NIGHT_MARKET_BLOCK.get(), new net.minecraft.world.item.Item.Properties()));
+        // Block item registration with GeckoLib renderer
+        org.lupz.doomsdayessentials.item.ModItems.ITEMS.register("night_market_block", () -> new org.lupz.doomsdayessentials.item.NightMarketBlockItem(NIGHT_MARKET_BLOCK.get(), new net.minecraft.world.item.Item.Properties()));
     }
 } 

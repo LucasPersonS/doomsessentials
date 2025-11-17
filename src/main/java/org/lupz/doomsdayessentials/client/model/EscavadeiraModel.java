@@ -17,6 +17,6 @@ public class EscavadeiraModel extends GeoModel<EscavadeiraControllerBlockEntity>
 
 	@Override
 	public ResourceLocation getAnimationResource(EscavadeiraControllerBlockEntity animatable) {
-		return ResourceLocation.fromNamespaceAndPath("doomsdayessentials", "animations/dummy.animation.json");
+		return ResourceLocation.fromNamespaceAndPath("doomsdayessentials", "animations/turn_on.animation.json");
 	}
 } 

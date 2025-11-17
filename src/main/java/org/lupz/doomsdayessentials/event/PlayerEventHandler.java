@@ -15,8 +15,6 @@ import org.lupz.doomsdayessentials.config.EssentialsConfig;
 import org.lupz.doomsdayessentials.network.PacketHandler;
 import org.lupz.doomsdayessentials.network.packet.s2c.SyncAreasPacket;
 import org.lupz.doomsdayessentials.network.packet.s2c.SyncCombatStatePacket;
-import org.lupz.doomsdayessentials.professions.MedicoProfession;
-import org.lupz.doomsdayessentials.professions.RastreadorProfession;
 
 @Mod.EventBusSubscriber(modid = EssentialsMod.MOD_ID, bus = Mod.EventBusSubscriber.Bus.FORGE)
 public class PlayerEventHandler {
@@ -78,8 +76,9 @@ public class PlayerEventHandler {
     @SubscribeEvent
     public static void onPlayerTick(TickEvent.PlayerTickEvent event) {
         if (event.phase == TickEvent.Phase.END && !event.player.level().isClientSide()) {
-            MedicoProfession.tickMedico(event.player);
-            RastreadorProfession.tickTracker(event.player);
+            // NOTE: Profession-specific ticks are handled in ProfessionEvents
+            // This handler only deals with generic cooldowns and mechanics
+            
             // Tick engineer cooldowns
             int cd = event.player.getPersistentData().getInt("engineerTurretCooldown");
             if (cd > 0) event.player.getPersistentData().putInt("engineerTurretCooldown", cd - 1);

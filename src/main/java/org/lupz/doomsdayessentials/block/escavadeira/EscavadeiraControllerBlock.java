@@ -25,7 +25,19 @@ import net.minecraft.world.phys.shapes.Shapes;
 import net.minecraft.world.phys.shapes.VoxelShape;
 
 public class EscavadeiraControllerBlock extends BaseEntityBlock implements EntityBlock {
-	private static final VoxelShape SHAPE = Shapes.box(-0.5, 0.0, -0.5, 1.5, 2.8, 1.5); // 2x2 footprint, ~2.8 high
+	// Pixel-perfect hitbox based on petroleira.geo.json model bounds
+	// Model coordinates: origin at center (0,0,0). Convert by: (modelX + 8)/16, modelY/16, (modelZ + 8)/16
+	// Note: Model is multi-block with animated arm. Focusing on main stationary body.
+	private static final VoxelShape SHAPE = Shapes.or(
+		// Main base platform/body: covering corpo base structures
+		Shapes.box((-12+8)/16.0, 0, (-13+8)/16.0, (12+8)/16.0, 8/16.0, (13+8)/16.0),
+		// Left tower (higher): width increased by 1
+		Shapes.box((-20+8)/16.0, 9/16.0, (-8+8)/16.0, (-3+8)/16.0, 26/16.0, (2+8)/16.0),
+		// Center upper section: origin[-3,9,-8] size[6,7,16]
+		Shapes.box((-3+8)/16.0, 9/16.0, (-8+8)/16.0, (3+8)/16.0, 16/16.0, (8+8)/16.0),
+		// Right cabin (lower): width decreased by 1
+		Shapes.box((3+8)/16.0, 9/16.0, (-8+8)/16.0, (13+8)/16.0, 17/16.0, (8+8)/16.0)
+	);
 
 	public EscavadeiraControllerBlock(Properties properties) {
 		super(properties);

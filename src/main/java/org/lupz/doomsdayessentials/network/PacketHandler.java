@@ -172,11 +172,46 @@ public class PacketHandler {
                 .consumerMainThread(org.lupz.doomsdayessentials.network.packet.s2c.SyncRarityMapPacket::handle)
                 .add();
 
+        // Airdrop typing HUD notice (S2C)
+        CHANNEL.messageBuilder(org.lupz.doomsdayessentials.airdrop.network.AirdropNoticePacket.class, index++, NetworkDirection.PLAY_TO_CLIENT)
+                .encoder(org.lupz.doomsdayessentials.airdrop.network.AirdropNoticePacket::encode)
+                .decoder(org.lupz.doomsdayessentials.airdrop.network.AirdropNoticePacket::decode)
+                .consumerMainThread(org.lupz.doomsdayessentials.airdrop.network.AirdropNoticePacket::handle)
+                .add();
+
         // Guild storage UI actions (P2S)
         CHANNEL.messageBuilder(org.lupz.doomsdayessentials.guild.menu.GuildStorageActionPacket.class, index++, NetworkDirection.PLAY_TO_SERVER)
                 .encoder(org.lupz.doomsdayessentials.guild.menu.GuildStorageActionPacket::encode)
                 .decoder(org.lupz.doomsdayessentials.guild.menu.GuildStorageActionPacket::decode)
                 .consumerMainThread(org.lupz.doomsdayessentials.guild.menu.GuildStorageActionPacket::handle)
+                .add();
+
+        // Engineer shop item purchase (C2S)
+        CHANNEL.messageBuilder(BuyEngineerItemPacket.class, index++, NetworkDirection.PLAY_TO_SERVER)
+                .encoder(BuyEngineerItemPacket::encode)
+                .decoder(BuyEngineerItemPacket::decode)
+                .consumerMainThread(BuyEngineerItemPacket::handle)
+                .add();
+
+        // Territory progress sync (S2C)
+        CHANNEL.messageBuilder(TerritoryProgressPacket.class, index++, NetworkDirection.PLAY_TO_CLIENT)
+                .encoder(TerritoryProgressPacket::encode)
+                .decoder(TerritoryProgressPacket::decode)
+                .consumerMainThread(TerritoryProgressPacket::handle)
+                .add();
+
+        // Sentry weapon mounting (C2S)
+        CHANNEL.messageBuilder(MountSentryWeaponPacket.class, index++, NetworkDirection.PLAY_TO_SERVER)
+                .encoder(MountSentryWeaponPacket::encode)
+                .decoder(MountSentryWeaponPacket::decode)
+                .consumerMainThread(MountSentryWeaponPacket::handle)
+                .add();
+
+        // Sentry shoot sound (S2C)
+        CHANNEL.messageBuilder(SentryShootSoundPacket.class, index++, NetworkDirection.PLAY_TO_CLIENT)
+                .encoder(SentryShootSoundPacket::encode)
+                .decoder(SentryShootSoundPacket::decode)
+                .consumerMainThread(SentryShootSoundPacket::handle)
                 .add();
     }
 }

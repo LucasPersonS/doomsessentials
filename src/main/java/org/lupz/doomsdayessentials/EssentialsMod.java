@@ -67,6 +67,7 @@ public class EssentialsMod {
                  ModEntities.register(modEventBus);
          org.lupz.doomsdayessentials.event.eclipse.market.MarketEntities.register(modEventBus);
          org.lupz.doomsdayessentials.event.eclipse.market.MarketBlocks.register(modEventBus);
+         org.lupz.doomsdayessentials.guild.block.StorageBlocks.register(modEventBus);
          ModEffects.register(modEventBus);
          ProfessionMenuTypes.register(modEventBus);
          org.lupz.doomsdayessentials.event.eclipse.market.NightMarketMenus.register(modEventBus);
@@ -83,6 +84,8 @@ public class EssentialsMod {
         context.registerConfig(ModConfig.Type.COMMON, GuildConfig.SPEC, MOD_ID + "-guilds.toml");
         // Engineer config
         context.registerConfig(ModConfig.Type.COMMON, EngineerConfig.SPEC, MOD_ID + "-engineer.toml");
+        // Register Airdrop config
+        context.registerConfig(ModConfig.Type.COMMON, org.lupz.doomsdayessentials.airdrop.AirdropConfig.SPEC, MOD_ID + "-airdrop.toml");
 
         // Load engineer recipes
         EngineerShopUtil.loadConfig();
@@ -161,6 +164,12 @@ public class EssentialsMod {
 
     @SubscribeEvent
     public void onServerStarting(ServerStartingEvent event) {
+        // Auto-assign item rarities from config/assets on server start
+        try {
+            org.lupz.doomsdayessentials.rarity.RarityServerBootstrap.loadAtServerStart();
+        } catch (Throwable t) {
+            LOGGER.warn("Failed to bootstrap item rarities at server start", t);
+        }
     }
 
     @Mod.EventBusSubscriber(modid = MOD_ID, bus = Mod.EventBusSubscriber.Bus.MOD, value = Dist.CLIENT)
@@ -202,6 +211,11 @@ public class EssentialsMod {
                      org.lupz.doomsdayessentials.block.ModBlocks.HUNTING_BOARD_BLOCK_ENTITY.get(),
                      ctx -> new org.lupz.doomsdayessentials.client.renderer.HuntingBoardBlockRenderer()
                  );
+                 // Storage block renderer (GeoLib)
+                 net.minecraft.client.renderer.blockentity.BlockEntityRenderers.register(
+                     org.lupz.doomsdayessentials.guild.block.StorageBlocks.STORAGE_BLOCK_ENTITY.get(),
+                     ctx -> new org.lupz.doomsdayessentials.client.renderer.StorageBlockRenderer()
+                 );
                  // Lootbox screen
                  MenuScreens.register(org.lupz.doomsdayessentials.lootbox.LootboxMenus.LOOTBOX_MENU.get(), org.lupz.doomsdayessentials.lootbox.LootboxScreen::new);
 
@@ -211,6 +225,10 @@ public class EssentialsMod {
                 net.minecraft.client.renderer.entity.EntityRenderers.register(org.lupz.doomsdayessentials.entity.ModEntities.SENTRY.get(), org.lupz.doomsdayessentials.client.renderer.SentryRenderer::new);
                 // Dummy renderer
                 net.minecraft.client.renderer.entity.EntityRenderers.register(org.lupz.doomsdayessentials.entity.ModEntities.DUMMY.get(), org.lupz.doomsdayessentials.client.renderer.DummyRenderer::new);
+                // Trap renderer
+                net.minecraft.client.renderer.entity.EntityRenderers.register(org.lupz.doomsdayessentials.entity.ModEntities.TRAP.get(), org.lupz.doomsdayessentials.client.renderer.TrapRenderer::new);
+                // Airdrop renderer
+                net.minecraft.client.renderer.entity.EntityRenderers.register(org.lupz.doomsdayessentials.entity.ModEntities.AIRDROP.get(), org.lupz.doomsdayessentials.client.renderer.AirdropRenderer::new);
                 // Night Market renderer
                 net.minecraft.client.renderer.entity.EntityRenderers.register(org.lupz.doomsdayessentials.event.eclipse.market.MarketEntities.NIGHT_MARKET.get(), org.lupz.doomsdayessentials.client.renderer.NightMarketRenderer::new);
 
@@ -229,8 +247,7 @@ public class EssentialsMod {
 
         @SubscribeEvent
         public static void registerLayerDefinitions(net.minecraftforge.client.event.EntityRenderersEvent.RegisterLayerDefinitions event) {
-            event.registerLayerDefinition(org.lupz.doomsdayessentials.client.model.CrownModel.LAYER_LOCATION,
-                    org.lupz.doomsdayessentials.client.model.CrownModel::createBodyLayer);
+            // CrownModel removed - now using GeckoLib CrownGeoModel
             event.registerLayerDefinition(org.lupz.doomsdayessentials.client.model.RecycleModel2.LAYER_LOCATION, org.lupz.doomsdayessentials.client.model.RecycleModel2::createBodyLayer);
         }
     }

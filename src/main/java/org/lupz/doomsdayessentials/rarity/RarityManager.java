@@ -63,10 +63,26 @@ public final class RarityManager {
                 // Variant check (e.g., TACZ GunId)
                 try {
                     var tag = stack.getTag();
-                    if (tag != null && tag.contains("GunId", Tag.TAG_STRING)) {
-                        String gunId = tag.getString("GunId");
-                        if (!gunId.isEmpty()) {
-                            RarityTier v = RarityClientOverrides.getVariant(itemId + "|" + gunId);
+                    if (tag != null) {
+                        // Support common TACZ NBT key variants
+                        String gunId = null;
+                        for (String k : new String[]{"GunId", "gunId", "gun_id"}) {
+                            if (tag.contains(k, Tag.TAG_STRING)) {
+                                gunId = tag.getString(k);
+                                if (gunId != null && !gunId.isEmpty()) break;
+                            }
+                        }
+                        if (gunId != null && !gunId.isEmpty()) {
+                            // Normalize: ensure namespace and lowercase for consistent matching
+                            String itemKey = itemId.toLowerCase(java.util.Locale.ROOT);
+                            String normalizedGunId = gunId.contains(":") ? gunId : ("tacz:" + gunId);
+                            normalizedGunId = normalizedGunId.toLowerCase(java.util.Locale.ROOT);
+                            String rawLowerGunId = gunId.toLowerCase(java.util.Locale.ROOT);
+                            // Try normalized key first (preferred)
+                            RarityTier v = RarityClientOverrides.getVariant(itemKey + "|" + normalizedGunId);
+                            if (v != null) return v;
+                            // Fallback: try raw gunId (in case server stored without namespace)
+                            v = RarityClientOverrides.getVariant(itemKey + "|" + rawLowerGunId);
                             if (v != null) return v;
                         }
                     }
@@ -78,6 +94,9 @@ public final class RarityManager {
         } catch (Throwable ignored) {}
         // Fallback to assets mapping on client; ignore on dedicated server
         try {
+            // Prefer variant fallback when GunId is present
+            RarityTier vt = RarityAssetsClient.getVariantRarityFromAssets(stack);
+            if (vt != null) return vt;
             return RarityAssetsClient.getRarityFromAssets(stack);
         } catch (Throwable t) {
             return null;

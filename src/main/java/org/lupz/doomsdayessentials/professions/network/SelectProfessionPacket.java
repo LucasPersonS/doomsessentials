@@ -55,6 +55,8 @@ public class SelectProfessionPacket {
                     org.lupz.doomsdayessentials.professions.RastreadorProfession.onLeave(player);
                 } else if ("engenheiro".equalsIgnoreCase(current)) {
                     org.lupz.doomsdayessentials.professions.EngenheiroProfession.onLeave(player);
+                } else if ("armeiro".equalsIgnoreCase(current)) {
+                    org.lupz.doomsdayessentials.professions.ArmeiroProfession.onLeave(player);
                 }
 
                 player.sendSystemMessage(Component.translatable("profession.leave"));
@@ -78,7 +80,44 @@ public class SelectProfessionPacket {
                 return;
             }
 
+            // Check if trying to select the same profession
+            if (current != null && current.equalsIgnoreCase(msg.professionId)) {
+                player.sendSystemMessage(Component.literal("§eVocê já é um " + msg.professionId + "."));
+                EssentialsMod.LOGGER.info("Player {} tried to select {} but already has it.", 
+                    player.getName().getString(), msg.professionId);
+                return;
+            }
+            
+            // IMPORTANT: Clean up old profession BEFORE switching to new one
+            if (current != null && !current.isEmpty()) {
+                EssentialsMod.LOGGER.info("Player {} is switching from {} to {}, cleaning up old profession...", 
+                    player.getName().getString(), current, msg.professionId);
+                
+                // Call onLeave for the current profession to clean up passives
+                if ("medico".equalsIgnoreCase(current)) {
+                    MedicoProfession.onLeaveMedico(player);
+                } else if ("combatente".equalsIgnoreCase(current)) {
+                    org.lupz.doomsdayessentials.professions.CombatenteProfession.onLeave(player);
+                } else if ("rastreador".equalsIgnoreCase(current)) {
+                    org.lupz.doomsdayessentials.professions.RastreadorProfession.onLeave(player);
+                } else if ("engenheiro".equalsIgnoreCase(current)) {
+                    org.lupz.doomsdayessentials.professions.EngenheiroProfession.onLeave(player);
+                } else if ("armeiro".equalsIgnoreCase(current)) {
+                    org.lupz.doomsdayessentials.professions.ArmeiroProfession.onLeave(player);
+                } else if ("cacador".equalsIgnoreCase(current)) {
+                    org.lupz.doomsdayessentials.professions.CacadorProfession.onLeave(player);
+                }
+                
+                player.sendSystemMessage(Component.literal("§7Você deixou de ser " + current + "."));
+            }
+
+            // Clear ALL profession tags before setting new one (extra safety)
+            ProfissaoManager.clearAllProfessionTags(player);
+            
+            // Now set the new profession
             ProfissaoManager.setProfession(player.getUUID(), msg.professionId);
+            
+            // Apply the new profession's benefits
             if ("medico".equalsIgnoreCase(msg.professionId)) {
                 MedicoProfession.onBecomeMedico(player);
             } else if ("combatente".equalsIgnoreCase(msg.professionId)) {
@@ -89,6 +128,8 @@ public class SelectProfessionPacket {
                 org.lupz.doomsdayessentials.professions.EngenheiroProfession.onBecome(player);
             } else if ("cacador".equalsIgnoreCase(msg.professionId)) {
                 org.lupz.doomsdayessentials.professions.CacadorProfession.onBecome(player);
+            } else if ("armeiro".equalsIgnoreCase(msg.professionId)) {
+                org.lupz.doomsdayessentials.professions.ArmeiroProfession.onBecome(player);
             } else {
                 player.sendSystemMessage(Component.literal("Você se tornou um " + msg.professionId + "."));
             }
