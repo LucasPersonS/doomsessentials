@@ -200,6 +200,13 @@ public class PacketHandler {
                 .consumerMainThread(TerritoryProgressPacket::handle)
                 .add();
 
+        // Territory status marker (S2C) – contested/capturing/end marker
+        CHANNEL.messageBuilder(org.lupz.doomsdayessentials.network.packet.s2c.TerritoryMarkerPacket.class, index++, NetworkDirection.PLAY_TO_CLIENT)
+                .encoder(org.lupz.doomsdayessentials.network.packet.s2c.TerritoryMarkerPacket::encode)
+                .decoder(org.lupz.doomsdayessentials.network.packet.s2c.TerritoryMarkerPacket::decode)
+                .consumerMainThread(org.lupz.doomsdayessentials.network.packet.s2c.TerritoryMarkerPacket::handle)
+                .add();
+
         // Sentry weapon mounting (C2S)
         CHANNEL.messageBuilder(MountSentryWeaponPacket.class, index++, NetworkDirection.PLAY_TO_SERVER)
                 .encoder(MountSentryWeaponPacket::encode)

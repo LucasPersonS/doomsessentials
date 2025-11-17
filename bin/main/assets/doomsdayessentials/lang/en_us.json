@@ -1,5 +1,9 @@
 {
   "airdrop.opened": "ᴀɪʀᴅʀᴏᴘ ꜰᴏɪ ᴀʙᴇʀᴛᴏ",
+  "airdrop.opened_by": "ᴀɪʀᴅʀᴏᴘ ꜰᴏɪ ᴀʙᴇʀᴛᴏ ᴘᴏʀ %s",
   "airdrop.disappeared": "ᴀɪʀᴅʀᴏᴘ ᴅᴇѕᴀᴘᴀʀᴇᴄᴇᴜ",
-  "airdrop.landed": "ᴀɪʀᴅʀᴏᴘ ᴘᴏᴜѕᴏᴜ"
+  "airdrop.landed": "ᴀɪʀᴅʀᴏᴘ ᴘᴏᴜѕᴏᴜ",
+  "key.categories.doomsdayessentials": "Doomsday Essentials",
+  "key.doomsdayessentials.use_skill": "Use profession skill",
+  "profession.armeiro.required": "You must be \"Armeiro\" to access"
 }

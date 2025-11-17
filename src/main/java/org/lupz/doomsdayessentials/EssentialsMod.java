@@ -105,6 +105,8 @@ public class EssentialsMod {
             Class.forName("org.lupz.doomsdayessentials.professions.commands.ProfessionCommandsRegister");
             Class.forName("org.lupz.doomsdayessentials.command.RecyclerCommand");
             Class.forName("org.lupz.doomsdayessentials.territory.command.TerritoryCommand");
+            // New simplified event command root
+            Class.forName("org.lupz.doomsdayessentials.territory.command.EventCommand");
             Class.forName("org.lupz.doomsdayessentials.territory.TerritoryAccessEvents");
             Class.forName("org.lupz.doomsdayessentials.command.DItemCommand"); // ensure registration
             Class.forName("org.lupz.doomsdayessentials.command.SkinCommand"); // ensure /skin registration

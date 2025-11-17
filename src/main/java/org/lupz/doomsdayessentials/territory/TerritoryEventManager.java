@@ -48,6 +48,15 @@ public class TerritoryEventManager {
         MinecraftForge.EVENT_BUS.register(this);
     }
 
+    // Safe network sender to avoid bubbling exceptions breaking the tick loop
+    private static void safeSend(net.minecraftforge.network.PacketDistributor.PacketTarget target, Object pkt) {
+        try {
+            PacketHandler.CHANNEL.send(target, pkt);
+        } catch (Throwable t) {
+            org.lupz.doomsdayessentials.EssentialsMod.LOGGER.error("Failed to send packet {}", pkt.getClass().getName(), t);
+        }
+    }
+
     /**
      * Starts a capture event for the given area. Only one event can run at a time.
      * @param area The ManagedArea being contested (should be DANGER or RESOURCE type).
@@ -57,7 +66,7 @@ public class TerritoryEventManager {
      */
     public boolean startEvent(ManagedArea area, int durationSeconds, int requiredPlayers) {
         if (activeEvents.containsKey(area.getName())) return false; // already running for this area
-        if (activeEvents.size() >= 2) return false; // limit two concurrent events
+        if (activeEvents.size() >= TerritoryEventConfig.MAX_CONCURRENT_EVENTS) return false; // limit concurrent events
         // If area is currently SAFE (previously dominated) convert back to DANGER for the event
         if (area.getType() == org.lupz.doomsdayessentials.combat.AreaType.SAFE) {
             org.lupz.doomsdayessentials.combat.AreaManager am = org.lupz.doomsdayessentials.combat.AreaManager.get();
@@ -80,7 +89,7 @@ public class TerritoryEventManager {
 
         // send initial contested marker
         BlockPos c = new BlockPos((area.getPos1().getX()+area.getPos2().getX())/2, area.getPos1().getY()+4, (area.getPos1().getZ()+area.getPos2().getZ())/2);
-        PacketHandler.CHANNEL.send(PacketDistributor.ALL.noArg(),
+        safeSend(PacketDistributor.ALL.noArg(),
                 new org.lupz.doomsdayessentials.network.packet.s2c.TerritoryMarkerPacket(area.getName(), c.getX()+0.5, c.getY(), c.getZ()+0.5, (byte)1));
         ev.lastStatus = 1;
         return true;
@@ -89,7 +98,7 @@ public class TerritoryEventManager {
     public void stopEvent(String areaName) {
         CaptureEvent ev = activeEvents.remove(areaName);
         if (ev == null) return;
-        PacketHandler.CHANNEL.send(PacketDistributor.ALL.noArg(),
+        safeSend(PacketDistributor.ALL.noArg(),
                 new TerritoryProgressPacket(ev.area.getName(), ev.currentGuild, ev.progressSeconds, ev.durationSeconds, false));
         broadcast(Component.literal("§cEvento em " + areaName + " finalizado."));
     }
@@ -144,7 +153,11 @@ public class TerritoryEventManager {
 
         // Iterate over a copy to avoid concurrent modification when finishing events
         for (CaptureEvent ev : new java.util.ArrayList<>(activeEvents.values())) {
-            processEventTick(level, ev);
+            try {
+                processEventTick(level, ev);
+            } catch (Throwable t) {
+                org.lupz.doomsdayessentials.EssentialsMod.LOGGER.error("Error processing territory event tick for area {}", ev.area.getName(), t);
+            }
         }
     }
 
@@ -184,7 +197,7 @@ public class TerritoryEventManager {
         byte status = (controllingGuild == null) ? (byte)1 : (byte)2;
         if (status != ev.lastStatus) {
             BlockPos c = new BlockPos((area.getPos1().getX()+area.getPos2().getX())/2, area.getPos1().getY()+4, (area.getPos1().getZ()+area.getPos2().getZ())/2);
-            PacketHandler.CHANNEL.send(PacketDistributor.ALL.noArg(),
+            safeSend(PacketDistributor.ALL.noArg(),
                     new org.lupz.doomsdayessentials.network.packet.s2c.TerritoryMarkerPacket(area.getName(), c.getX()+0.5, c.getY(), c.getZ()+0.5, status));
             ev.lastStatus = status;
         }
@@ -210,18 +223,18 @@ public class TerritoryEventManager {
         }
 
         ev.progressSeconds++;
-        if (ev.progressSeconds % 30 == 0 || ev.progressSeconds == ev.durationSeconds) {
+        if (ev.progressSeconds % TerritoryEventConfig.BROADCAST_PROGRESS_INTERVAL_SECONDS == 0 || ev.progressSeconds == ev.durationSeconds) {
             broadcast(Component.literal("§6Capturando §f" + area.getName() + " §7… §e" + controllingGuild + " §7(" + ev.progressSeconds + "/" + ev.durationSeconds + "s)"));
         }
 
         // Send progress packet to all players for HUD
-        PacketHandler.CHANNEL.send(PacketDistributor.ALL.noArg(), new TerritoryProgressPacket(area.getName(), ev.currentGuild, ev.progressSeconds, ev.durationSeconds, true));
+        safeSend(PacketDistributor.ALL.noArg(), new TerritoryProgressPacket(area.getName(), ev.currentGuild, ev.progressSeconds, ev.durationSeconds, true));
 
         // border already drawn above
 
         if (ev.progressSeconds >= ev.durationSeconds) {
             finishCapture(ev, level, controllingGuild);
-            PacketHandler.CHANNEL.send(PacketDistributor.ALL.noArg(), new TerritoryProgressPacket(area.getName(), controllingGuild, ev.durationSeconds, ev.durationSeconds, false));
+            safeSend(PacketDistributor.ALL.noArg(), new TerritoryProgressPacket(area.getName(), controllingGuild, ev.durationSeconds, ev.durationSeconds, false));
             activeEvents.remove(area.getName());
         }
     }
@@ -244,7 +257,7 @@ public class TerritoryEventManager {
         // Claim the generator for the guild (if it exists)
         org.lupz.doomsdayessentials.territory.ResourceGeneratorManager.get().claimArea(ev.area.getName(), guildName);
         BlockPos c2 = new BlockPos((ev.area.getPos1().getX()+ev.area.getPos2().getX())/2, ev.area.getPos1().getY()+4, (ev.area.getPos2().getZ()+ev.area.getPos1().getZ())/2);
-        PacketHandler.CHANNEL.send(PacketDistributor.ALL.noArg(),
+        safeSend(PacketDistributor.ALL.noArg(),
                 new org.lupz.doomsdayessentials.network.packet.s2c.TerritoryMarkerPacket(ev.area.getName(), c2.getX()+0.5, c2.getY(), c2.getZ()+0.5, (byte)3));
     }
 

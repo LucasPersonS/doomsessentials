@@ -78,7 +78,36 @@ public class AirdropTypingOverlay {
         graphics.pose().scale(SCALE, SCALE, 1.0f);
         int scaledX = (int)(x / SCALE);
         int scaledY = (int)(y / SCALE);
-        graphics.drawString(font, textToShow, scaledX, scaledY, a | color);
+
+        // Optional nickname highlight: if first arg exists, highlight its occurrence in the text
+        int highlightColor = 0x55FFFF; // aqua for player nick
+        String nick = (messageArgs != null && messageArgs.length > 0) ? messageArgs[0] : null;
+        int nickStartFull = (nick != null && !nick.isEmpty()) ? fullText.indexOf(nick) : -1;
+        if (nickStartFull >= 0) {
+            int nickEndFull = nickStartFull + nick.length();
+            int preLen = Math.max(0, Math.min(shownChars, nickStartFull));
+            int typedNickLen = Math.max(0, Math.min(nick.length(), shownChars - nickStartFull));
+            int postLen = Math.max(0, shownChars - (nickStartFull + typedNickLen));
+
+            String pre = textToShow.substring(0, preLen);
+            String nickShown = typedNickLen > 0 ? fullText.substring(nickStartFull, nickStartFull + typedNickLen) : "";
+            String post = postLen > 0 ? fullText.substring(nickStartFull + typedNickLen, nickStartFull + typedNickLen + postLen) : "";
+
+            int dx = 0;
+            if (!pre.isEmpty()) {
+                graphics.drawString(font, pre, scaledX, scaledY, a | color);
+                dx += font.width(pre);
+            }
+            if (!nickShown.isEmpty()) {
+                graphics.drawString(font, nickShown, scaledX + dx, scaledY, a | highlightColor);
+                dx += font.width(nickShown);
+            }
+            if (!post.isEmpty()) {
+                graphics.drawString(font, post, scaledX + dx, scaledY, a | color);
+            }
+        } else {
+            graphics.drawString(font, textToShow, scaledX, scaledY, a | color);
+        }
         graphics.pose().popPose();
         RenderSystem.disableBlend();
     };

@@ -151,8 +151,10 @@ public class AirdropEntity extends Entity implements GeoEntity {
             broadcastLooted(sp);
             // Broadcast HUD typing message to all players
             try {
+                // Include player name so clients can highlight it in the HUD
+                String openerName = sp.getName().getString();
                 PacketHandler.CHANNEL.send(PacketDistributor.ALL.noArg(),
-                        new AirdropNoticePacket("airdrop.opened", AirdropNoticePacket.STATE_OPENED));
+                        new AirdropNoticePacket("airdrop.opened_by", AirdropNoticePacket.STATE_OPENED, openerName));
             } catch (Exception ignored) {}
         }
 

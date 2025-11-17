@@ -6,10 +6,12 @@ import java.util.UUID;
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.Entity;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.player.Player;
 import net.minecraftforge.event.AttachCapabilitiesEvent;
 import net.minecraftforge.event.TickEvent;
 import net.minecraftforge.event.TickEvent.Phase;
+import net.minecraftforge.event.entity.EntityJoinLevelEvent;
 import net.minecraftforge.event.entity.living.LivingDeathEvent;
 import net.minecraftforge.event.entity.living.LivingHurtEvent;
 import net.minecraftforge.event.entity.player.PlayerEvent;
@@ -28,12 +30,19 @@ import org.lupz.doomsdayessentials.combat.AreaManager;
 import org.lupz.doomsdayessentials.combat.AreaType;
 import net.minecraftforge.event.entity.living.LivingDropsEvent;
 import net.minecraftforge.event.entity.living.LivingExperienceDropEvent;
+import net.minecraftforge.event.level.BlockEvent;
+import net.minecraftforge.event.entity.item.ItemTossEvent;
+import net.minecraftforge.registries.ForgeRegistries;
+import net.minecraft.world.entity.projectile.Projectile;
 
 @EventBusSubscriber(modid = EssentialsMod.MOD_ID, bus = EventBusSubscriber.Bus.FORGE)
 public class InjuryEvents {
    private static final Map<UUID, InjuryDeathData> deadPlayerInjuries = new HashMap<>();
    private static final Map<UUID, DamageSource> downedPlayerOriginalSources = new HashMap<>();
    private static final Map<UUID, ReviveData> reviveProgress = new HashMap<>();
+   // Cooldown tracking to avoid spamming the "não pode atirar" message for automatic weapons
+   private static final Map<UUID, Long> downedShootWarnTs = new HashMap<>();
+   private static final long SHOOT_WARN_COOLDOWN_MS = 3000L; // 3 seconds between messages
    private static final int REVIVE_DURATION_TICKS = 600; // 30 seconds
    private static final int MEDICO_REVIVE_DURATION_TICKS = 100; // 5 seconds for Médicos
 
@@ -100,9 +109,17 @@ public class InjuryEvents {
                if (!player.isSwimming()) {
                   player.setSwimming(true);
                }
+               // Ensure sprint/sneak/jump are suppressed server-side as well
+               player.setSprinting(false);
+               player.setShiftKeyDown(false);
+               // Jump attempts are client-side; server will keep player grounded by pose enforcement
                // Ensure any ongoing item usage is stopped (blocks continuous-fire weapons)
                if (player.isUsingItem()) {
                   player.stopUsingItem();
+               }
+               // If any container is open, force it to close every tick while downed
+               if (player.containerMenu != player.inventoryMenu) {
+                  player.closeContainer();
                }
                if (System.currentTimeMillis() > cap.getDownedUntil()) {
                   killPlayer(player);
@@ -159,6 +176,41 @@ public class InjuryEvents {
    public static void onItemUseStart(net.minecraftforge.event.entity.living.LivingEntityUseItemEvent.Start event) {
       if (!(event.getEntity() instanceof ServerPlayer player)) return;
       InjuryHelper.getCapability(player).ifPresent(cap -> { if (cap.isDowned()) event.setCanceled(true); });
+   }
+
+   // Cancel TACZ bullet entities if the shooter is downed (server-side hard stop)
+   @SubscribeEvent(priority = EventPriority.HIGHEST)
+   public static void onEntityJoinLevel(EntityJoinLevelEvent event) {
+      if (event.getLevel().isClientSide()) return;
+      Entity entity = event.getEntity();
+      if (entity == null) return;
+
+      ResourceLocation typeId = ForgeRegistries.ENTITY_TYPES.getKey(entity.getType());
+      if (typeId == null) return;
+
+      // TACZ registers bullets under namespace "tacz" and path containing "bullet"
+      if ("tacz".equals(typeId.getNamespace()) && typeId.getPath().contains("bullet")) {
+         Entity owner = null;
+         if (entity instanceof Projectile proj) {
+            owner = proj.getOwner();
+         }
+         if (owner instanceof ServerPlayer sp) {
+            InjuryHelper.getCapability(sp).ifPresent(cap -> {
+               if (cap.isDowned()) {
+                  // Prevent bullet from spawning
+                  event.setCanceled(true);
+                  entity.discard();
+                  // Rate-limit chat feedback so automatic fire doesn't spam
+                  long now = System.currentTimeMillis();
+                  long last = downedShootWarnTs.getOrDefault(sp.getUUID(), 0L);
+                  if (now - last >= SHOOT_WARN_COOLDOWN_MS) {
+                     downedShootWarnTs.put(sp.getUUID(), now);
+                     sp.sendSystemMessage(net.minecraft.network.chat.Component.literal("§cVocê está abatido e não pode atirar."));
+                  }
+               }
+            });
+         }
+      }
    }
 
    @SubscribeEvent(priority = EventPriority.HIGHEST)
@@ -221,6 +273,48 @@ public class InjuryEvents {
       if (player == null || player.level().isClientSide) return;
       InjuryHelper.getCapability(player).ifPresent(cap -> { if (cap.isDowned()) event.setCanceled(true); });
    }
+
+   // Extra safety: cancel actual block breaking at the server level while downed
+   @SubscribeEvent
+   public static void onBlockBreak(BlockEvent.BreakEvent event) {
+      Player player = event.getPlayer();
+      if (player == null || player.level().isClientSide) return;
+      InjuryHelper.getCapability(player).ifPresent(cap -> { if (cap.isDowned()) event.setCanceled(true); });
+   }
+
+   // Extra safety: cancel block placement attempts while downed (covers edge cases)
+   @SubscribeEvent
+   public static void onBlockPlace(BlockEvent.EntityPlaceEvent event) {
+      if (!(event.getEntity() instanceof Player player)) return;
+      if (player.level().isClientSide) return;
+      InjuryHelper.getCapability(player).ifPresent(cap -> { if (cap.isDowned()) event.setCanceled(true); });
+   }
+
+   // Prevent item tossing/dropping server-side to avoid exploits while downed
+   @SubscribeEvent
+   public static void onItemToss(ItemTossEvent event) {
+      Player player = event.getPlayer();
+      if (player == null || player.level().isClientSide) return;
+      InjuryHelper.getCapability(player).ifPresent(cap -> { if (cap.isDowned()) event.setCanceled(true); });
+   }
+
+   // Close any container opened by a downed player (covers benches that bypass block right-click)
+   @SubscribeEvent(priority = EventPriority.HIGHEST)
+   public static void onContainerOpen(net.minecraftforge.event.entity.player.PlayerContainerEvent.Open event) {
+      Player player = event.getEntity();
+      if (player == null || player.level().isClientSide) return;
+      InjuryHelper.getCapability(player).ifPresent(cap -> {
+         if (cap.isDowned()) {
+            event.setCanceled(true);
+            if (player instanceof ServerPlayer sp) {
+               // Force-close to ensure any client-side screens are shut
+               sp.closeContainer();
+               sp.sendSystemMessage(net.minecraft.network.chat.Component.literal("§cVocê está abatido e não pode usar bancadas ou contêineres."));
+            }
+         }
+      });
+   }
+
 
    // Run at the very beginning so other mods never see the (now-cancelled) death
    // and therefore don't spawn 'ghost' corpses/items. Skips if someone else has
@@ -624,6 +718,7 @@ public class InjuryEvents {
    @SubscribeEvent
    public static void onPlayerLogout(net.minecraftforge.event.entity.player.PlayerEvent.PlayerLoggedOutEvent event) {
        reviveProgress.remove(event.getEntity().getUUID());
+       downedShootWarnTs.remove(event.getEntity().getUUID());
    }
 
    static class InjuryDeathData {
