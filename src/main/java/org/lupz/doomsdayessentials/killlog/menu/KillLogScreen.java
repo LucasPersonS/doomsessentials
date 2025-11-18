@@ -130,14 +130,8 @@ public class KillLogScreen extends AbstractContainerScreen<KillLogMenu> {
 				int x = startX + cx * 18;
 				int z = startY + cy * 18;
 				ItemStack st = sel.items.get(i);
-				gfx.renderItem(st, x, z);
-				// Render item count
-				if (st.getCount() > 1) {
-					String countStr = String.valueOf(st.getCount());
-					int countWidth = this.font.width(countStr);
-					gfx.drawString(this.font, countStr, x + 17 - countWidth, z + 9, 0xFFFFFF, true);
-				}
-				if (mouseX >= x && mouseX <= x + 16 && mouseY >= z && mouseY <= z + 16) hovered = st;
+                gfx.renderItem(st, x, z);
+                if (mouseX >= x && mouseX <= x + 16 && mouseY >= z && mouseY <= z + 16) hovered = st;
 			}
 		}
 		gfx.disableScissor();

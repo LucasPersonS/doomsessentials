@@ -155,6 +155,22 @@ public class GuildStorageScreen extends AbstractContainerScreen<GuildStorageMenu
         drawButtonItem(graphics, logsX, btnY, mouseX, mouseY, new ItemStack(Items.BOOK), tipLogs, true);
         drawButtonTexture(graphics, nextX, btnY, mouseX, mouseY, NEXT_ICON, tipNext, canNext);
 
+        for (int row = 0; row < 6; row++) {
+            for (int col = 0; col < 9; col++) {
+                int idx = col + row * 9;
+                int count = this.menu.getClientCountAt(idx);
+                if (count > 1) {
+                    String s = count >= 1000 ? formatK(count) : Integer.toString(count);
+                    int sx = x + 8 + col * 18 + 16 - font.width(s);
+                    int sy = y + 18 + row * 18 + 14;
+                    graphics.pose().pushPose();
+                    graphics.pose().translate(0, 0, 200);
+                    graphics.drawString(this.font, s, sx, sy, 0xFFE0A0);
+                    graphics.pose().popPose();
+                }
+            }
+        }
+        
         // Render vanilla tooltips for items/slots (external buttons draw their own tooltips)
         renderTooltip(graphics, mouseX, mouseY);
     }
@@ -336,5 +352,3 @@ public class GuildStorageScreen extends AbstractContainerScreen<GuildStorageMenu
         }
     }
 }
-
-

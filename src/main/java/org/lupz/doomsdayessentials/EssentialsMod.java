@@ -86,6 +86,8 @@ public class EssentialsMod {
         context.registerConfig(ModConfig.Type.COMMON, EngineerConfig.SPEC, MOD_ID + "-engineer.toml");
         // Register Airdrop config
         context.registerConfig(ModConfig.Type.COMMON, org.lupz.doomsdayessentials.airdrop.AirdropConfig.SPEC, MOD_ID + "-airdrop.toml");
+        // KOFH config
+        context.registerConfig(ModConfig.Type.COMMON, org.lupz.doomsdayessentials.kofh.KofhConfig.SPEC, MOD_ID + "-kofh.toml");
 
         // Load engineer recipes
         EngineerShopUtil.loadConfig();
@@ -96,7 +98,7 @@ public class EssentialsMod {
 
         // Force class loading to ensure EventBusSubscriber is registered
         try {
-            Class.forName("org.lupz.doomsdayessentials.guild.command.OrganizacaoCommand");
+            Class.forName("org.lupz.doomsdayessentials.guild.command.OrganizacaoMenuCommand");
             Class.forName("org.lupz.doomsdayessentials.combat.command.AreaCommand");
             Class.forName("org.lupz.doomsdayessentials.combat.command.CombatCommand");
             Class.forName("org.lupz.doomsdayessentials.command.SoundCommand");
@@ -171,6 +173,11 @@ public class EssentialsMod {
             org.lupz.doomsdayessentials.rarity.RarityServerBootstrap.loadAtServerStart();
         } catch (Throwable t) {
             LOGGER.warn("Failed to bootstrap item rarities at server start", t);
+        }
+        try {
+            org.lupz.doomsdayessentials.guild.StorageEnvValidator.validateServer();
+        } catch (Throwable t) {
+            LOGGER.warn("Storage env validation failed", t);
         }
     }
 

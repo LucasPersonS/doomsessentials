@@ -9,6 +9,7 @@ import net.minecraftforge.registries.RegistryObject;
 import org.lupz.doomsdayessentials.EssentialsMod;
 import org.lupz.doomsdayessentials.block.ModBlocks;
 import org.lupz.doomsdayessentials.item.CrownItem;
+import org.lupz.doomsdayessentials.event.eclipse.market.BlackMarketBundleItem;
 
 /**
  * General item registry for the mod. Use this for block items or misc items that do not belong in another subsystem.
@@ -34,6 +35,10 @@ public final class ModItems {
 	public static final RegistryObject<Item> GUI_BACK = ITEMS.register("gui_back", () -> new Item(new Item.Properties()));
 	public static final RegistryObject<Item> GUI_NEXT = ITEMS.register("gui_next", () -> new Item(new Item.Properties()));
 	public static final RegistryObject<Item> GUI_REWARD = ITEMS.register("gui_reward", () -> new Item(new Item.Properties()));
+
+	// Black market bundle item (packages of items)
+	public static final RegistryObject<BlackMarketBundleItem> BLACK_MARKET_BUNDLE = ITEMS.register("black_market_bundle",
+			() -> new BlackMarketBundleItem(new Item.Properties().stacksTo(16)));
 
 	// Lootbox items and keys
 	public static final RegistryObject<LootboxItem> LOOTBOX_INCOMUM = ITEMS.register("lootbox_incomum", () -> new LootboxItem(new Item.Properties().stacksTo(16), "incomum"));

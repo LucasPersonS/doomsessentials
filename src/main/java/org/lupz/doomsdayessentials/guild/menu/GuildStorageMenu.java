@@ -23,10 +23,13 @@ public class GuildStorageMenu extends AbstractContainerMenu {
     private final Player player;
     private Guild guild;
     private int page = 0; // 0-based
-    private final Container view = new LargeStackContainer(54);
+    private final Container view = new SimpleContainer(54) {
+        @Override public int getMaxStackSize() { return 32767; }
+    };
     private Filter filter = Filter.ALL;
     /** Tracks which view slots mirror real storage this rebuild (true) vs filtered/control (false). */
     private final boolean[] mirrored = new boolean[54];
+    private final int[] viewMap = new int[54];
     private boolean allowControlAction = false;
     private static final int SLOT_BACK = 45;
     private static final int SLOT_NEXT = 53;
@@ -39,6 +42,8 @@ public class GuildStorageMenu extends AbstractContainerMenu {
     
     // Container data for syncing to client: [0] = currentPage, [1] = storageLevel
     private final ContainerData data;
+    private int[] clientCounts = new int[54];
+    private static final java.util.Map<String, java.util.Set<GuildStorageMenu>> OPEN_MENUS = new java.util.concurrent.ConcurrentHashMap<>();
     public GuildStorageMenu(int windowId, Inventory inv, int page) {
         super(ProfessionMenuTypes.GUILD_STORAGE_MENU.get(), windowId);
         this.player = inv.player;
@@ -57,12 +62,16 @@ public class GuildStorageMenu extends AbstractContainerMenu {
             this.data = new SimpleContainerData(2);
             this.data.set(0, this.page);
             this.data.set(1, getStorageLevel());
+            if (this.guild != null) {
+                OPEN_MENUS.computeIfAbsent(this.guild.getName(), k -> java.util.concurrent.ConcurrentHashMap.newKeySet()).add(this);
+            }
         } else {
             // Client side: create data that will receive synced values
             this.data = new SimpleContainerData(2);
         }
         
         this.addDataSlots(this.data);
+        java.util.Arrays.fill(viewMap, -1);
         rebuild();
         // storage view slots (6 rows from y=18 like a large chest) with extended stack size (32k)
         for (int row = 0; row < 6; ++row) {
@@ -82,9 +91,33 @@ public class GuildStorageMenu extends AbstractContainerMenu {
         for (int col = 0; col < 9; ++col) {
             this.addSlot(new Slot(inv, col, 8 + col * 18, invY));
         }
+        if (player instanceof ServerPlayer) {
+            broadcastChanges();
+        }
     }
     public void setAllowControlAction(boolean allow) {
         this.allowControlAction = allow;
+    }
+    public void setClientCounts(int page, int[] counts) {
+        if (counts == null || counts.length != 54) return;
+        this.clientCounts = counts;
+    }
+    public int getClientCountAt(int viewIndex) {
+        if (viewIndex < 0 || viewIndex >= 54) return 0;
+        int v = clientCounts[viewIndex];
+        if (v > 0) return v;
+        ItemStack s = view.getItem(viewIndex);
+        return s == null || s.isEmpty() ? 0 : s.getCount();
+    }
+    private static void notifyStorageChanged(String guildName) {
+        java.util.Set<GuildStorageMenu> set = OPEN_MENUS.get(guildName);
+        if (set == null || set.isEmpty()) return;
+        for (GuildStorageMenu m : set) {
+            try {
+                m.rebuild();
+                m.broadcastChanges();
+            } catch (Throwable ignored) {}
+        }
     }
     
     public void setSearchText(String text) {
@@ -119,7 +152,7 @@ public class GuildStorageMenu extends AbstractContainerMenu {
         int totalItems = 0;
         for (ItemStack stack : storage) {
             if (!stack.isEmpty()) {
-                totalItems += trueCountOf(stack);
+                totalItems += stack.getCount();
             }
         }
         return totalItems;
@@ -183,17 +216,21 @@ public class GuildStorageMenu extends AbstractContainerMenu {
         } else {
             // Normal pagination view
             int start = page * 54;
+            migrateControlSlotItems(storage, start);
             java.util.Arrays.fill(mirrored, false);
+            java.util.Arrays.fill(viewMap, -1);
             for (int i = 0; i < 54; i++) {
                 ItemStack s = (start + i) < storage.size() ? storage.get(start + i) : ItemStack.EMPTY;
                 view.setItem(i, decodeFromStorage(s));
                 mirrored[i] = true;
+                viewMap[i] = (start + i) < storage.size() ? (start + i) : -1;
             }
         }
     }
     
     private void rebuildFilteredView(GuildsManager gm, java.util.List<ItemStack> storage) {
         java.util.Arrays.fill(mirrored, false);
+        java.util.Arrays.fill(viewMap, -1);
         // Clear view first
         for (int i = 0; i < 54; i++) {
             view.setItem(i, ItemStack.EMPTY);
@@ -225,7 +262,9 @@ public class GuildStorageMenu extends AbstractContainerMenu {
                 ItemStack item = filtered.get(i);
                 // Remove tracking tag before setting in view
                 if (item.hasTag()) {
+                    int mapped = item.getTag().getInt("_storageIndex");
                     item.getTag().remove("_storageIndex");
+                    viewMap[viewSlot] = mapped;
                 }
                 view.setItem(viewSlot, item);
                 mirrored[viewSlot] = true;
@@ -255,6 +294,15 @@ public class GuildStorageMenu extends AbstractContainerMenu {
         if (!player.level().isClientSide()) {
             this.data.set(0, this.page);
             this.data.set(1, getStorageLevel());
+            GuildsManager gm = GuildsManager.get(((ServerPlayer)player).serverLevel());
+            var storage = gm.getOrCreateStorage(guild == null ? null : guild.getName());
+        int[] counts = new int[54];
+        for (int i = 0; i < 54; i++) {
+            if (!mirrored[i]) { counts[i] = 0; continue; }
+            int idx = viewMap[i];
+            if (idx >= 0 && idx < storage.size()) counts[i] = storage.get(idx).getCount();
+        }
+            if (player instanceof ServerPlayer sp) org.lupz.doomsdayessentials.network.PacketHandler.CHANNEL.send(net.minecraftforge.network.PacketDistributor.PLAYER.with(() -> sp), new GuildStorageCountsPacket(page, counts));
         }
         // Periodically refresh guild data (but not every tick)
         if (player.level().getGameTime() % 20 == 0) { // Every second
@@ -278,6 +326,7 @@ public class GuildStorageMenu extends AbstractContainerMenu {
                 this.data.set(0, this.page); // Update synced data immediately
                 rebuild();
                 broadcastChanges();
+                if (guild != null) notifyStorageChanged(guild.getName());
                 return;
             }
         }
@@ -297,6 +346,7 @@ public class GuildStorageMenu extends AbstractContainerMenu {
                 broadcastChanges();
                 gm.setDirty();
                 sp.sendSystemMessage(Component.literal("§aPágina " + (page + 1) + "/" + maxAllowedPages));
+                if (guild != null) notifyStorageChanged(guild.getName());
             } else {
                 sp.sendSystemMessage(Component.literal("§cÚltima página. Aprimore o cofre para mais páginas."));
             }
@@ -315,11 +365,11 @@ public class GuildStorageMenu extends AbstractContainerMenu {
                 case POTIONS -> Filter.ENCHANTED;
                 case ENCHANTED -> Filter.ALL;
             };
-            rebuild(); broadcastChanges(); return;
+            rebuild(); broadcastChanges(); if (guild != null) notifyStorageChanged(guild.getName()); return;
         }
         if (allowControlAction && slotId == SLOT_SORT) {
             sortEntireStorage(sp);
-            rebuild(); broadcastChanges();
+            rebuild(); broadcastChanges(); if (guild != null) notifyStorageChanged(guild.getName());
             return;
         }
         if (allowControlAction && slotId == SLOT_LOG) {
@@ -357,16 +407,16 @@ public class GuildStorageMenu extends AbstractContainerMenu {
         }
         // Handle pickup (non-shift) with improved anti-dupe protection
         if (clickType == ClickType.PICKUP && slotId >= 0 && slotId < 54 && mirrored[slotId]) {
-            // Validate storage state before any operations
-            persistPage(gm, storage);
             
             ItemStack inView = view.getItem(slotId).copy(); // Work with copies to prevent reference issues
             ItemStack carried = this.getCarried().copy();
             int start2 = page * 54;
             int button = dragType; // 0 = left, 1 = right
+            org.lupz.doomsdayessentials.guild.StorageDiagnostics.logTrace("clicked_start", guild == null ? "" : guild.getName(), page, slotId, inView);
+            org.lupz.doomsdayessentials.guild.StorageDiagnostics.logTrace("clicked_carried", guild == null ? "" : guild.getName(), page, slotId, carried);
             
             // Anti-dupe: Validate item counts
-            if (!inView.isEmpty() && trueCountOf(inView) > storageLimit(inView)) {
+            if (!inView.isEmpty() && inView.getCount() > storageLimit(inView)) {
                 inView.setCount(storageLimit(inView));
             }
             if (!carried.isEmpty() && carried.getCount() > 64) {
@@ -379,13 +429,14 @@ public class GuildStorageMenu extends AbstractContainerMenu {
                 if (toTake > 0) {
                     ItemStack taken = inView.copy();
                     taken.setCount(toTake);
-                    stripExtTag(taken);
                     this.setCarried(taken);
                     inView.shrink(toTake);
                     view.setItem(slotId, inView.isEmpty() ? ItemStack.EMPTY : inView);
                     storage.set(start2 + slotId, encodeForStorage(inView));
+                    org.lupz.doomsdayessentials.guild.StorageDiagnostics.logTrace("clicked_take", guild == null ? "" : guild.getName(), page, slotId, taken);
                     gm.setDirty();
                     broadcastChanges();
+                    if (guild != null) notifyStorageChanged(guild.getName());
                 }
             } else if (!carried.isEmpty() && inView.isEmpty()) {
                 // Place into empty slot
@@ -398,8 +449,10 @@ public class GuildStorageMenu extends AbstractContainerMenu {
                     carried.shrink(toPlace);
                     this.setCarried(carried.isEmpty() ? ItemStack.EMPTY : carried);
                     storage.set(start2 + slotId, encodeForStorage(placing));
+                    org.lupz.doomsdayessentials.guild.StorageDiagnostics.logTrace("clicked_place", guild == null ? "" : guild.getName(), page, slotId, placing);
                     gm.setDirty();
                     broadcastChanges();
+                    if (guild != null) notifyStorageChanged(guild.getName());
                 }
             } else if (!carried.isEmpty() && !inView.isEmpty() && ItemStack.isSameItemSameTags(carried, inView)) {
                 // Merge into slot
@@ -412,20 +465,22 @@ public class GuildStorageMenu extends AbstractContainerMenu {
                     view.setItem(slotId, inView);
                     this.setCarried(carried.isEmpty() ? ItemStack.EMPTY : carried);
                     storage.set(start2 + slotId, encodeForStorage(inView));
+                    org.lupz.doomsdayessentials.guild.StorageDiagnostics.logTrace("clicked_merge", guild == null ? "" : guild.getName(), page, slotId, inView);
                     gm.setDirty();
                     broadcastChanges();
+                    if (guild != null) notifyStorageChanged(guild.getName());
                 }
             } else if (!carried.isEmpty() && !inView.isEmpty()) {
                 // Swap items
                 ItemStack temp = carried.copy();
-                stripExtTag(temp);
                 ItemStack viewCopy = inView.copy();
-                stripExtTag(viewCopy);
                 this.setCarried(viewCopy);
                 view.setItem(slotId, temp);
                 storage.set(start2 + slotId, encodeForStorage(temp));
+                org.lupz.doomsdayessentials.guild.StorageDiagnostics.logTrace("clicked_swap", guild == null ? "" : guild.getName(), page, slotId, temp);
                 gm.setDirty();
                 broadcastChanges();
+                if (guild != null) notifyStorageChanged(guild.getName());
             }
             
             // Anti-dupe: Enforce capacity limits after operation
@@ -487,57 +542,67 @@ public class GuildStorageMenu extends AbstractContainerMenu {
                             }
                         }
                     }
-                    if (changed) {
-                        if (inView.isEmpty()) view.setItem(slotId, ItemStack.EMPTY);
-                        else view.setItem(slotId, inView);
-                        inv.setChanged();
-                        persistPage(gm, storage);
-                        enforceCapacity(sp, gm, storage);
-                        gm.setDirty();
-                        broadcastChanges();
-                        if (removed > 0) {
-                            String id = net.minecraftforge.registries.ForgeRegistries.ITEMS.getKey(beforeSlot.getItem()).toString();
-                            gm.logStorageChange(guild.getName(), sp.getUUID(), "remove", id, removed, page, slotId);
+                        if (changed) {
+                            if (inView.isEmpty()) view.setItem(slotId, ItemStack.EMPTY);
+                            else view.setItem(slotId, inView);
+                            inv.setChanged();
+                            persistPage(gm, storage);
+                            enforceCapacity(sp, gm, storage);
+                            gm.setDirty();
+                            broadcastChanges();
+                            if (guild != null) notifyStorageChanged(guild.getName());
+                            org.lupz.doomsdayessentials.guild.StorageDiagnostics.logTrace("hotbar_swap", guild == null ? "" : guild.getName(), page, slotId, inView);
+                            if (removed > 0) {
+                                String id = net.minecraftforge.registries.ForgeRegistries.ITEMS.getKey(beforeSlot.getItem()).toString();
+                                gm.logStorageChange(guild.getName(), sp.getUUID(), "remove", id, removed, page, slotId);
+                                org.lupz.doomsdayessentials.guild.StorageDiagnostics.logOp("hotbar_swap_remove", guild.getName(), page, slotId, beforeSlot, removed);
+                            }
                         }
-                    }
-                    return;
+                        return;
                 }
             }
         }
         // Sync changes to underlying storage on any other click that changes items
         // Track changes for logging: compare before/after for this slot
         ItemStack before = slotId >= 0 && slotId < view.getContainerSize() && mirrored[slotId] ? view.getItem(slotId).copy() : ItemStack.EMPTY;
-        super.clicked(slotId, dragType, clickType, clickPlayer);
-        persistPage(gm, storage);
-        enforceCapacity(sp, gm, storage);
-        gm.setDirty();
-        if (slotId >= 0 && slotId < 54 && mirrored[slotId] && clickPlayer instanceof ServerPlayer sp2) {
-            ItemStack after = view.getItem(slotId);
-            if (!ItemStack.isSameItemSameTags(before, after)) {
-                String idBefore = before.isEmpty() ? "" : net.minecraftforge.registries.ForgeRegistries.ITEMS.getKey(before.getItem()).toString();
-                String idAfter = after.isEmpty() ? "" : net.minecraftforge.registries.ForgeRegistries.ITEMS.getKey(after.getItem()).toString();
-                int delta = after.getCount() - before.getCount();
-                String action;
-                String id;
-                int amount;
-                if (delta > 0) { action = "add"; id = idAfter; amount = delta; }
-                else if (delta < 0) { action = "remove"; id = idBefore; amount = -delta; }
-                else { action = "move"; id = idAfter; amount = after.getCount(); }
-                gm.logStorageChange(guild.getName(), sp2.getUUID(), action, id, amount, page, slotId);
+            try {
+                super.clicked(slotId, dragType, clickType, clickPlayer);
+            } catch (Throwable t) {
+                org.lupz.doomsdayessentials.guild.StorageDiagnostics.logError("clicked slotId=" + slotId + ", dragType=" + dragType + ", clickType=" + clickType, t);
+            }
+            persistPage(gm, storage);
+            enforceCapacity(sp, gm, storage);
+            gm.setDirty();
+            if (guild != null) notifyStorageChanged(guild.getName());
+            if (slotId >= 0 && slotId < 54 && mirrored[slotId] && clickPlayer instanceof ServerPlayer sp2) {
+                ItemStack after = view.getItem(slotId);
+                org.lupz.doomsdayessentials.guild.StorageDiagnostics.logTrace("clicked_after", guild == null ? "" : guild.getName(), page, slotId, after);
+                if (!ItemStack.isSameItemSameTags(before, after)) {
+                    String idBefore = before.isEmpty() ? "" : net.minecraftforge.registries.ForgeRegistries.ITEMS.getKey(before.getItem()).toString();
+                    String idAfter = after.isEmpty() ? "" : net.minecraftforge.registries.ForgeRegistries.ITEMS.getKey(after.getItem()).toString();
+                    int delta = after.getCount() - before.getCount();
+                    String action;
+                    String id;
+                    int amount;
+                    if (delta > 0) { action = "add"; id = idAfter; amount = delta; }
+                    else if (delta < 0) { action = "remove"; id = idBefore; amount = -delta; }
+                    else { action = "move"; id = idAfter; amount = after.getCount(); }
+                    gm.logStorageChange(guild.getName(), sp2.getUUID(), action, id, amount, page, slotId);
+                    org.lupz.doomsdayessentials.guild.StorageDiagnostics.logOp(action, guild.getName(), page, slotId, after, amount);
+                }
             }
         }
-    }
     @Override
     public void removed(Player p) {
         super.removed(p);
         if (!(p instanceof ServerPlayer sp) || guild == null) return;
+        try {
+            java.util.Set<GuildStorageMenu> set = OPEN_MENUS.get(guild.getName());
+            if (set != null) set.remove(this);
+        } catch (Throwable ignored) {}
         GuildsManager gm = GuildsManager.get(sp.serverLevel());
         var storage = gm.getOrCreateStorage(guild.getName());
-        int start = page * 54;
-        for (int i = 0; i < 54 && (start + i) < storage.size(); i++) {
-            if (!mirrored[i]) continue;
-            storage.set(start + i, encodeForStorage(view.getItem(i)));
-        }
+        persistPage(gm, storage);
         // Enforce capacity on close as well
         int cap = gm.getStorageCapacityItems(guild.getName());
         int total = decodedTotal(storage);
@@ -546,16 +611,19 @@ public class GuildStorageMenu extends AbstractContainerMenu {
             for (int idx = storage.size() - 1; idx >= 0 && toRefund > 0; idx--) {
                 ItemStack enc = storage.get(idx);
                 if (enc.isEmpty()) continue;
-                int trueCount = trueCountOf(enc);
+                int trueCount = enc.getCount();
                 if (trueCount <= 0) { storage.set(idx, ItemStack.EMPTY); continue; }
                 int take = Math.min(toRefund, Math.min(trueCount, 64));
                 if (take <= 0) continue;
                 ItemStack refund = enc.copy();
-                if (refund.hasTag()) refund.getTag().remove(EXT_TAG);
                 refund.setCount(take);
                 int left = trueCount - take;
                 if (left <= 0) storage.set(idx, ItemStack.EMPTY);
-                else storage.set(idx, encodedWithTrueCount(enc, left));
+                else {
+                    ItemStack newEnc = enc.copy();
+                    newEnc.setCount(left);
+                    storage.set(idx, newEnc);
+                }
                 if (!sp.getInventory().add(refund)) sp.drop(refund, false);
                 toRefund -= take;
             }
@@ -594,7 +662,6 @@ public class GuildStorageMenu extends AbstractContainerMenu {
             int toExtract = Math.min(slotStack.getCount(), 64);
             ItemStack extracted = slotStack.copy();
             extracted.setCount(toExtract);
-            stripExtTag(extracted);
             
             if (player.getInventory().add(extracted)) {
                 slotStack.shrink(toExtract);
@@ -602,9 +669,10 @@ public class GuildStorageMenu extends AbstractContainerMenu {
                 GuildsManager gm = GuildsManager.get(sp.serverLevel());
                 var storage = gm.getOrCreateStorage(guild.getName());
                 int start = page * 54;
-                storage.set(start + index, encodeForStorage(slotStack));
+                storage.set(start + index, Stacking.encodeForStorageStatic(slotStack));
                 gm.setDirty();
                 broadcastChanges();
+                if (guild != null) notifyStorageChanged(guild.getName());
                 return ItemStack.EMPTY;
             }
         }
@@ -615,55 +683,28 @@ public class GuildStorageMenu extends AbstractContainerMenu {
             if (!slot.hasItem()) return ItemStack.EMPTY;
             ItemStack stack = slot.getItem();
             ItemStack copy = stack.copy();
-            
-            // Try to deposit into storage
             GuildsManager gm = GuildsManager.get(sp.serverLevel());
             var storage = gm.getOrCreateStorage(guild.getName());
             boolean changed = false;
-            
-            // First pass: merge with existing stacks
-            for (int i = 0; i < 54; i++) {
-                if (!mirrored[i]) continue;
-                ItemStack viewStack = view.getItem(i);
-                if (!viewStack.isEmpty() && ItemStack.isSameItemSameTags(viewStack, stack)) {
-                    int limit = storageLimit(viewStack);
-                    int free = limit - viewStack.getCount();
-                    if (free > 0) {
-                        int put = Math.min(free, stack.getCount());
-                        viewStack.grow(put);
-                        stack.shrink(put);
-                        changed = true;
-                        if (stack.isEmpty()) break;
-                    }
-                }
+            try {
+                ItemStack remaining = Stacking.mergeIntoStorage(storage, stack.copy());
+                if (!remaining.isEmpty()) remaining = Stacking.placeIntoStorage(storage, remaining);
+                changed = remaining.isEmpty();
+            } catch (Throwable t) {
+                org.lupz.doomsdayessentials.guild.StorageDiagnostics.logError("quickMove deposit index=" + index, t);
             }
-            
-            // Second pass: empty slots
-            if (!stack.isEmpty()) {
-                for (int i = 0; i < 54; i++) {
-                    if (!mirrored[i]) continue;
-                    ItemStack viewStack = view.getItem(i);
-                    if (viewStack.isEmpty()) {
-                        int put = Math.min(storageLimit(stack), stack.getCount());
-                        ItemStack place = stack.copy();
-                        place.setCount(put);
-                        view.setItem(i, place);
-                        stack.shrink(put);
-                        changed = true;
-                        if (stack.isEmpty()) break;
-                    }
-                }
-            }
-            
             if (changed) {
-                persistPage(gm, storage);
                 enforceCapacity(sp, gm, storage);
-                gm.setDirty();
+                rebuild();
                 broadcastChanges();
+                gm.setDirty();
+                if (guild != null) notifyStorageChanged(guild.getName());
+                String id = net.minecraftforge.registries.ForgeRegistries.ITEMS.getKey(stack.getItem()).toString();
+                gm.logStorageChange(guild.getName(), sp.getUUID(), "add", id, copy.getCount(), page, -1);
+                org.lupz.doomsdayessentials.guild.StorageDiagnostics.logOp("quick_move_add", guild.getName(), page, -1, stack, stack.getCount());
+                org.lupz.doomsdayessentials.guild.StorageDiagnostics.logTrace("quick_move_after", guild == null ? "" : guild.getName(), page, -1, stack);
             }
-            
-            if (stack.isEmpty()) slot.set(ItemStack.EMPTY);
-            else slot.setChanged();
+            if (changed) slot.set(ItemStack.EMPTY); else slot.setChanged();
             return copy;
         }
         
@@ -721,10 +762,7 @@ public class GuildStorageMenu extends AbstractContainerMenu {
         return idx >= 0 && idx < 54;
     }
     private int storageLimit(ItemStack stack) {
-        if (stack == null || stack.isEmpty()) return 32767;
-        int vanillaMax = stack.getMaxStackSize();
-        if (vanillaMax <= 1) return 1;
-        return 32767;
+        return Stacking.storageLimitStatic(stack);
     }
     private boolean canInsertHotbarStack(ItemStack stack, int viewIndex) {
         if (stack.isEmpty()) return true;
@@ -762,7 +800,8 @@ public class GuildStorageMenu extends AbstractContainerMenu {
         int start = page * 54;
         for (int i = 0; i < 54 && (start + i) < storage.size(); i++) {
             if (!mirrored[i]) continue;
-            storage.set(start + i, encodeForStorage(view.getItem(i)));
+            ItemStack curView = view.getItem(i);
+            storage.set(start + i, Stacking.encodeForStorageStatic(curView));
         }
     }
     private void enforceCapacity(ServerPlayer sp, GuildsManager gm, net.minecraft.core.NonNullList<ItemStack> storage) {
@@ -773,16 +812,19 @@ public class GuildStorageMenu extends AbstractContainerMenu {
         for (int idx = storage.size() - 1; idx >= 0 && toRefund > 0; idx--) {
             ItemStack enc = storage.get(idx);
             if (enc.isEmpty()) continue;
-            int trueCount = trueCountOf(enc);
+            int trueCount = enc.getCount();
             if (trueCount <= 0) { storage.set(idx, ItemStack.EMPTY); continue; }
             int take = Math.min(toRefund, Math.min(trueCount, 64));
             if (take <= 0) continue;
             ItemStack refund = enc.copy();
-            if (refund.hasTag()) refund.getTag().remove(EXT_TAG);
             refund.setCount(take);
             int left = trueCount - take;
             if (left <= 0) storage.set(idx, ItemStack.EMPTY);
-            else storage.set(idx, encodedWithTrueCount(enc, left));
+            else {
+                ItemStack newEnc = enc.copy();
+                newEnc.setCount(left);
+                storage.set(idx, newEnc);
+            }
             if (!sp.getInventory().add(refund)) sp.drop(refund, false);
             toRefund -= take;
         }
@@ -793,67 +835,13 @@ public class GuildStorageMenu extends AbstractContainerMenu {
         for (ItemStack s : storage) {
             if (s.isEmpty()) continue;
             int c = s.getCount();
-            if (s.hasTag() && s.getTag().contains(EXT_TAG)) c = Math.max(c, s.getTag().getInt(EXT_TAG));
             sum += c;
         }
         return sum;
     }
     // -------- Extended count encode/decode for persistence (>64 stacks) --------
-    private static final String EXT_TAG = "gd_ext_count";
-    private ItemStack encodeForStorage(ItemStack viewStack) {
-        if (viewStack == null || viewStack.isEmpty()) return ItemStack.EMPTY;
-        ItemStack out = viewStack.copy();
-        int limit = storageLimit(out);
-        if (limit > 0 && out.getCount() > limit) out.setCount(limit);
-        int cnt = out.getCount();
-        if (cnt > 64) {
-            out.getOrCreateTag().putInt(EXT_TAG, cnt);
-            out.setCount(64);
-        } else if (out.hasTag() && out.getTag().contains(EXT_TAG)) {
-            // remove tag if not needed
-            out.getTag().remove(EXT_TAG);
-        }
-        return out;
-    }
-    private ItemStack decodeFromStorage(ItemStack stored) {
-        if (stored == null || stored.isEmpty()) return ItemStack.EMPTY;
-        ItemStack copy = stored.copy();
-        int ext = 0;
-        if (copy.hasTag() && copy.getTag().contains(EXT_TAG)) {
-            ext = copy.getTag().getInt(EXT_TAG);
-        }
-        int limit = storageLimit(copy);
-        int desired = copy.getCount();
-        if (ext > 64) desired = ext;
-        if (limit > 0) desired = Math.min(desired, limit);
-        copy.setCount(desired);
-        // Do not keep EXT_TAG in the view/cursor path to avoid leaking to player inventory
-        if (copy.hasTag()) copy.getTag().remove(EXT_TAG);
-        return copy;
-    }
-    private int trueCountOf(ItemStack encoded) {
-        if (encoded == null || encoded.isEmpty()) return 0;
-        int base = encoded.getCount();
-        if (encoded.hasTag() && encoded.getTag().contains(EXT_TAG)) {
-            int ext = encoded.getTag().getInt(EXT_TAG);
-            base = Math.max(base, ext);
-        }
-        int limit = storageLimit(encoded);
-        if (limit > 0) base = Math.min(base, limit);
-        return base;
-    }
-    private ItemStack encodedWithTrueCount(ItemStack like, int trueCount) {
-        if (like == null) return ItemStack.EMPTY;
-        ItemStack out = like.copy();
-        if (out.hasTag()) out.getTag().remove(EXT_TAG);
-        int limit = storageLimit(out);
-        if (limit > 0) trueCount = Math.min(trueCount, limit);
-        out.setCount(trueCount);
-        return encodeForStorage(out);
-    }
-    private void stripExtTag(ItemStack s) {
-        if (s != null && s.hasTag()) s.getTag().remove(EXT_TAG);
-    }
+    private ItemStack encodeForStorage(ItemStack viewStack) { return Stacking.encodeForStorageStatic(viewStack); }
+    private ItemStack decodeFromStorage(ItemStack stored) { return Stacking.decodeFromStorageStatic(stored); }
     private void migrateControlSlotItems(net.minecraft.core.NonNullList<ItemStack> storage, int start) {
         int[] reserved = {SLOT_BACK, SLOT_NEXT, SLOT_FILTER, SLOT_SORT, SLOT_LOG, SLOT_UPGRADE};
         java.util.Set<Integer> reservedSet = new java.util.HashSet<>();
@@ -1038,11 +1026,85 @@ public class GuildStorageMenu extends AbstractContainerMenu {
         };
     }
     @Override
-    public boolean stillValid(@NotNull Player p) { return true; }
-    // Container that supports large stack sizes to avoid clamping to 64 inside SimpleContainer
-    private static class LargeStackContainer extends SimpleContainer {
-        public LargeStackContainer(int size) { super(size); }
-        @Override public int getMaxStackSize() { return 32767; }
+    public boolean stillValid(@NotNull Player p) {
+        if (!(p instanceof ServerPlayer sp)) return true;
+        GuildsManager gm = GuildsManager.get(sp.serverLevel());
+        Guild current = gm.getGuildByMember(sp.getUUID());
+        if (guild == null) return false;
+        return current != null && current.getName().equals(guild.getName());
+    }
+    public static final class Stacking {
+        public static int storageLimitStatic(ItemStack stack) {
+            if (stack == null || stack.isEmpty()) return 32767;
+            int vanillaMax = stack.getMaxStackSize();
+            if (vanillaMax <= 1) return 1;
+            return 32767;
+        }
+        public static ItemStack encodeForStorageStatic(ItemStack viewStack) {
+            if (viewStack == null || viewStack.isEmpty()) return ItemStack.EMPTY;
+            ItemStack out = viewStack.copy();
+            int limit = storageLimitStatic(out);
+            if (limit > 0 && out.getCount() > limit) out.setCount(limit);
+            return out;
+        }
+        public static ItemStack decodeFromStorageStatic(ItemStack stored) {
+            return stored == null || stored.isEmpty() ? ItemStack.EMPTY : stored.copy();
+        }
+        public static int trueCountOfStatic(ItemStack encoded) {
+            return encoded == null || encoded.isEmpty() ? 0 : encoded.getCount();
+        }
+        public static ItemStack encodedWithTrueCountStatic(ItemStack like, int trueCount) {
+            if (like == null) return ItemStack.EMPTY;
+            ItemStack out = like.copy();
+            int limit = storageLimitStatic(out);
+            if (limit > 0) trueCount = Math.min(trueCount, limit);
+            out.setCount(trueCount);
+            return out;
+        }
+        private static boolean isReserved(int rel) {
+            return rel == SLOT_BACK || rel == SLOT_NEXT || rel == SLOT_FILTER || rel == SLOT_SORT || rel == SLOT_LOG || rel == SLOT_UPGRADE;
+        }
+        public static ItemStack mergeIntoStorage(net.minecraft.core.NonNullList<ItemStack> storage, ItemStack stack) {
+            if (stack == null || stack.isEmpty()) return ItemStack.EMPTY;
+            ItemStack remaining = stack.copy();
+            for (int i = 0; i < storage.size() && !remaining.isEmpty(); i++) {
+                int rel = i % 54;
+                if (isReserved(rel)) continue;
+                ItemStack enc = storage.get(i);
+                if (enc == null || enc.isEmpty()) continue;
+                if (ItemStack.isSameItemSameTags(enc, remaining)) {
+                    int free = storageLimitStatic(enc) - enc.getCount();
+                    if (free > 0) {
+                        int move = Math.min(free, remaining.getCount());
+                        enc.grow(move);
+                        storage.set(i, enc);
+                        remaining.shrink(move);
+                        org.lupz.doomsdayessentials.guild.StorageDiagnostics.logTrace("merge_slot", "", 0, rel, enc);
+                    }
+                }
+            }
+            return remaining;
+        }
+        public static ItemStack placeIntoStorage(net.minecraft.core.NonNullList<ItemStack> storage, ItemStack stack) {
+            if (stack == null || stack.isEmpty()) return ItemStack.EMPTY;
+            ItemStack remaining = stack.copy();
+            for (int i = 0; i < storage.size() && !remaining.isEmpty(); i++) {
+                int rel = i % 54;
+                if (isReserved(rel)) continue;
+                ItemStack enc = storage.get(i);
+                if (enc == null || enc.isEmpty()) {
+                    ItemStack put = remaining.copy();
+                    int limit = storageLimitStatic(put);
+                    int move = Math.min(limit, remaining.getCount());
+                    put.setCount(move);
+                    storage.set(i, put);
+                    remaining.shrink(move);
+                    org.lupz.doomsdayessentials.guild.StorageDiagnostics.logTrace("place_slot", "", 0, rel, put);
+                }
+            }
+            return remaining;
+        }
+        public static int getContainerMaxStackSize() { return 32767; }
     }
     // Custom slot for guild storage that allows large stacks and blocks control slots
     private class StorageSlot extends Slot {

@@ -53,6 +53,9 @@ public final class EscavadeiraConfig {
 			if (e != null) resources.add(e);
 		}
 
+		// Disable coal farming: ensure coal is not present in the random resource pool
+		resources.removeIf(e -> "minecraft".equals(e.itemId.getNamespace()) && "coal".equals(e.itemId.getPath()));
+
 		cfg.save();
 		cfg.close();
 	}
@@ -62,7 +65,6 @@ public final class EscavadeiraConfig {
 		list.add("minecraft:iron_ore;min=1;max=3;chance=0.45");
 		list.add("minecraft:copper_ore;min=2;max=5;chance=0.55");
 		list.add("minecraft:gold_ore;min=1;max=2;chance=0.18");
-		list.add("minecraft:coal;min=2;max=6;chance=0.40");
 		list.add("minecraft:stone;min=4;max=12;chance=0.80");
 		return list;
 	}

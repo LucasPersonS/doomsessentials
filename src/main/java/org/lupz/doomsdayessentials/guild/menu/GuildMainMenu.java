@@ -17,7 +17,7 @@ import org.lupz.doomsdayessentials.guild.Guild;
 import org.lupz.doomsdayessentials.guild.GuildsManager;
 import org.lupz.doomsdayessentials.guild.GuildMember;
 import org.lupz.doomsdayessentials.professions.menu.ProfessionMenuTypes;
-import org.lupz.doomsdayessentials.territory.ResourceGeneratorManager;
+// import removed: ResourceGeneratorManager is not used for invasion logic
 
 /**
  * Main guild UI: centralizes all guild actions under one GUI.
@@ -113,7 +113,7 @@ public class GuildMainMenu extends AbstractContainerMenu {
             ItemStack invadir = new ItemStack(Items.IRON_SWORD);
             invadir.setHoverName(Component.literal("§cIniciar Invasão"));
             addLore(invadir, new java.util.ArrayList<>(java.util.List.of(
-                    Component.literal("§7Perto da Base de Recursos inimiga, com requisitos online."))));
+                    Component.literal("§7Dentro do território inimigo, com requisitos online."))));
             container.setItem(SLOT_INVADIR, invadir);
 
             // Base teleport
@@ -195,39 +195,39 @@ public class GuildMainMenu extends AbstractContainerMenu {
         GuildsManager gm = GuildsManager.get(level);
         if (guild == null) guild = gm.getGuildByMember(sp.getUUID());
 
-        if (slotId == SLOT_DEPOSIT && clickType == ClickType.PICKUP) {
+        if (slotId == SLOT_DEPOSIT && guild != null) {
             sp.openMenu(new net.minecraft.world.SimpleMenuProvider(
                 (id, inv, p) -> new org.lupz.doomsdayessentials.guild.menu.GuildResourceDepositMenu(id, inv),
                 Component.literal("Depósito de Recursos"))
             );
             return;
         }
-        if (slotId == SLOT_TERRITORY_REWARDS && clickType == ClickType.PICKUP) {
+        if (slotId == SLOT_TERRITORY_REWARDS && guild != null) {
             sp.openMenu(new net.minecraft.world.SimpleMenuProvider((id, inv, p) -> new org.lupz.doomsdayessentials.territory.menu.TerritoryRewardMenu(id, inv), Component.literal("Recompensas de Território")));
             return;
         }
-        if (slotId == SLOT_OPEN_UPGRADES && clickType == ClickType.PICKUP) {
+        if (slotId == SLOT_OPEN_UPGRADES && guild != null) {
             sp.openMenu(new net.minecraft.world.SimpleMenuProvider(
                 (id, inv, p) -> new org.lupz.doomsdayessentials.guild.menu.GuildUpgradeMenu(id, inv),
                 Component.literal("Upgrades de Organização")));
             return;
         }
-        if (slotId == SLOT_MAP_TOGGLE && clickType == ClickType.PICKUP) {
+        if (slotId == SLOT_MAP_TOGGLE && guild != null) {
             boolean on = org.lupz.doomsdayessentials.guild.ClientGuildData.toggleMap(sp.getUUID());
             sp.sendSystemMessage(Component.literal(on ? "§aVisualização ativada." : "§eVisualização desativada."));
             return;
         }
-        if (slotId == SLOT_INVADIR && clickType == ClickType.PICKUP) { handleInvadir(sp); return; }
-        if (slotId == SLOT_BASE && clickType == ClickType.PICKUP) { handleBaseTeleport(sp); return; }
-        if (slotId == SLOT_SET_BASE && clickType == ClickType.PICKUP) { handleSetBase(sp); return; }
-        if (slotId == SLOT_TOTEM && clickType == ClickType.PICKUP) { handleTotem(sp); return; }
-        if (slotId == SLOT_LEAVE && clickType == ClickType.PICKUP) { handleLeave(sp); return; }
-        if (slotId == SLOT_ACCEPT_INVITE && clickType == ClickType.PICKUP) { handleAcceptInvite(sp); return; }
-        if (slotId == SLOT_ALLIANCE && clickType == ClickType.PICKUP) {
+        if (slotId == SLOT_INVADIR && guild != null) { handleInvadir(sp); return; }
+        if (slotId == SLOT_BASE && guild != null) { handleBaseTeleport(sp); return; }
+        if (slotId == SLOT_SET_BASE && guild != null) { handleSetBase(sp); return; }
+        if (slotId == SLOT_TOTEM && guild != null) { handleTotem(sp); return; }
+        if (slotId == SLOT_LEAVE && guild != null) { handleLeave(sp); return; }
+        if (slotId == SLOT_ACCEPT_INVITE && guild == null) { handleAcceptInvite(sp); return; }
+        if (slotId == SLOT_ALLIANCE && guild != null) {
             sp.openMenu(new net.minecraft.world.SimpleMenuProvider((id, inv, p) -> new org.lupz.doomsdayessentials.guild.menu.GuildAlliancesMenu(id, inv), Component.literal("Alianças")));
             return;
         }
-        if (slotId == SLOT_MEMBERS && clickType == ClickType.PICKUP) {
+        if (slotId == SLOT_MEMBERS && guild != null) {
             sp.openMenu(new net.minecraft.world.SimpleMenuProvider((id, inv, p) -> new org.lupz.doomsdayessentials.guild.menu.GuildMembersMenu(id, inv), Component.literal("Membros da Organização")));
             return;
         }
@@ -306,11 +306,9 @@ public class GuildMainMenu extends AbstractContainerMenu {
         GuildsManager m = GuildsManager.get(level);
         Guild attacker = m.getGuildByMember(sp.getUUID());
         if (attacker == null) { sp.sendSystemMessage(Component.literal("§cVocê precisa estar em uma organização.")); return; }
-        org.lupz.doomsdayessentials.combat.AreaManager am = org.lupz.doomsdayessentials.combat.AreaManager.get();
-        org.lupz.doomsdayessentials.combat.ManagedArea area = am.getAreaAt(level, sp.blockPosition());
-        if (area == null || !area.getType().isResource()) { sp.sendSystemMessage(Component.literal("§eVocê precisa estar perto da Base de Recursos inimiga para iniciar a invasão.")); return; }
+        // Invasão baseada somente em território: ao entrar no território de outra organização.
         Guild defender = m.getGuildAt(sp.blockPosition());
-        if (defender == null) { sp.sendSystemMessage(Component.literal("§eVocê não está no território de nenhuma organização.")); return; }
+        if (defender == null) { sp.sendSystemMessage(Component.literal("§eVocê precisa estar dentro do território de uma organização inimiga para iniciar a invasão.")); return; }
         if (attacker.getName().equals(defender.getName())) { sp.sendSystemMessage(Component.literal("§eVocê não pode invadir sua própria organização.")); return; }
         if (m.isGuildProtected(defender.getName())) { sp.sendSystemMessage(Component.literal("§eEsta organização está sob proteção e não pode ser atacada agora.")); return; }
         if (m.isPairBanned(attacker.getName(), defender.getName())) { sp.sendSystemMessage(Component.literal("§eVocê não pode reinvadir esta organização ainda.")); return; }
@@ -341,6 +339,8 @@ public class GuildMainMenu extends AbstractContainerMenu {
         }
         sp.sendSystemMessage(Component.literal("§cGuerra iniciada!"));
     }
+
+    // Sem dependência de áreas de gerador/KOFH para invasão: apenas território da guilda conta.
 
     @Override
     public boolean stillValid(@NotNull Player p) { return true; }

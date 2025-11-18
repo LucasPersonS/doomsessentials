@@ -174,6 +174,9 @@ public class GuildsManager extends SavedData {
                 stores.put(e.getKey(), list);
             }
             tag.put("guildStorages", stores);
+            try {
+                org.lupz.doomsdayessentials.EssentialsMod.LOGGER.info("StorageSave: guilds=" + guildStorages.size());
+            } catch (Throwable ignored) {}
         }
         // Persist guild resources
         if (!guildResources.isEmpty()) {
@@ -279,10 +282,21 @@ public class GuildsManager extends SavedData {
                 net.minecraft.nbt.ListTag list = stores.getList(gname, Tag.TAG_COMPOUND);
                 net.minecraft.core.NonNullList<net.minecraft.world.item.ItemStack> inv = net.minecraft.core.NonNullList.withSize(list.size(), net.minecraft.world.item.ItemStack.EMPTY);
                 for (int i = 0; i < list.size(); i++) {
-                    inv.set(i, net.minecraft.world.item.ItemStack.of(list.getCompound(i)));
+                    net.minecraft.world.item.ItemStack st = net.minecraft.world.item.ItemStack.of(list.getCompound(i));
+                    try {
+                        if (st.hasTag() && st.getTag().contains("gd_ext_count")) {
+                            int ext = st.getTag().getInt("gd_ext_count");
+                            st.getTag().remove("gd_ext_count");
+                            if (ext > 0) st.setCount(ext);
+                        }
+                    } catch (Throwable ignored) {}
+                    inv.set(i, st);
                 }
                 guildStorages.put(gname, inv);
             }
+            try {
+                org.lupz.doomsdayessentials.EssentialsMod.LOGGER.info("StorageLoad: guilds=" + guildStorages.size());
+            } catch (Throwable ignored) {}
         }
         if (tag.contains("storageLogs")) {
             CompoundTag logs = tag.getCompound("storageLogs");
@@ -302,6 +316,10 @@ public class GuildsManager extends SavedData {
     public static GuildsManager get(ServerLevel level) {
         DimensionDataStorage storage = level.getDataStorage();
         return storage.computeIfAbsent(GuildsManager::load, GuildsManager::new, DATA_NAME);
+    }
+
+    public java.util.Set<String> getGuildNames() {
+        return new java.util.HashSet<>(guilds.keySet());
     }
 
     // ---------------------------------------------------------------------

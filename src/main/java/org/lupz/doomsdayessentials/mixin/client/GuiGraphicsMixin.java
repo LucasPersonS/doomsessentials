@@ -21,7 +21,6 @@ public abstract class GuiGraphicsMixin {
             at = @At("HEAD"), cancellable = true, require = 0)
     private void dooms$replaceDecorations4(Font font, ItemStack stack, int x, int y, CallbackInfo ci) {
         if (Minecraft.getInstance().screen instanceof GuildStorageScreen) {
-            drawGuildCount(font, stack, x, y, null);
             ci.cancel();
         }
     }
@@ -30,42 +29,11 @@ public abstract class GuiGraphicsMixin {
             at = @At("HEAD"), cancellable = true, require = 0)
     private void dooms$replaceDecorations5(Font font, ItemStack stack, int x, int y, String text, CallbackInfo ci) {
         if (Minecraft.getInstance().screen instanceof GuildStorageScreen) {
-            drawGuildCount(font, stack, x, y, text);
             ci.cancel();
         }
     }
 
-    private void drawGuildCount(Font font, ItemStack stack, int x, int y, String vanillaText) {
-        if (stack.isEmpty()) return;
-
-        // Normalize vanilla text: treat empty strings as no text
-        String vanilla = (vanillaText != null && !vanillaText.isEmpty()) ? vanillaText : null;
-
-        // Decide text: k-format >= 1000; otherwise vanilla text (or computed count when > 1)
-        int cnt = stack.getCount();
-        String text = (cnt >= 1000)
-                ? formatK(cnt)
-                : (vanilla != null ? vanilla : (cnt > 1 ? Integer.toString(cnt) : null));
-        if (text == null || text.isEmpty()) return;
-
-        GuiGraphics self = (GuiGraphics)(Object)this;
-        float scale = 0.75f;
-        int textW = font.width(text);
-        // Bottom-right of the 16x16 area relative to x,y with 1px padding
-        float right = x + 16 - 1;
-        float bottom = y + 16 - 1;
-        float scaledH = 9.0f * scale;
-        float drawX = right - textW * scale;
-        float drawY = bottom - scaledH;
-
-        self.pose().pushPose();
-        // Match vanilla overlay depth so it renders above item but below tooltips
-        self.pose().translate(0, 0, 200);
-        self.pose().translate(drawX, drawY, 0);
-        self.pose().scale(scale, scale, 1f);
-        self.drawString(font, text, 0, 0, 0xFFFFFF, true);
-        self.pose().popPose();
-    }
+    private void drawGuildCount(Font font, ItemStack stack, int x, int y, String vanillaText) {}
 
     private static String formatK(int c) {
         double k = c / 1000.0;

@@ -226,9 +226,10 @@ public class SelectProfessionScreen extends Screen {
 		if ("medico".equals(id)) {
 			return new IconData(new ItemStack(InjuryItems.MEDIC_KIT.get()));
 		}
-		if ("engenheiro".equals(id)) {
-			return new IconData(new ItemStack(ProfessionItems.ENGINEER_HAMMER.get()));
-		}
+        if ("engenheiro".equals(id)) {
+            // Use a vanilla item as the engineer icon (hammer removed)
+            return new IconData(new ItemStack(Items.IRON_PICKAXE));
+        }
 		if ("rastreador".equals(id)) {
 			return new IconData(new ItemStack(Items.COMPASS));
 		}

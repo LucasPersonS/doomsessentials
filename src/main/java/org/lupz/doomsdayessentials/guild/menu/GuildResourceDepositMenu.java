@@ -32,6 +32,7 @@ public class GuildResourceDepositMenu extends AbstractContainerMenu {
 
     private static final int SLOT_BACK = 45;      // bottom-left
     private static final int SLOT_INFO = 49;      // bottom-center
+    private static final int SLOT_TITLE = 4;      // decorative title; must be non-pickable
 
     public GuildResourceDepositMenu(int windowId, Inventory inv) {
         super(ProfessionMenuTypes.GUILD_RESOURCE_DEPOSIT_MENU.get(), windowId);
@@ -49,10 +50,10 @@ public class GuildResourceDepositMenu extends AbstractContainerMenu {
                 this.addSlot(new Slot(cont, idx, 8 + col * 18, 18 + row * 18) {
                     @Override public boolean mayPlace(@NotNull ItemStack s) {
                         // Only allow deposit into non-control slots and only accepted items
-                        if (idx == SLOT_BACK || idx == SLOT_INFO) return false;
+                        if (idx == SLOT_BACK || idx == SLOT_INFO || idx == SLOT_TITLE) return false;
                         return isAccepted(s.getItem());
                     }
-                    @Override public boolean mayPickup(@NotNull Player p) { return idx != SLOT_BACK && idx != SLOT_INFO; }
+                    @Override public boolean mayPickup(@NotNull Player p) { return idx != SLOT_BACK && idx != SLOT_INFO && idx != SLOT_TITLE; }
                 });
             }
         }
@@ -71,7 +72,7 @@ public class GuildResourceDepositMenu extends AbstractContainerMenu {
         // Title
         ItemStack title = new ItemStack(net.minecraft.world.item.Items.PAPER);
         title.setHoverName(Component.literal("§6§lDepósito de Recursos"));
-        cont.setItem(4, title);
+        cont.setItem(SLOT_TITLE, title);
 
         // Back button
         ItemStack back = new ItemStack(org.lupz.doomsdayessentials.item.ModItems.GUI_BACK.get());
@@ -123,7 +124,7 @@ public class GuildResourceDepositMenu extends AbstractContainerMenu {
     @Override
     public void clicked(int slotId, int dragType, @NotNull ClickType clickType, @NotNull Player clickPlayer) {
         if (!(clickPlayer instanceof ServerPlayer sp)) { super.clicked(slotId, dragType, clickType, clickPlayer); return; }
-        if (slotId == SLOT_BACK && clickType == ClickType.PICKUP) {
+        if (slotId == SLOT_BACK) {
             sp.openMenu(new net.minecraft.world.SimpleMenuProvider((id, inv, p) -> new GuildMainMenu(id, inv), Component.literal("Organização")));
             return;
         }
@@ -137,7 +138,8 @@ public class GuildResourceDepositMenu extends AbstractContainerMenu {
         org.lupz.doomsdayessentials.guild.GuildResourceBank bank = org.lupz.doomsdayessentials.guild.GuildResourceBank.get(sp.serverLevel());
         Map<String, Integer> added = new HashMap<>();
         for (int i = 0; i < cont.getContainerSize(); i++) {
-            if (i == SLOT_BACK || i == SLOT_INFO) continue;
+            // Skip control/decorative slots
+            if (i == SLOT_BACK || i == SLOT_INFO || i == SLOT_TITLE) continue;
             ItemStack s = cont.getItem(i);
             if (s.isEmpty()) continue;
             if (isAccepted(s.getItem())) {
@@ -177,7 +179,7 @@ public class GuildResourceDepositMenu extends AbstractContainerMenu {
 
         if (index < 54) {
             // deposit -> player
-            if (index == SLOT_BACK || index == SLOT_INFO) return ItemStack.EMPTY;
+            if (index == SLOT_BACK || index == SLOT_INFO || index == SLOT_TITLE) return ItemStack.EMPTY;
             if (!this.moveItemStackTo(stack, playerStart, playerEndExclusive, true)) return ItemStack.EMPTY;
         } else {
             // player -> deposit (only accepted)

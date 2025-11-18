@@ -19,6 +19,9 @@ import net.minecraft.world.phys.shapes.CollisionContext;
 import net.minecraft.world.phys.shapes.Shapes;
 import net.minecraft.world.phys.shapes.VoxelShape;
 import org.jetbrains.annotations.Nullable;
+import org.lupz.doomsdayessentials.event.eclipse.market.admin.NightMarketAdminOpenPacket;
+import org.lupz.doomsdayessentials.network.PacketHandler;
+import org.lupz.doomsdayessentials.event.eclipse.market.MarketPresetManager;
 
 public class NightMarketBlock extends BaseEntityBlock {
     // Pixel-perfect hitbox based on night_market.geo.json model bounds
@@ -57,7 +60,23 @@ public class NightMarketBlock extends BaseEntityBlock {
     @Override
     public InteractionResult use(BlockState state, Level level, BlockPos pos, Player player, InteractionHand hand, BlockHitResult hit) {
         if (!level.isClientSide && player instanceof ServerPlayer sp) {
-            MerchantOffers offers = NightMarketManager.getOffers(level);
+            BlockEntity be = level.getBlockEntity(pos);
+            java.util.UUID marketId = be instanceof NightMarketBlockEntity nbe ? nbe.getMarketId() : java.util.UUID.fromString("00000000-0000-0000-0000-000000000000");
+            MerchantOffers offers = NightMarketManager.getOffers(level, marketId);
+            if (offers.isEmpty()) {
+                // Lazy-load JSON offers into this specific market on first use
+                BlackMarketConfigManager.ensureDefault();
+                NightMarketManager.reloadIntoMarket(level, marketId);
+                offers = NightMarketManager.getOffers(level, marketId);
+            }
+            // If player is sneaking and has permission level >= 2 (OP), open Admin UI instead
+            if (player.isShiftKeyDown() && sp.hasPermissions(2)) {
+                String json = MarketPresetManager.exportOffersToJson(level, offers);
+                String activePreset = (be instanceof NightMarketBlockEntity nbe2) ? nbe2.getActivePreset() : "";
+                PacketHandler.CHANNEL.send(net.minecraftforge.network.PacketDistributor.PLAYER.with(() -> sp),
+                        new NightMarketAdminOpenPacket(marketId, pos, json, activePreset));
+                return InteractionResult.CONSUME;
+            }
             SimpleMerchantImpl merchant = new SimpleMerchantImpl(Component.literal("Mercado Negro"), offers);
             merchant.setTradingPlayer(sp);
             sp.openMenu(new net.minecraft.world.MenuProvider() {
@@ -70,4 +89,4 @@ public class NightMarketBlock extends BaseEntityBlock {
         }
         return InteractionResult.sidedSuccess(level.isClientSide);
     }
-} 
+}

@@ -70,6 +70,12 @@ public class StorageBlock extends BaseEntityBlock {
                 return InteractionResult.FAIL;
             }
             
+            // Prevent opening storage inside territory of another guild
+            Guild territory = gm.getGuildAt(pos);
+            if (territory != null && guild != null && !territory.getName().equals(guild.getName())) {
+                sp.sendSystemMessage(Component.literal("§cVocê não pode abrir o cofre de outra organização."));
+                return InteractionResult.FAIL;
+            }
             // Open guild storage menu
             sp.openMenu(new net.minecraft.world.SimpleMenuProvider(
                 (id, inv, p) -> new org.lupz.doomsdayessentials.guild.menu.GuildStorageMenu(id, inv, 0),
