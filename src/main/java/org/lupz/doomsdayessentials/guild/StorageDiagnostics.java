@@ -21,9 +21,7 @@ public final class StorageDiagnostics {
         try {
             String id = stack == null || stack.isEmpty() ? "" : java.util.Objects.toString(net.minecraftforge.registries.ForgeRegistries.ITEMS.getKey(stack.getItem()));
             int count = stack == null || stack.isEmpty() ? 0 : stack.getCount();
-            int ext = 0;
-            if (stack != null && stack.hasTag() && stack.getTag().contains("gd_ext_count")) ext = stack.getTag().getInt("gd_ext_count");
-            EssentialsMod.LOGGER.info("StorageTrace: stage=" + stage + ", guild=" + guild + ", page=" + page + ", slot=" + slot + ", item=" + id + ", count=" + count + ", ext=" + ext);
+            EssentialsMod.LOGGER.info("StorageTrace: stage=" + stage + ", guild=" + guild + ", page=" + page + ", slot=" + slot + ", item=" + id + ", count=" + count);
         } catch (Throwable ignored) {}
     }
     public static void logError(String ctx, Throwable t) {

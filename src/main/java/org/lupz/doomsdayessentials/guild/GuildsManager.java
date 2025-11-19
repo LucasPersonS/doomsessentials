@@ -26,17 +26,27 @@ public class GuildsManager extends SavedData {
     /** Pending invitations: player UUID -> guild name */
     private final java.util.Map<java.util.UUID, String> pendingInvites = new java.util.HashMap<>();
     private final java.util.Map<String, Long> guildProtectionUntil = new java.util.HashMap<>();
-    /** Pair-wise ban: attacker -> (defender -> until). Prevents re-invading a specific defender. */
+    /**
+     * Pair-wise ban: attacker -> (defender -> until). Prevents re-invading a
+     * specific defender.
+     */
     private final java.util.Map<String, java.util.Map<String, Long>> pairBanUntil = new java.util.HashMap<>();
-    /** Pending alliance invites (not persisted): targetGuild -> set of inviterGuilds */
+    /**
+     * Pending alliance invites (not persisted): targetGuild -> set of inviterGuilds
+     */
     private final java.util.Map<String, java.util.Set<String>> pendingAllianceInvites = new java.util.HashMap<>();
-    /** Persistent guild storage (global chest-like inventory) indexed by guild name. */
+    /**
+     * Persistent guild storage (global chest-like inventory) indexed by guild name.
+     */
     private final java.util.Map<String, net.minecraft.core.NonNullList<net.minecraft.world.item.ItemStack>> guildStorages = new java.util.HashMap<>();
     /** Log of storage changes per guild (append-only ring). */
     private final java.util.Map<String, java.util.List<StorageLogEntry>> storageLogs = new java.util.HashMap<>();
     /** Guild resources (balances) keyed by guild -> (resourceId -> amount). */
     private final java.util.Map<String, java.util.Map<String, Integer>> guildResources = new java.util.HashMap<>();
-    /** Preferred timezone ID for storage logs (applies globally). Defaults to America/Sao_Paulo. */
+    /**
+     * Preferred timezone ID for storage logs (applies globally). Defaults to
+     * America/Sao_Paulo.
+     */
     private String storageLogTimeZone = "America/Sao_Paulo";
 
     public static class StorageLogEntry {
@@ -48,10 +58,22 @@ public class GuildsManager extends SavedData {
         public int amount;
         public int page;
         public int slot;
-        public StorageLogEntry() {}
-        public StorageLogEntry(long ts, java.util.UUID actor, String actorName, String action, String itemId, int amount, int page, int slot) {
-            this.ts = ts; this.actor = actor; this.actorName = actorName == null ? "" : actorName; this.action = action; this.itemId = itemId; this.amount = amount; this.page = page; this.slot = slot;
+
+        public StorageLogEntry() {
         }
+
+        public StorageLogEntry(long ts, java.util.UUID actor, String actorName, String action, String itemId,
+                int amount, int page, int slot) {
+            this.ts = ts;
+            this.actor = actor;
+            this.actorName = actorName == null ? "" : actorName;
+            this.action = action;
+            this.itemId = itemId;
+            this.amount = amount;
+            this.page = page;
+            this.slot = slot;
+        }
+
         public net.minecraft.nbt.CompoundTag toTag() {
             net.minecraft.nbt.CompoundTag t = new net.minecraft.nbt.CompoundTag();
             t.putLong("ts", ts);
@@ -64,6 +86,7 @@ public class GuildsManager extends SavedData {
             t.putInt("slot", slot);
             return t;
         }
+
         public static StorageLogEntry fromTag(net.minecraft.nbt.CompoundTag t) {
             StorageLogEntry e = new StorageLogEntry();
             e.ts = t.getLong("ts");
@@ -82,7 +105,8 @@ public class GuildsManager extends SavedData {
     // Construction / loading
     // ---------------------------------------------------------------------
 
-    public GuildsManager() {}
+    public GuildsManager() {
+    }
 
     private GuildsManager(CompoundTag tag) {
         read(tag);
@@ -168,7 +192,13 @@ public class GuildsManager extends SavedData {
                 net.minecraft.nbt.ListTag list = new net.minecraft.nbt.ListTag();
                 for (net.minecraft.world.item.ItemStack stack : e.getValue()) {
                     CompoundTag s = new CompoundTag();
-                    stack.save(s);
+                    // clamp to 64/1 and remove any legacy ext tag
+                    int limit = Math.max(1, Math.min(64, stack.getMaxStackSize()));
+                    net.minecraft.world.item.ItemStack toSave = stack.copy();
+                    if (toSave.hasTag() && toSave.getTag().isEmpty())
+                        toSave.setTag(null);
+                    toSave.setCount(Math.min(Math.max(0, toSave.getCount()), limit));
+                    toSave.save(s);
                     list.add(s);
                 }
                 stores.put(e.getKey(), list);
@@ -176,7 +206,8 @@ public class GuildsManager extends SavedData {
             tag.put("guildStorages", stores);
             try {
                 org.lupz.doomsdayessentials.EssentialsMod.LOGGER.info("StorageSave: guilds=" + guildStorages.size());
-            } catch (Throwable ignored) {}
+            } catch (Throwable ignored) {
+            }
         }
         // Persist guild resources
         if (!guildResources.isEmpty()) {
@@ -194,7 +225,8 @@ public class GuildsManager extends SavedData {
             CompoundTag logs = new CompoundTag();
             for (var e : storageLogs.entrySet()) {
                 net.minecraft.nbt.ListTag list = new net.minecraft.nbt.ListTag();
-                for (StorageLogEntry le : e.getValue()) list.add(le.toTag());
+                for (StorageLogEntry le : e.getValue())
+                    list.add(le.toTag());
                 logs.put(e.getKey(), list);
             }
             tag.put("storageLogs", logs);
@@ -205,47 +237,50 @@ public class GuildsManager extends SavedData {
     }
 
     private void read(CompoundTag tag) {
-        if (!tag.contains("guilds")) return;
-        ListTag guildsList = tag.getList("guilds", Tag.TAG_COMPOUND);
-        for (int i = 0; i < guildsList.size(); i++) {
-            CompoundTag gtag = guildsList.getCompound(i);
-            String name = gtag.getString("name");
-            String gtagTag = gtag.getString("tag");
-            UUID leader = gtag.getUUID("leader");
-            Guild guild = new Guild(name, gtagTag, leader);
-            if (gtag.contains("storageLevel")) {
-                guild.setStorageLevel(gtag.getInt("storageLevel"));
-            }
-
-            if (gtag.contains("totemX")) {
-                guild.setTotemPosition(new BlockPos(gtag.getInt("totemX"), gtag.getInt("totemY"), gtag.getInt("totemZ")));
-            }
-            if (gtag.contains("baseX")) {
-                guild.setBasePosition(new BlockPos(gtag.getInt("baseX"), gtag.getInt("baseY"), gtag.getInt("baseZ")));
-            }
-
-            ListTag membersList = gtag.getList("members", Tag.TAG_COMPOUND);
-            for (int j = 0; j < membersList.size(); j++) {
-                CompoundTag mtag = membersList.getCompound(j);
-                UUID uuid = mtag.getUUID("uuid");
-                if (uuid.equals(leader)) {
-                    continue; // already added as leader
+        if (tag.contains("guilds")) {
+            ListTag guildsList = tag.getList("guilds", Tag.TAG_COMPOUND);
+            for (int i = 0; i < guildsList.size(); i++) {
+                CompoundTag gtag = guildsList.getCompound(i);
+                String name = gtag.getString("name");
+                String gtagTag = gtag.getString("tag");
+                UUID leader = gtag.getUUID("leader");
+                Guild guild = new Guild(name, gtagTag, leader);
+                if (gtag.contains("storageLevel")) {
+                    guild.setStorageLevel(gtag.getInt("storageLevel"));
                 }
-                guild.addMember(uuid);
-                GuildMember member = guild.getMember(uuid);
-                if (member != null) {
-                    member.setRank(GuildMember.Rank.valueOf(mtag.getString("rank")));
-                    // joinTimestamp
-                }
-            }
-            guilds.put(name, guild);
 
-            // Allies – processed after all guilds added to avoid missing refs
-            if (gtag.contains("allies")) {
-                ListTag allyList = gtag.getList("allies", Tag.TAG_STRING);
-                java.util.Set<String> allies = guild.getAllies();
-                for (int k = 0; k < allyList.size(); k++) {
-                    allies.add(allyList.getString(k));
+                if (gtag.contains("totemX")) {
+                    guild.setTotemPosition(
+                            new BlockPos(gtag.getInt("totemX"), gtag.getInt("totemY"), gtag.getInt("totemZ")));
+                }
+                if (gtag.contains("baseX")) {
+                    guild.setBasePosition(
+                            new BlockPos(gtag.getInt("baseX"), gtag.getInt("baseY"), gtag.getInt("baseZ")));
+                }
+
+                ListTag membersList = gtag.getList("members", Tag.TAG_COMPOUND);
+                for (int j = 0; j < membersList.size(); j++) {
+                    CompoundTag mtag = membersList.getCompound(j);
+                    UUID uuid = mtag.getUUID("uuid");
+                    if (uuid.equals(leader)) {
+                        continue; // already added as leader
+                    }
+                    guild.addMember(uuid);
+                    GuildMember member = guild.getMember(uuid);
+                    if (member != null) {
+                        member.setRank(GuildMember.Rank.valueOf(mtag.getString("rank")));
+                        // joinTimestamp
+                    }
+                }
+                guilds.put(name, guild);
+
+                // Allies – processed after all guilds added to avoid missing refs
+                if (gtag.contains("allies")) {
+                    ListTag allyList = gtag.getList("allies", Tag.TAG_STRING);
+                    java.util.Set<String> allies = guild.getAllies();
+                    for (int k = 0; k < allyList.size(); k++) {
+                        allies.add(allyList.getString(k));
+                    }
                 }
             }
         }
@@ -280,30 +315,62 @@ public class GuildsManager extends SavedData {
             CompoundTag stores = tag.getCompound("guildStorages");
             for (String gname : stores.getAllKeys()) {
                 net.minecraft.nbt.ListTag list = stores.getList(gname, Tag.TAG_COMPOUND);
-                net.minecraft.core.NonNullList<net.minecraft.world.item.ItemStack> inv = net.minecraft.core.NonNullList.withSize(list.size(), net.minecraft.world.item.ItemStack.EMPTY);
+                java.util.List<net.minecraft.world.item.ItemStack> result = new java.util.ArrayList<>();
                 for (int i = 0; i < list.size(); i++) {
                     net.minecraft.world.item.ItemStack st = net.minecraft.world.item.ItemStack.of(list.getCompound(i));
                     try {
-                        if (st.hasTag() && st.getTag().contains("gd_ext_count")) {
-                            int ext = st.getTag().getInt("gd_ext_count");
+                        int limit = Math.max(1, Math.min(64, st.getMaxStackSize()));
+                        int total = Math.max(0, st.getCount());
+                        // strip legacy tag
+                        if (st.hasTag()) {
                             st.getTag().remove("gd_ext_count");
-                            if (ext > 0) st.setCount(ext);
+                            if (st.hasTag() && st.getTag().isEmpty())
+                                st.setTag(null);
                         }
-                    } catch (Throwable ignored) {}
-                    inv.set(i, st);
+                        while (total > 0) {
+                            net.minecraft.world.item.ItemStack piece = st.copy();
+                            int put = Math.min(limit, total);
+                            piece.setCount(put);
+                            result.add(piece);
+                            total -= put;
+                        }
+                    } catch (Throwable ignored) {
+                        result.add(st);
+                    }
+                }
+                Guild g = guilds.get(gname);
+                int pages = (g == null ? 5 : (4 + g.getStorageLevel()));
+                int baseCap = 54 * pages;
+                int cap = Math.max(baseCap, result.size());
+                net.minecraft.core.NonNullList<net.minecraft.world.item.ItemStack> inv = net.minecraft.core.NonNullList
+                        .withSize(cap, net.minecraft.world.item.ItemStack.EMPTY);
+                int abs = 0;
+                for (net.minecraft.world.item.ItemStack piece : result) {
+                    while (abs < cap) {
+                        int rel = abs % 54;
+                        if (rel != 45 && rel != 53 && rel != 46 && rel != 47 && rel != 52 && rel != 50)
+                            break;
+                        abs++;
+                    }
+                    if (abs >= cap)
+                        break;
+                    inv.set(abs, piece);
+                    abs++;
                 }
                 guildStorages.put(gname, inv);
             }
             try {
                 org.lupz.doomsdayessentials.EssentialsMod.LOGGER.info("StorageLoad: guilds=" + guildStorages.size());
-            } catch (Throwable ignored) {}
+            } catch (Throwable ignored) {
+            }
         }
         if (tag.contains("storageLogs")) {
             CompoundTag logs = tag.getCompound("storageLogs");
             for (String gname : logs.getAllKeys()) {
                 net.minecraft.nbt.ListTag list = logs.getList(gname, Tag.TAG_COMPOUND);
                 java.util.List<StorageLogEntry> arr = new java.util.ArrayList<>();
-                for (int i = 0; i < list.size(); i++) arr.add(StorageLogEntry.fromTag(list.getCompound(i)));
+                for (int i = 0; i < list.size(); i++)
+                    arr.add(StorageLogEntry.fromTag(list.getCompound(i)));
                 storageLogs.put(gname, arr);
             }
         }
@@ -355,9 +422,11 @@ public class GuildsManager extends SavedData {
 
     public boolean addMember(String guildName, UUID uuid) {
         Guild guild = guilds.get(guildName);
-        if (guild == null) return false;
+        if (guild == null)
+            return false;
         int max = GuildConfig.MAX_GUILD_MEMBERS.get();
-        if (max != 0 && guild.getMembers().size() >= max) return false;
+        if (max != 0 && guild.getMembers().size() >= max)
+            return false;
         guild.addMember(uuid);
         setDirty();
         return true;
@@ -365,7 +434,8 @@ public class GuildsManager extends SavedData {
 
     public boolean removeMember(String guildName, UUID uuid) {
         Guild guild = guilds.get(guildName);
-        if (guild == null) return false;
+        if (guild == null)
+            return false;
         guild.removeMember(uuid);
         setDirty();
         return true;
@@ -385,7 +455,8 @@ public class GuildsManager extends SavedData {
 
     public boolean acceptInvite(UUID playerUUID) {
         String g = pendingInvites.remove(playerUUID);
-        if (g == null) return false;
+        if (g == null)
+            return false;
         return addMember(g, playerUUID);
     }
 
@@ -403,25 +474,33 @@ public class GuildsManager extends SavedData {
     // ---------------------------------------------------------------------
 
     public boolean areAllied(String g1, String g2) {
-        if (g1 == null || g2 == null) return false;
-        if (g1.equals(g2)) return true; // same guild treated as allied
+        if (g1 == null || g2 == null)
+            return false;
+        if (g1.equals(g2))
+            return true; // same guild treated as allied
         Guild guild1 = guilds.get(g1);
         Guild guild2 = guilds.get(g2);
-        if (guild1 == null || guild2 == null) return false;
+        if (guild1 == null || guild2 == null)
+            return false;
         return guild1.isAlliedWith(g2) && guild2.isAlliedWith(g1);
     }
 
     public boolean addAlliance(String g1, String g2) {
-        if (g1 == null || g2 == null) return false;
-        if (g1.equals(g2)) return false;
+        if (g1 == null || g2 == null)
+            return false;
+        if (g1.equals(g2))
+            return false;
         Guild guild1 = guilds.get(g1);
         Guild guild2 = guilds.get(g2);
-        if (guild1 == null || guild2 == null) return false;
+        if (guild1 == null || guild2 == null)
+            return false;
 
         int maxAllies = GuildConfig.MAX_ALLIANCES.get();
         if (maxAllies != 0) {
-            if (guild1.getAllies().size() >= maxAllies) return false;
-            if (guild2.getAllies().size() >= maxAllies) return false;
+            if (guild1.getAllies().size() >= maxAllies)
+                return false;
+            if (guild2.getAllies().size() >= maxAllies)
+                return false;
         }
 
         guild1.addAlly(g2);
@@ -430,7 +509,8 @@ public class GuildsManager extends SavedData {
         return true;
     }
 
-    // Alliance invites (ephemeral) -----------------------------------------------------------
+    // Alliance invites (ephemeral)
+    // -----------------------------------------------------------
 
     public void sendAllianceInvite(String fromGuild, String toGuild) {
         pendingAllianceInvites.computeIfAbsent(toGuild, k -> new java.util.HashSet<>()).add(fromGuild);
@@ -442,22 +522,29 @@ public class GuildsManager extends SavedData {
 
     public boolean acceptAllianceInvite(String toGuild, String fromGuild) {
         java.util.Set<String> set = pendingAllianceInvites.get(toGuild);
-        if (set == null || !set.remove(fromGuild)) return false;
-        if (set.isEmpty()) pendingAllianceInvites.remove(toGuild);
+        if (set == null || !set.remove(fromGuild))
+            return false;
+        if (set.isEmpty())
+            pendingAllianceInvites.remove(toGuild);
         return addAlliance(toGuild, fromGuild);
     }
 
-    /** Returns a copy of pending alliance invites for the given guild (guild names), or empty set. */
+    /**
+     * Returns a copy of pending alliance invites for the given guild (guild names),
+     * or empty set.
+     */
     public java.util.Set<String> getAllianceInvitesFor(String toGuild) {
         java.util.Set<String> set = pendingAllianceInvites.get(toGuild);
-        if (set == null) return java.util.Collections.emptySet();
+        if (set == null)
+            return java.util.Collections.emptySet();
         return new java.util.HashSet<>(set);
     }
 
     public boolean removeAlliance(String g1, String g2) {
         Guild guild1 = guilds.get(g1);
         Guild guild2 = guilds.get(g2);
-        if (guild1 == null || guild2 == null) return false;
+        if (guild1 == null || guild2 == null)
+            return false;
         guild1.removeAlly(g2);
         guild2.removeAlly(g1);
         setDirty();
@@ -465,12 +552,14 @@ public class GuildsManager extends SavedData {
     }
 
     public boolean endWar(String g1, String g2) {
-        if (g1 == null || g2 == null) return false;
-        final boolean[] removed = {false};
+        if (g1 == null || g2 == null)
+            return false;
+        final boolean[] removed = { false };
         activeWars.removeIf(w -> {
             boolean matches = (w.getAttackingGuildName().equals(g1) && w.getDefendingGuildName().equals(g2)) ||
-                             (w.getAttackingGuildName().equals(g2) && w.getDefendingGuildName().equals(g1));
-            if (matches) removed[0] = true;
+                    (w.getAttackingGuildName().equals(g2) && w.getDefendingGuildName().equals(g1));
+            if (matches)
+                removed[0] = true;
             return matches;
         });
         if (removed[0]) {
@@ -484,18 +573,20 @@ public class GuildsManager extends SavedData {
     // ---------------------------------------------------------------------
 
     public War startWar(String attackingGuild, String defendingGuild) {
-        if (getWar(attackingGuild, defendingGuild) != null) return null;
+        if (getWar(attackingGuild, defendingGuild) != null)
+            return null;
         War war = new War(attackingGuild, defendingGuild);
         // Break any existing alliance between the two guilds
         removeAlliance(attackingGuild, defendingGuild);
         activeWars.add(war);
         // Play warning horn sound to both guilds members
-        var server=net.minecraftforge.server.ServerLifecycleHooks.getCurrentServer();
-        if(server!=null){
-            java.util.function.Consumer<GuildMember> play=(gm)->{
-                var p=server.getPlayerList().getPlayer(gm.getPlayerUUID());
-                if(p!=null){
-                    p.playNotifySound(net.minecraft.sounds.SoundEvents.RAID_HORN.get(), net.minecraft.sounds.SoundSource.PLAYERS,1f,1f);
+        var server = net.minecraftforge.server.ServerLifecycleHooks.getCurrentServer();
+        if (server != null) {
+            java.util.function.Consumer<GuildMember> play = (gm) -> {
+                var p = server.getPlayerList().getPlayer(gm.getPlayerUUID());
+                if (p != null) {
+                    p.playNotifySound(net.minecraft.sounds.SoundEvents.RAID_HORN.get(),
+                            net.minecraft.sounds.SoundSource.PLAYERS, 1f, 1f);
                 }
             };
             guilds.get(attackingGuild).getMembers().forEach(play);
@@ -508,7 +599,9 @@ public class GuildsManager extends SavedData {
 
     public @Nullable War getWar(String g1, String g2) {
         return activeWars.stream()
-                .filter(w -> !w.isWarOver() && ((w.getAttackingGuildName().equals(g1) && w.getDefendingGuildName().equals(g2)) || (w.getAttackingGuildName().equals(g2) && w.getDefendingGuildName().equals(g1))))
+                .filter(w -> !w.isWarOver()
+                        && ((w.getAttackingGuildName().equals(g1) && w.getDefendingGuildName().equals(g2))
+                                || (w.getAttackingGuildName().equals(g2) && w.getDefendingGuildName().equals(g1))))
                 .findFirst().orElse(null);
     }
 
@@ -518,19 +611,23 @@ public class GuildsManager extends SavedData {
 
     public boolean canStartWarInTerritory(String territoryGuildName) {
         Long last = territoryWarCooldowns.get(territoryGuildName);
-        if (last == null) return true;
+        if (last == null)
+            return true;
         long cooldownMs = GuildConfig.WAR_COOLDOWN_HOURS.get() * 60L * 60L * 1000L;
         return System.currentTimeMillis() - last >= cooldownMs;
     }
 
     /**
-     * Returns an active {@link War} that involves the given guild, or {@code null} if the guild is
+     * Returns an active {@link War} that involves the given guild, or {@code null}
+     * if the guild is
      * not currently participating in any war.
      */
     public @org.jetbrains.annotations.Nullable War getActiveWarForGuild(String guildName) {
-        if (guildName == null) return null;
+        if (guildName == null)
+            return null;
         return activeWars.stream()
-                .filter(w -> !w.isWarOver() && (w.getAttackingGuildName().equals(guildName) || w.getDefendingGuildName().equals(guildName)))
+                .filter(w -> !w.isWarOver()
+                        && (w.getAttackingGuildName().equals(guildName) || w.getDefendingGuildName().equals(guildName)))
                 .findFirst()
                 .orElse(null);
     }
@@ -541,9 +638,11 @@ public class GuildsManager extends SavedData {
 
     public boolean canModifyTerritory(UUID playerUUID, String territoryGuildName) {
         Guild playerGuild = getGuildByMember(playerUUID);
-        if (playerGuild == null) return false;
+        if (playerGuild == null)
+            return false;
 
-        if (playerGuild.getName().equals(territoryGuildName)) return true;
+        if (playerGuild.getName().equals(territoryGuildName))
+            return true;
 
         War war = getWar(playerGuild.getName(), territoryGuildName);
         if (war != null) {
@@ -553,11 +652,14 @@ public class GuildsManager extends SavedData {
     }
 
     public boolean canEnterTerritory(UUID playerUUID, String territoryGuildName) {
-        if (!isTerritoryUnderWar(territoryGuildName)) return true;
+        if (!isTerritoryUnderWar(territoryGuildName))
+            return true;
         Guild playerGuild = getGuildByMember(playerUUID);
-        if (playerGuild == null) return false;
+        if (playerGuild == null)
+            return false;
         War war = getWar(playerGuild.getName(), territoryGuildName);
-        if (war == null) return false;
+        if (war == null)
+            return false;
         return !war.isPlayerLockedOut(playerUUID);
     }
 
@@ -568,7 +670,8 @@ public class GuildsManager extends SavedData {
     public void serverTick() {
         java.util.List<War> finished = new java.util.ArrayList<>();
         for (War w : activeWars) {
-            if (w.isWarOver()) finished.add(w);
+            if (w.isWarOver())
+                finished.add(w);
         }
         if (!finished.isEmpty()) {
             long now = System.currentTimeMillis();
@@ -597,20 +700,20 @@ public class GuildsManager extends SavedData {
 
     public boolean deleteGuild(String name) {
         Guild g = guilds.remove(name);
-        if (g == null) return false;
+        if (g == null)
+            return false;
 
         // clear invites that reference it
         pendingInvites.entrySet().removeIf(e -> e.getValue().equals(name));
 
         // break alliances & wars that involve it
         guilds.values().forEach(other -> other.removeAlly(name));
-        activeWars.removeIf(w ->
-            w.getAttackingGuildName().equals(name) ||
-            w.getDefendingGuildName().equals(name));
+        activeWars.removeIf(w -> w.getAttackingGuildName().equals(name) ||
+                w.getDefendingGuildName().equals(name));
 
         // unclaim resource-generator areas
         ResourceGeneratorManager.get().getGeneratorsForGuild(name)
-                                 .forEach(d -> ResourceGeneratorManager.get().unclaimArea(d.areaName));
+                .forEach(d -> ResourceGeneratorManager.get().unclaimArea(d.areaName));
 
         // remove storage
         guildStorages.remove(name);
@@ -625,50 +728,69 @@ public class GuildsManager extends SavedData {
     // -------------------------------------------------------------------------------------
 
     public net.minecraft.core.NonNullList<net.minecraft.world.item.ItemStack> getOrCreateStorage(String guildName) {
-        if (guildName == null) return net.minecraft.core.NonNullList.create();
-        return guildStorages.computeIfAbsent(guildName, k -> net.minecraft.core.NonNullList.withSize(54 * 5, net.minecraft.world.item.ItemStack.EMPTY)); // 5 pages default
+        if (guildName == null)
+            return net.minecraft.core.NonNullList.create();
+        net.minecraft.core.NonNullList<net.minecraft.world.item.ItemStack> inv = guildStorages.get(guildName);
+        if (inv == null) {
+            Guild g = guilds.get(guildName);
+            int pages = (g == null ? 5 : (4 + g.getStorageLevel()));
+            inv = net.minecraft.core.NonNullList.withSize(54 * pages, net.minecraft.world.item.ItemStack.EMPTY);
+            guildStorages.put(guildName, inv);
+        }
+        return inv;
     }
 
     public void setStorageSize(String guildName, int size) {
         net.minecraft.core.NonNullList<net.minecraft.world.item.ItemStack> cur = getOrCreateStorage(guildName);
-        if (cur.size() == size) return;
-        net.minecraft.core.NonNullList<net.minecraft.world.item.ItemStack> resized = net.minecraft.core.NonNullList.withSize(size, net.minecraft.world.item.ItemStack.EMPTY);
-        for (int i = 0; i < Math.min(size, cur.size()); i++) resized.set(i, cur.get(i));
+        if (cur.size() == size)
+            return;
+        net.minecraft.core.NonNullList<net.minecraft.world.item.ItemStack> resized = net.minecraft.core.NonNullList
+                .withSize(size, net.minecraft.world.item.ItemStack.EMPTY);
+        for (int i = 0; i < Math.min(size, cur.size()); i++)
+            resized.set(i, cur.get(i));
         guildStorages.put(guildName, resized);
         setDirty();
     }
 
-    public void logStorageChange(String guild, java.util.UUID actor, String action, String itemId, int amount, int page, int slot) {
+    public void logStorageChange(String guild, java.util.UUID actor, String action, String itemId, int amount, int page,
+            int slot) {
         // Backward-compatible entry point (no name)
         logStorageChangeWithName(guild, actor, "", action, itemId, amount, page, slot);
     }
 
-    public void logStorageChangeWithName(String guild, java.util.UUID actor, String actorName, String action, String itemId, int amount, int page, int slot) {
+    public void logStorageChangeWithName(String guild, java.util.UUID actor, String actorName, String action,
+            String itemId, int amount, int page, int slot) {
         java.util.List<StorageLogEntry> list = storageLogs.computeIfAbsent(guild, k -> new java.util.ArrayList<>());
         list.add(new StorageLogEntry(System.currentTimeMillis(), actor, actorName, action, itemId, amount, page, slot));
-        if (list.size() > 1000) list.remove(0);
+        if (list.size() > 1000)
+            list.remove(0);
         setDirty();
     }
 
     public java.util.List<StorageLogEntry> getStorageLogs(String guild) {
-        return java.util.Collections.unmodifiableList(storageLogs.getOrDefault(guild, java.util.Collections.emptyList()));
+        return java.util.Collections
+                .unmodifiableList(storageLogs.getOrDefault(guild, java.util.Collections.emptyList()));
     }
 
     // Log timezone API
     public java.time.ZoneId getLogZoneId() {
         try {
-            return java.time.ZoneId.of(storageLogTimeZone == null || storageLogTimeZone.isEmpty() ? "America/Sao_Paulo" : storageLogTimeZone);
+            return java.time.ZoneId.of(storageLogTimeZone == null || storageLogTimeZone.isEmpty() ? "America/Sao_Paulo"
+                    : storageLogTimeZone);
         } catch (Exception e) {
             return java.time.ZoneId.of("America/Sao_Paulo");
         }
     }
+
     public void setLogTimeZone(String zoneId) {
-        if (zoneId == null || zoneId.isEmpty()) return;
+        if (zoneId == null || zoneId.isEmpty())
+            return;
         try {
             java.time.ZoneId.of(zoneId);
             storageLogTimeZone = zoneId;
             setDirty();
-        } catch (Exception ignored) { }
+        } catch (Exception ignored) {
+        }
     }
 
     // -------------------------------------------------------------------------------------
@@ -682,7 +804,8 @@ public class GuildsManager extends SavedData {
 
     public boolean isPairBanned(String attacker, String defender) {
         java.util.Map<String, Long> inner = pairBanUntil.get(attacker);
-        if (inner == null) return false;
+        if (inner == null)
+            return false;
         Long until = inner.get(defender);
         return until != null && System.currentTimeMillis() < until;
     }
@@ -707,10 +830,12 @@ public class GuildsManager extends SavedData {
         // End this war instance if present
         endWar(attacker, defender);
         // Plunder resources
-        int moved = org.lupz.doomsdayessentials.territory.ResourceGeneratorManager.get().plunder(defender, attacker, GuildConfig.PLUNDER_ITEM_COUNT.get());
+        int moved = org.lupz.doomsdayessentials.territory.ResourceGeneratorManager.get().plunder(defender, attacker,
+                GuildConfig.PLUNDER_ITEM_COUNT.get());
         var server = net.minecraftforge.server.ServerLifecycleHooks.getCurrentServer();
         if (server != null) {
-            net.minecraft.network.chat.Component msg = net.minecraft.network.chat.Component.literal("§cCofre destruído! §e" + moved + " itens saqueados de " + defender + " para " + attacker + ".");
+            net.minecraft.network.chat.Component msg = net.minecraft.network.chat.Component.literal(
+                    "§cCofre destruído! §e" + moved + " itens saqueados de " + defender + " para " + attacker + ".");
             server.getPlayerList().broadcastSystemMessage(msg, false);
         }
         // Refresh defender territory cooldown to now
@@ -719,11 +844,13 @@ public class GuildsManager extends SavedData {
     }
 
     public int getOnlineCount(ServerLevel level, String guildName) {
-        if (guildName == null) return 0;
+        if (guildName == null)
+            return 0;
         int count = 0;
         for (var p : level.getServer().getPlayerList().getPlayers()) {
             Guild g = getGuildByMember(p.getUUID());
-            if (g != null && guildName.equals(g.getName())) count++;
+            if (g != null && guildName.equals(g.getName()))
+                count++;
         }
         return count;
     }
@@ -732,31 +859,34 @@ public class GuildsManager extends SavedData {
     // Storage capacity helpers (by item count, not slots)
     // -------------------------------------------------------------------------------------
 
-    /** Returns the maximum number of items allowed in the global guild storage for the guild. */
     public int getStorageCapacityItems(String guildName) {
-        Guild g = guilds.get(guildName);
-        int level = (g == null) ? 1 : g.getStorageLevel();
-        // Base 1,000 items at level 1, +2,000 per additional level (cap at level 10)
-        if (level < 1) level = 1; if (level > 10) level = 10;
-        return 1000 + (level - 1) * 2000;
+        var inv = getOrCreateStorage(guildName);
+        return inv.size();
     }
 
-    /** Returns the current total item count stored across all pages of the global storage. */
+    /**
+     * Returns the current total item count stored across all pages of the global
+     * storage.
+     */
     public int getStorageItemCount(String guildName) {
         var inv = getOrCreateStorage(guildName);
         int total = 0;
-        for (net.minecraft.world.item.ItemStack s : inv) if (!s.isEmpty()) total += s.getCount();
+        for (net.minecraft.world.item.ItemStack s : inv)
+            if (!s.isEmpty())
+                total += s.getCount();
         return total;
     }
 
-    /** Attempts to increase storage level by one; returns true if upgraded (level < 10). */
+    /** Increases storage level by one and resizes storage to add one page. */
     public boolean upgradeStorageLevel(String guildName) {
         Guild g = guilds.get(guildName);
-        if (g == null) return false;
+        if (g == null)
+            return false;
         int cur = g.getStorageLevel();
-        if (cur >= 10) return false;
         g.setStorageLevel(cur + 1);
+        int pages = 4 + g.getStorageLevel();
+        setStorageSize(guildName, 54 * pages);
         setDirty();
         return true;
     }
-} 
+}

@@ -104,7 +104,7 @@ public class GuildStorageScreen extends AbstractContainerScreen<GuildStorageMenu
         graphics.fill(x + 7, y - 36, x + 99, y - 20, 0xFF3C3C3C);
         
         // Storage capacity info below the search bar to avoid overlap
-        String capacityText = menu.getUsedItems() + "/" + menu.getMaxCapacity() + " itens";
+        String capacityText = menu.getUsedItems() + "/" + menu.getMaxCapacity() + " slots";
         String pageText = "Página " + (menu.getCurrentPage() + 1) + "/" + menu.getMaxPages();
         
         // Draw capacity on left side below search bar
@@ -139,9 +139,8 @@ public class GuildStorageScreen extends AbstractContainerScreen<GuildStorageMenu
         ItemStack tipSort = makeTooltipStack(Items.COMPARATOR, Component.literal("§bOrganizar"), 
                 java.util.List.of(Component.literal("§7Organiza itens por categoria")));
         ItemStack tipUpg = makeTooltipStack(Items.ENCHANTED_BOOK, Component.literal("§aAprimorar (Nível " + menu.getStorageLevel() + ")"), 
-                java.util.List.of(Component.literal("§7Capacidade atual: " + menu.getMaxCapacity() + " itens"),
-                                 Component.literal("§7Páginas disponíveis: " + menu.getMaxPages()),
-                                 Component.literal("§7Clique para aprimorar")));
+                java.util.List.of(Component.literal("§7Páginas disponíveis: " + menu.getMaxPages()),
+                                 Component.literal("§7Clique para adicionar mais páginas")));
         ItemStack tipLogs = makeTooltipStack(Items.BOOK, Component.literal("§eHistórico"), 
                 java.util.List.of(Component.literal("§7Ver logs do cofre")));
         
@@ -155,31 +154,13 @@ public class GuildStorageScreen extends AbstractContainerScreen<GuildStorageMenu
         drawButtonItem(graphics, logsX, btnY, mouseX, mouseY, new ItemStack(Items.BOOK), tipLogs, true);
         drawButtonTexture(graphics, nextX, btnY, mouseX, mouseY, NEXT_ICON, tipNext, canNext);
 
-        for (int row = 0; row < 6; row++) {
-            for (int col = 0; col < 9; col++) {
-                int idx = col + row * 9;
-                int count = this.menu.getClientCountAt(idx);
-                if (count > 1) {
-                    String s = count >= 1000 ? formatK(count) : Integer.toString(count);
-                    int sx = x + 8 + col * 18 + 16 - font.width(s);
-                    int sy = y + 18 + row * 18 + 14;
-                    graphics.pose().pushPose();
-                    graphics.pose().translate(0, 0, 200);
-                    graphics.drawString(this.font, s, sx, sy, 0xFFE0A0);
-                    graphics.pose().popPose();
-                }
-            }
-        }
+        
         
         // Render vanilla tooltips for items/slots (external buttons draw their own tooltips)
         renderTooltip(graphics, mouseX, mouseY);
     }
 
-    private String formatK(int count) {
-        // kept for potential future use, current counts are drawn by mixin
-        double k = count / 1000.0;
-        return String.format(java.util.Locale.ROOT, "%.1fk", k);
-    }
+    
 
     private void drawFrame(GuiGraphics g, int bx, int by, boolean hovered) {
         int bg = 0xB0000000;

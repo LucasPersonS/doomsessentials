@@ -9,6 +9,10 @@ displayName="${mod_name}"
 authors="${mod_authors}"
 description='''${mod_description}'''
 
+[[mixins]]
+config="doomsdayessentials.mixins.json"
+side="BOTH"
+
 [[dependencies.${mod_id}]]
 modId="forge"
 mandatory=true

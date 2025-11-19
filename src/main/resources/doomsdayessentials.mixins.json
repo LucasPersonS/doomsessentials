@@ -12,7 +12,6 @@
 		"client.PlayerRendererMixin",
 		"client.PlayerModelMixin",
 		"client.AbstractContainerScreenMixin",
-		"client.GuiGraphicsMixin"
 	],
 
 	"injectors": {

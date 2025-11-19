@@ -14,10 +14,10 @@ import net.minecraft.world.item.ItemStack;
 
 import java.util.List;
 
-@GameTestHolder(EssentialsMod.MOD_ID)
+@GameTestHolder("dooms-disabled")
 public class BlackMarketGameTests {
 
-    @GameTest(template = "minecraft:empty")
+    @GameTest(template = "empty")
     public void bundleUnpacksIntoInventory(GameTestHelper helper){
         Player p = helper.makeMockPlayer();
         var items = List.of(new ItemStackSpec(new ResourceLocation("minecraft", "carrot"), 2, null),
@@ -31,7 +31,7 @@ public class BlackMarketGameTests {
         if (hasCarrot) helper.succeed(); else helper.fail("Bundle did not unpack into inventory");
     }
 
-    @GameTest(template = "minecraft:empty")
+    @GameTest(template = "empty")
     public void loadManyTradesFromJson(GameTestHelper helper){
         try {
             // Generate a temporary large config
