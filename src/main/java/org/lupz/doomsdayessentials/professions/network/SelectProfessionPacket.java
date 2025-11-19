@@ -59,7 +59,8 @@ public class SelectProfessionPacket {
                     org.lupz.doomsdayessentials.professions.ArmeiroProfession.onLeave(player);
                 }
 
-                player.sendSystemMessage(Component.translatable("profession.leave"));
+                // Do not send a generic leave message here; each profession's onLeave already
+                // sends its own localized message. This avoids duplicate notifications.
 
                 // Fecha e reabre menu para atualizar itens disponíveis
                 player.closeContainer();
@@ -69,20 +70,17 @@ public class SelectProfessionPacket {
 
             // Trying to pick a new profession: validate limits in config
             if (!ProfissaoManager.canBecome(msg.professionId)) {
-                String professionNameColored = switch (msg.professionId.toLowerCase()) {
-                    case "medico" -> "§eMédicos";
-                    case "combatente" -> "§cCombatentes";
-                    case "rastreador" -> "§bRastreadores";
-                    default -> msg.professionId;
-                };
-                player.sendSystemMessage(Component.literal("§cO limite de " + professionNameColored + " foi atingido. Não é possível se tornar um agora."));
+                // Localized profession plural name (e.g., Médicos, Combatentes)
+                Component pluralName = Component.translatable("profession." + msg.professionId.toLowerCase() + ".plural");
+                player.sendSystemMessage(Component.translatable("profession.limit_reached", pluralName));
                 EssentialsMod.LOGGER.info("Player {} tried to become a {} but the limit has been reached.", player.getName().getString(), msg.professionId);
                 return;
             }
 
             // Check if trying to select the same profession
             if (current != null && current.equalsIgnoreCase(msg.professionId)) {
-                player.sendSystemMessage(Component.literal("§eVocê já é um " + msg.professionId + "."));
+                Component singleName = Component.translatable("profession." + msg.professionId.toLowerCase() + ".name");
+                player.sendSystemMessage(Component.translatable("profession.already_in", singleName));
                 EssentialsMod.LOGGER.info("Player {} tried to select {} but already has it.", 
                     player.getName().getString(), msg.professionId);
                 return;
@@ -108,7 +106,8 @@ public class SelectProfessionPacket {
                     org.lupz.doomsdayessentials.professions.CacadorProfession.onLeave(player);
                 }
                 
-                player.sendSystemMessage(Component.literal("§7Você deixou de ser " + current + "."));
+                // Avoid sending extra generic leave messages; onLeave for each profession
+                // already informs the player.
             }
 
             // Clear ALL profession tags before setting new one (extra safety)
@@ -131,7 +130,7 @@ public class SelectProfessionPacket {
             } else if ("armeiro".equalsIgnoreCase(msg.professionId)) {
                 org.lupz.doomsdayessentials.professions.ArmeiroProfession.onBecome(player);
             } else {
-                player.sendSystemMessage(Component.literal("Você se tornou um " + msg.professionId + "."));
+                player.sendSystemMessage(Component.translatable("profession.become.generic", msg.professionId));
             }
             EssentialsMod.LOGGER.info("Player {} selected profession: {}", player.getName().getString(), msg.professionId);
         });

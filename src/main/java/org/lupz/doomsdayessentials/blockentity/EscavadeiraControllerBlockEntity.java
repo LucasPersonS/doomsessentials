@@ -45,7 +45,25 @@ import java.util.Map;
 import java.util.Random;
 
 public class EscavadeiraControllerBlockEntity extends BlockEntity implements MenuProvider, GeoAnimatable {
-	public enum Profile { MIXED, STONE, METAL, COAL, PRECIOUS; public static Profile next(Profile p){ int i=p.ordinal(); return values()[(i+1)%values().length]; } public static Profile prev(Profile p){ int i=p.ordinal(); return values()[(i-1+values().length)%values().length]; } }
+    public enum Profile {
+        MIXED, STONE, METAL, COAL, PRECIOUS;
+        public static Profile next(Profile p){
+            Profile[] vals = values();
+            int i = p.ordinal();
+            do {
+                i = (i + 1) % vals.length;
+            } while (vals[i] == COAL); // skip COAL in UI cycling
+            return vals[i];
+        }
+        public static Profile prev(Profile p){
+            Profile[] vals = values();
+            int i = p.ordinal();
+            do {
+                i = (i - 1 + vals.length) % vals.length;
+            } while (vals[i] == COAL); // skip COAL in UI cycling
+            return vals[i];
+        }
+    }
 
 	private static final int FUEL_SLOT_COUNT = 1;
 	private static final int OUTPUT_SLOT_COUNT = 27;
@@ -248,7 +266,11 @@ public class EscavadeiraControllerBlockEntity extends BlockEntity implements Men
 		this.ticksUntilAggro = tag.getInt("AggroTicks");
 		this.warmupRemaining = tag.getInt("Warmup");
 		this.fuelBurnCredits = tag.getInt("FuelCredits");
-		this.profile = Profile.values()[tag.getInt("Profile")] ;
+        this.profile = Profile.values()[tag.getInt("Profile")] ;
+        if (this.profile == Profile.COAL) {
+            // Map legacy COAL profile to STONE to avoid showing COAL in UI
+            this.profile = Profile.STONE;
+        }
 		if (tag.contains("FuelInv")) fuel.deserializeNBT(tag.getCompound("FuelInv"));
 		if (tag.contains("OutInv")) output.deserializeNBT(tag.getCompound("OutInv"));
 		if (tag.contains("Weapon")) this.weapon = ItemStack.of(tag.getCompound("Weapon"));
@@ -287,7 +309,7 @@ public class EscavadeiraControllerBlockEntity extends BlockEntity implements Men
 		switch (profile) {
 			case STONE: return pickFrom(entriesStone());
 			case METAL: return pickFrom(entriesMetal());
-			case COAL: return pickFrom(entriesCoal());
+			case COAL: return pickFrom(entriesStone()); // Disable coal farming: route COAL profile to STONE entries
 			case PRECIOUS: return pickFrom(entriesPrecious());
 			default: return EscavadeiraConfig.pickRandomResource();
 		}
@@ -314,9 +336,8 @@ public class EscavadeiraControllerBlockEntity extends BlockEntity implements Men
 		return l;
 	}
 	private List<EscavadeiraConfig.ResourceEntry> entriesCoal() {
-		List<EscavadeiraConfig.ResourceEntry> l = new ArrayList<>();
-        l.add(new EscavadeiraConfig.ResourceEntry(ResourceLocation.parse("minecraft:coal"), 4, 8, 1.0));
-		return l;
+		// Coal output disabled
+		return java.util.Collections.emptyList();
 	}
 	private List<EscavadeiraConfig.ResourceEntry> entriesPrecious() {
 		List<EscavadeiraConfig.ResourceEntry> l = new ArrayList<>();

@@ -17,7 +17,6 @@ import org.lupz.doomsdayessentials.block.ReinforcedBlockEntity;
 import org.lupz.doomsdayessentials.block.ModBlocks;
 import org.lupz.doomsdayessentials.guild.Guild;
 import org.lupz.doomsdayessentials.guild.GuildsManager;
-import org.lupz.doomsdayessentials.professions.items.ProfessionItems;
 import net.minecraftforge.event.level.BlockEvent;
 
 /**
@@ -35,7 +34,8 @@ public final class EngineerBlockEvents {
         Level level = e.getLevel();
         if (level.isClientSide) return;
         ItemStack held = player.getMainHandItem();
-        if (!held.isEmpty() && !held.is(ProfessionItems.ENGINEER_HAMMER.get())) return; // allow empty or hammer
+        // Only allow empty hand for repair – engineer hammer removed
+        if (!held.isEmpty()) return;
         if (!EngenheiroProfession.isEngineer(player)) return;
         if (!player.isShiftKeyDown()) return;
 
@@ -63,66 +63,5 @@ public final class EngineerBlockEvents {
         }
     }
 
-    // Instantly break reinforced-like blocks when owner left-clicks with hammer
-    @SubscribeEvent
-    public static void onHammerLeftClick(PlayerInteractEvent.LeftClickBlock e) {
-        Player player = e.getEntity();
-        Level level = e.getLevel();
-        if (level.isClientSide) return;
-        ItemStack held = player.getMainHandItem();
-        if (!held.is(ProfessionItems.ENGINEER_HAMMER.get())) return;
-        if (!EngenheiroProfession.isEngineer(player)) return;
-
-        BlockPos pos = e.getPos();
-        BlockState state = level.getBlockState(pos);
-        Block block = state.getBlock();
-        // Allow instant-break with the hammer on reinforced blocks and the temporary barrier wood.
-        if (!(block instanceof ReinforcedBlock)
-                && block != ModBlocks.MOLTEN_STEEL_BLOCK.get()
-                && block != ModBlocks.PRIMAL_STEEL_BLOCK.get()
-                && block != net.minecraft.world.level.block.Blocks.MANGROVE_WOOD
-                && block != net.minecraft.world.level.block.Blocks.STRIPPED_MANGROVE_WOOD) {
-            return;
-        }
-
-        GuildsManager gm = GuildsManager.get((net.minecraft.server.level.ServerLevel) level);
-        Guild territoryGuild = gm.getGuildAt(pos);
-        Guild playerGuild = gm.getGuildByMember(player.getUUID());
-        if (playerGuild == null || territoryGuild == null || !playerGuild.getName().equals(territoryGuild.getName())) return;
-
-        // Remove block; drop only if not molten steel (barrier)
-        level.setBlockAndUpdate(pos, net.minecraft.world.level.block.Blocks.AIR.defaultBlockState());
-
-        // Only drop the original block item if it is NOT one of the temporary barrier woods.
-        if (block != ModBlocks.MOLTEN_STEEL_BLOCK.get()
-                && block != net.minecraft.world.level.block.Blocks.MANGROVE_WOOD
-                && block != net.minecraft.world.level.block.Blocks.STRIPPED_MANGROVE_WOOD) {
-            net.minecraft.world.level.block.Block.popResource(level, pos, new ItemStack(block));
-        }
-        e.setCanceled(true);
-    }
-
-    // Give drops when engineer breaks own reinforced blocks with hammer
-    @SubscribeEvent
-    public static void onBlockBroken(BlockEvent.BreakEvent e) {
-        Player player = e.getPlayer();
-        Level level = player.level();
-        if (level.isClientSide) return;
-        ItemStack held = player.getMainHandItem();
-        if (!held.is(ProfessionItems.ENGINEER_HAMMER.get())) return;
-        if (!EngenheiroProfession.isEngineer(player)) return;
-        BlockPos posBS = e.getPos();
-        BlockState state = e.getState();
-        Block block = state.getBlock();
-        if (!(block instanceof ReinforcedBlock) && block != ModBlocks.MOLTEN_STEEL_BLOCK.get() && block != ModBlocks.PRIMAL_STEEL_BLOCK.get()) return;
-
-        GuildsManager gm = GuildsManager.get((net.minecraft.server.level.ServerLevel) level);
-        Guild territoryGuild = gm.getGuildAt(posBS);
-        Guild playerGuild = gm.getGuildByMember(player.getUUID());
-        if (playerGuild == null || territoryGuild == null || !playerGuild.getName().equals(territoryGuild.getName())) return;
-
-        if (block != ModBlocks.MOLTEN_STEEL_BLOCK.get()) {
-            net.minecraft.world.level.block.Block.popResource(level, posBS, new ItemStack(block));
-        }
-    }
+    // Hammer functionality removed: no instant-break or special drop handling
 } 

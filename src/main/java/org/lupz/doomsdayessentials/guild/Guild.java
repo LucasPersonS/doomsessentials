@@ -18,7 +18,7 @@ public class Guild {
     private BlockPos basePosition;
 
     private final java.util.Set<String> allies = new java.util.HashSet<>();
-    /** Upgrade level for organization global storage capacity (1..10). */
+    /** Upgrade level for organization storage pages (>=1). */
     private int storageLevel = 1;
 
     public Guild(String name, String tag, UUID leaderUUID) {
@@ -120,11 +120,11 @@ public class Guild {
     // ---------------------------------------------------------------------
 
     public int getStorageLevel() {
-        return storageLevel <= 0 ? 1 : Math.min(storageLevel, 10);
+        return storageLevel <= 0 ? 1 : storageLevel;
     }
 
     public void setStorageLevel(int level) {
-        if (level < 1) level = 1; if (level > 10) level = 10;
+        if (level < 1) level = 1;
         this.storageLevel = level;
     }
 } 

@@ -53,28 +53,23 @@ public class GuildUpgradeMenu extends AbstractContainerMenu {
         if (!(player instanceof ServerPlayer sp) || guild == null) return;
         GuildsManager gm = GuildsManager.get(sp.serverLevel());
         int level = guild.getStorageLevel();
-        int cap = gm.getStorageCapacityItems(guild.getName());
-        int nextLevel = Math.min(level + 1, 10);
-        // Cost curve: level N -> cost = 500 + (N-1)*500 scrapmetal, capped reasonable
+        int pages = 4 + level;
+        int nextLevel = level + 1;
+        // Cost curve: level N -> cost = 500 + (N-1)*500 scrapmetal
         int cost = 500 + (level - 1) * 500;
-        if (level >= 10) cost = 0;
 
         ItemStack info = new ItemStack(net.minecraft.world.item.Items.BOOK);
         info.setHoverName(Component.literal("§bNível Atual: §f" + level));
         addLore(info, java.util.List.of(
-                Component.literal("§7Capacidade: §e" + cap + " itens"),
-                Component.literal(level < 10 ? ("§7Próximo Nível: §e" + nextLevel) : "§7Máximo atingido")));
+                Component.literal("§7Páginas: §e" + pages),
+                Component.literal("§7Próximo Nível: §e" + nextLevel)));
         cont.setItem(20, info);
 
         ItemStack upgrade = new ItemStack(net.minecraft.world.item.Items.ANVIL);
-        upgrade.setHoverName(Component.literal(level < 10 ? "§6Aprimorar para Nível " + nextLevel : "§aNível Máximo"));
+        upgrade.setHoverName(Component.literal("§6Aprimorar para Nível " + nextLevel));
         java.util.List<Component> lore = new java.util.ArrayList<>();
-        if (level < 10) {
-            lore.add(Component.literal("§7Custo: §c" + cost + " sucata (recursos da organização)"));
-            lore.add(Component.literal("§7Clique para comprar usando os recursos da guilda."));
-        } else {
-            lore.add(Component.literal("§7Você já atingiu o nível máximo."));
-        }
+        lore.add(Component.literal("§7Custo: §c" + cost + " sucata (recursos da organização)"));
+        lore.add(Component.literal("§7Clique para comprar usando os recursos da guilda."));
         addLore(upgrade, lore);
         cont.setItem(SLOT_UPGRADE, upgrade);
 
@@ -110,7 +105,6 @@ public class GuildUpgradeMenu extends AbstractContainerMenu {
                 return;
             }
             int level = guild.getStorageLevel();
-            if (level >= 10) { sp.sendSystemMessage(Component.literal("§aNível máximo atingido.")); return; }
             int cost = 500 + (level - 1) * 500;
             // Use guild resource bank instead of player's inventory
             org.lupz.doomsdayessentials.guild.GuildResourceBank bank = org.lupz.doomsdayessentials.guild.GuildResourceBank.get(sp.serverLevel());
@@ -121,7 +115,7 @@ public class GuildUpgradeMenu extends AbstractContainerMenu {
             if (!debited) { sp.sendSystemMessage(Component.literal("§cFalha ao debitar recursos da organização.")); return; }
             boolean ok = gm.upgradeStorageLevel(guild.getName());
             if (ok) {
-                sp.sendSystemMessage(Component.literal("§aCofre aprimorado para nível " + guild.getStorageLevel() + "."));
+                sp.sendSystemMessage(Component.literal("§aCofre aprimorado para nível " + guild.getStorageLevel() + ". Páginas: " + (4 + guild.getStorageLevel())));
                 rebuild(); broadcastChanges();
             } else {
                 sp.sendSystemMessage(Component.literal("§cNão foi possível aprimorar."));

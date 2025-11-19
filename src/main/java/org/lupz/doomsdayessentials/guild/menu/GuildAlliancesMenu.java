@@ -93,7 +93,7 @@ public class GuildAlliancesMenu extends AbstractContainerMenu {
 
     @Override
     public void clicked(int slotId, int dragType, @NotNull ClickType clickType, @NotNull Player clickPlayer) {
-        if (!(clickPlayer instanceof ServerPlayer sp) || clickType != ClickType.PICKUP) { super.clicked(slotId, dragType, clickType, clickPlayer); return; }
+        if (!(clickPlayer instanceof ServerPlayer sp)) { super.clicked(slotId, dragType, clickType, clickPlayer); return; }
         if (guild == null) guild = GuildsManager.get(sp.serverLevel()).getGuildByMember(sp.getUUID());
         if (slotId == SLOT_BACK) { sp.openMenu(new net.minecraft.world.SimpleMenuProvider((id, inv, p) -> new GuildMainMenu(id, inv), Component.literal("Organização"))); return; }
         if (guild == null) return;
@@ -104,6 +104,8 @@ public class GuildAlliancesMenu extends AbstractContainerMenu {
         if (slotId < allies.size()) {
             String ally = allies.get(slotId);
             // Remove alliance
+            GuildMember self = guild.getMember(sp.getUUID());
+            if (self == null || self.getRank() != GuildMember.Rank.LEADER) { sp.sendSystemMessage(Component.literal("§cApenas o líder pode desfazer alianças.")); return; }
             if (m.removeAlliance(guild.getName(), ally)) sp.sendSystemMessage(Component.literal("§eAliança removida com " + ally + "."));
             rebuild(); broadcastChanges(); return;
         }

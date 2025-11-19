@@ -186,6 +186,34 @@ public class PacketHandler {
                 .consumerMainThread(org.lupz.doomsdayessentials.guild.menu.GuildStorageActionPacket::handle)
                 .add();
 
+        // Guild storage page counts sync (S2C)
+        CHANNEL.messageBuilder(org.lupz.doomsdayessentials.guild.menu.GuildStorageCountsPacket.class, index++, NetworkDirection.PLAY_TO_CLIENT)
+                .encoder(org.lupz.doomsdayessentials.guild.menu.GuildStorageCountsPacket::encode)
+                .decoder(org.lupz.doomsdayessentials.guild.menu.GuildStorageCountsPacket::decode)
+                .consumerMainThread(org.lupz.doomsdayessentials.guild.menu.GuildStorageCountsPacket::handle)
+                .add();
+
+        // Night Market Admin UI opener (S2C)
+        CHANNEL.messageBuilder(org.lupz.doomsdayessentials.event.eclipse.market.admin.NightMarketAdminOpenPacket.class, index++, NetworkDirection.PLAY_TO_CLIENT)
+                .encoder(org.lupz.doomsdayessentials.event.eclipse.market.admin.NightMarketAdminOpenPacket::encode)
+                .decoder(org.lupz.doomsdayessentials.event.eclipse.market.admin.NightMarketAdminOpenPacket::decode)
+                .consumerMainThread(org.lupz.doomsdayessentials.event.eclipse.market.admin.NightMarketAdminOpenPacket::handle)
+                .add();
+
+        // Night Market Admin UI refresh (S2C)
+        CHANNEL.messageBuilder(org.lupz.doomsdayessentials.event.eclipse.market.admin.NightMarketAdminRefreshPacket.class, index++, NetworkDirection.PLAY_TO_CLIENT)
+                .encoder(org.lupz.doomsdayessentials.event.eclipse.market.admin.NightMarketAdminRefreshPacket::encode)
+                .decoder(org.lupz.doomsdayessentials.event.eclipse.market.admin.NightMarketAdminRefreshPacket::decode)
+                .consumerMainThread(org.lupz.doomsdayessentials.event.eclipse.market.admin.NightMarketAdminRefreshPacket::handle)
+                .add();
+
+        // Night Market Admin actions (P2S)
+        CHANNEL.messageBuilder(org.lupz.doomsdayessentials.event.eclipse.market.admin.NightMarketAdminActionPacket.class, index++, NetworkDirection.PLAY_TO_SERVER)
+                .encoder(org.lupz.doomsdayessentials.event.eclipse.market.admin.NightMarketAdminActionPacket::encode)
+                .decoder(org.lupz.doomsdayessentials.event.eclipse.market.admin.NightMarketAdminActionPacket::decode)
+                .consumerMainThread(org.lupz.doomsdayessentials.event.eclipse.market.admin.NightMarketAdminActionPacket::handle)
+                .add();
+
         // Engineer shop item purchase (C2S)
         CHANNEL.messageBuilder(BuyEngineerItemPacket.class, index++, NetworkDirection.PLAY_TO_SERVER)
                 .encoder(BuyEngineerItemPacket::encode)
@@ -198,6 +226,13 @@ public class PacketHandler {
                 .encoder(TerritoryProgressPacket::encode)
                 .decoder(TerritoryProgressPacket::decode)
                 .consumerMainThread(TerritoryProgressPacket::handle)
+                .add();
+
+        // KOFH scoreboard HUD sync (S2C)
+        CHANNEL.messageBuilder(org.lupz.doomsdayessentials.network.packet.s2c.KofhScorePacket.class, index++, NetworkDirection.PLAY_TO_CLIENT)
+                .encoder(org.lupz.doomsdayessentials.network.packet.s2c.KofhScorePacket::encode)
+                .decoder(org.lupz.doomsdayessentials.network.packet.s2c.KofhScorePacket::decode)
+                .consumerMainThread(org.lupz.doomsdayessentials.network.packet.s2c.KofhScorePacket::handle)
                 .add();
 
         // Territory status marker (S2C) – contested/capturing/end marker

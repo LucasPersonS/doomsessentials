@@ -55,10 +55,12 @@ public class ProfissoesMenu extends AbstractContainerMenu {
     private void createProfessionItems() {
         if (ProfissaoManager.hasProfession(this.player.getUUID())) {
             ItemStack abandon = new ItemStack(Items.BARRIER);
-            abandon.setHoverName(Component.literal("§cAbandonar Profissão"));
+            abandon.setHoverName(Component.translatable("ui.professions.abandon.name").copy()
+                .withStyle(s -> s.withColor(0xFF5555)));
 
             List<Component> lore = new ArrayList<>();
-            lore.add(Component.literal("§7Abandone sua profissão clicando aqui."));
+            lore.add(Component.translatable("ui.professions.abandon.lore").copy()
+                .withStyle(s -> s.withColor(0xCCCCCC)));
             addLoreToItemStack(abandon, lore);
 
             this.container.setItem(13, abandon);
@@ -67,9 +69,11 @@ public class ProfissoesMenu extends AbstractContainerMenu {
 
         createProfessionItem(11, InjuryItems.MEDIC_KIT.get(), "medico");
         createProfessionItem(13, Items.IRON_SWORD, "combatente");
+
         createProfessionItem(15, Items.COMPASS, "rastreador");
-        		createProfessionItem(17, ProfessionItems.ENGINEER_HAMMER.get(), "engenheiro");
-		createProfessionItem(19, net.minecraft.world.item.Items.CROSSBOW, "cacador");
+        // Use a vanilla item as the engineer icon (hammer removed)
+        createProfessionItem(17, Items.IRON_PICKAXE, "engenheiro");
+        createProfessionItem(19, net.minecraft.world.item.Items.CROSSBOW, "cacador");
     }
 
     private void createProfessionItem(int slot, net.minecraft.world.item.Item vanillaItem, String professionKey) {

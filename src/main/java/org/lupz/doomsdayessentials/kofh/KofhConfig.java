@@ -22,6 +22,7 @@ public final class KofhConfig {
 
     // Broadcast/packets
     public static final ForgeConfigSpec.IntValue HUD_UPDATE_INTERVAL_TICKS;
+    public static final ForgeConfigSpec.IntValue HUD_DISTANCE_BLOCKS;
 
     // Zone list: predefined area names used for dynamic spawning/rotation
     public static final ForgeConfigSpec.ConfigValue<java.util.List<? extends String>> ZONE_NAMES;
@@ -29,6 +30,12 @@ public final class KofhConfig {
     // Rewards
     public static final ForgeConfigSpec.ConfigValue<String> REWARD_RESOURCE_ID;
     public static final ForgeConfigSpec.IntValue REWARD_AMOUNT_WINNER;
+
+    // Balancing
+    public static final ForgeConfigSpec.DoubleValue CONTESTED_POINTS_PER_SECOND;
+    public static final ForgeConfigSpec.IntValue MULTIPLIER_DECAY_STEP_SECONDS;
+    public static final ForgeConfigSpec.DoubleValue MULTIPLIER_DECAY_STEP_AMOUNT;
+    public static final ForgeConfigSpec.DoubleValue MULTIPLIER_MIN;
 
     static {
         BUILDER.push("kofh");
@@ -45,6 +52,8 @@ public final class KofhConfig {
 
         HUD_UPDATE_INTERVAL_TICKS = BUILDER.comment("How often to send HUD scoreboard updates to clients (in ticks).")
                 .defineInRange("hudUpdateIntervalTicks", 20, 1, 200);
+        HUD_DISTANCE_BLOCKS = BUILDER.comment("Distance threshold from the KOFH center to display the HUD (in blocks).")
+                .defineInRange("hudDistanceBlocks", 100, 10, 512);
 
         ZONE_NAMES = BUILDER.comment("Predefined ManagedArea names considered for KOFH objectives (rotation pool).")
                 .defineList("zoneNames", java.util.Arrays.asList("HillA", "HillB", "HillC"), s -> s instanceof String);
@@ -53,10 +62,18 @@ public final class KofhConfig {
                 .define("rewardResourceId", "scrapmetal");
         REWARD_AMOUNT_WINNER = BUILDER.comment("Amount of reward resource granted to the winning guild.")
                 .defineInRange("rewardAmountWinner", 250, 1, 1000000);
+
+        CONTESTED_POINTS_PER_SECOND = BUILDER.comment("Points per second awarded when the hill is contested but a controller exists (0 = disabled).")
+                .defineInRange("contestedPointsPerSecond", 0.0, 0.0, 50.0);
+        MULTIPLIER_DECAY_STEP_SECONDS = BUILDER.comment("Seconds with no controller required to reduce the multiplier by decayStepAmount.")
+                .defineInRange("multiplierDecayStepSeconds", 15, 1, 600);
+        MULTIPLIER_DECAY_STEP_AMOUNT = BUILDER.comment("Amount subtracted from multiplier each decay step when there is no controller.")
+                .defineInRange("multiplierDecayStepAmount", 0.20, 0.01, 5.0);
+        MULTIPLIER_MIN = BUILDER.comment("Minimum allowed multiplier value.")
+                .defineInRange("multiplierMin", 1.0, 0.1, 20.0);
         BUILDER.pop();
         SPEC = BUILDER.build();
     }
 
     private KofhConfig() {}
 }
-

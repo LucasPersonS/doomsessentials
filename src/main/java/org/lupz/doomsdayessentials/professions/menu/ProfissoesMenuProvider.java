@@ -9,7 +9,7 @@ import net.minecraft.world.inventory.AbstractContainerMenu;
 public class ProfissoesMenuProvider implements MenuProvider {
     @Override
     public Component getDisplayName() {
-        return Component.literal("Profissões");
+        return Component.translatable("ui.professions.title");
     }
 
     @Override

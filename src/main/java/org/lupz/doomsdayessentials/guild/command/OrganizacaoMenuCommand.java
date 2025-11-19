@@ -129,6 +129,20 @@ public final class OrganizacaoMenuCommand {
             )
             // Leader-only: delete guild if storage and resources are empty
             .then(Commands.literal("deletar").executes(ctx -> deleteOwnGuild(ctx.getSource())))
+            // Admin: toggle guild storage debug logging
+            .then(Commands.literal("debugstorage")
+                .requires(src -> src.hasPermission(3))
+                .then(Commands.literal("on").executes(ctx -> {
+                    org.lupz.doomsdayessentials.guild.GuildConfig.STORAGE_DEBUG_ENABLED.set(true);
+                    ctx.getSource().sendSuccess(() -> net.minecraft.network.chat.Component.literal("§aDebug do cofre ativado."), true);
+                    return 1;
+                }))
+                .then(Commands.literal("off").executes(ctx -> {
+                    org.lupz.doomsdayessentials.guild.GuildConfig.STORAGE_DEBUG_ENABLED.set(false);
+                    ctx.getSource().sendSuccess(() -> net.minecraft.network.chat.Component.literal("§eDebug do cofre desativado."), true);
+                    return 1;
+                }))
+            )
         );
     }
 

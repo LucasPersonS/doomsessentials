@@ -41,7 +41,12 @@ public class SimpleMerchantImpl implements Merchant {
     public void overrideOffers(MerchantOffers newOffers) { this.offers.clear(); this.offers.addAll(newOffers); }
 
     @Override
-    public void notifyTrade(MerchantOffer offer) { villagerXp += offer.getXp(); }
+    public void notifyTrade(MerchantOffer offer) {
+        villagerXp += offer.getXp();
+        if (tradingPlayer != null) {
+            BlackMarketTransactionLogger.log(tradingPlayer, offer);
+        }
+    }
 
     @Override
     public void notifyTradeUpdated(ItemStack stack) {}

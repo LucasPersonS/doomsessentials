@@ -88,11 +88,11 @@ public class ProfissoesScreen extends AbstractContainerScreen<ProfissoesMenu> {
 				this.minecraft.player.closeContainer();
 				return true;
 			}
-			if (stack.getItem() == ProfessionItems.ENGINEER_HAMMER.get()) {
-				ProfessionNetwork.selectProfession("engenheiro");
-				this.minecraft.player.closeContainer();
-				return true;
-			}
+            if (stack.is(Items.IRON_PICKAXE)) {
+                ProfessionNetwork.selectProfession("engenheiro");
+                this.minecraft.player.closeContainer();
+                return true;
+            }
 			if (stack.is(Items.CROSSBOW)) {
 				ProfessionNetwork.selectProfession("cacador");
 				this.minecraft.player.closeContainer();

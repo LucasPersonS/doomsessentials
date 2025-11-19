@@ -37,15 +37,16 @@ public class KillFeedManager {
 			ENTRIES.poll();
 		}
 
-		// If local player is the killer, trigger killcard + sound
-		try {
-			var mc = net.minecraft.client.Minecraft.getInstance();
-			if (mc.player != null && killerUUID != null && mc.player.getUUID().equals(killerUUID)) {
-				ResourceLocation tex = KillcardAssets.getTextureForWeapon(weaponId);
-				// Reset streak on timeout before incrementing
-				if (creationTime - LAST_LOCAL_KILL_MS > KILL_STREAK_TIMEOUT_MS) {
-					LOCAL_KILL_STREAK_INDEX = 0;
-				}
+        // If local player is the killer AND the victim is a player, trigger killcard + sound
+        try {
+            var mc = net.minecraft.client.Minecraft.getInstance();
+            if (mc.player != null && killerUUID != null && mc.player.getUUID().equals(killerUUID)
+                && "minecraft:player".equals(entityTypeId)) {
+                ResourceLocation tex = KillcardAssets.getTextureForWeapon(weaponId);
+                // Reset streak on timeout before incrementing
+                if (creationTime - LAST_LOCAL_KILL_MS > KILL_STREAK_TIMEOUT_MS) {
+                    LOCAL_KILL_STREAK_INDEX = 0;
+                }
 				// Cycle streak index 1..5 and wrap
 				LOCAL_KILL_STREAK_INDEX = (LOCAL_KILL_STREAK_INDEX % 5) + 1;
 				LAST_LOCAL_KILL_MS = creationTime;

@@ -27,11 +27,5 @@ public class EngineerNetwork {
                 BuyEngineerItemPacket::decode,
                 BuyEngineerItemPacket::handle
         );
-        INSTANCE.registerMessage(nextId(),
-                UseEngineerHammerPacket.class,
-                UseEngineerHammerPacket::encode,
-                UseEngineerHammerPacket::decode,
-                UseEngineerHammerPacket::handle
-        );
     }
-} 
+}

@@ -258,10 +258,10 @@ public final class ProfissoesCommand {
                     case "cacador" -> org.lupz.doomsdayessentials.professions.CacadorProfession.onLeave(targetPlayer);
                 }
                 
-                targetPlayer.sendSystemMessage(Component.literal("§eSua profissão foi resetada por um administrador."));
+                targetPlayer.sendSystemMessage(Component.translatable("profession.reset.by_admin"));
             }
             
-            ctx.getSource().sendSuccess(() -> Component.literal("§aProfissão de " + targetName + " (" + currentProfession + ") foi resetada com sucesso."), true);
+            ctx.getSource().sendSuccess(() -> Component.translatable("profession.reset.success", targetName, currentProfession), true);
             return 1;
         } catch (Exception e) {
             ctx.getSource().sendFailure(Component.literal("§cErro ao resetar profissão: " + e.getMessage()));

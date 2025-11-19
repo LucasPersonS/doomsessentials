@@ -51,11 +51,17 @@ public class GuildMembersMenu extends AbstractContainerMenu {
     private void rebuild() {
         for (int i = 0; i < 54; i++) cont.setItem(i, ItemStack.EMPTY);
         if (guild == null) return;
+        // Reserve back button slot early to avoid conflicts when listing players
+        ItemStack back = new ItemStack(Items.PAPER);
+        back.setHoverName(Component.literal("§eVoltar"));
+        cont.setItem(49, back);
+
+        int i = 0;
         List<GuildMember> members = new java.util.ArrayList<>(guild.getMembers());
         members.sort(Comparator.comparing((GuildMember m) -> m.getRank().ordinal()).thenComparing(GuildMember::getPlayerUUID));
-        int i = 0;
         for (GuildMember m : members) {
             if (i >= 54) break;
+            if (i == 49) i++; // skip reserved back button slot
             ItemStack head = new ItemStack(Items.PLAYER_HEAD);
             boolean online = false;
             String name = playerName(m.getPlayerUUID());
@@ -70,9 +76,20 @@ public class GuildMembersMenu extends AbstractContainerMenu {
             )));
             cont.setItem(i++, head);
         }
-        ItemStack back = new ItemStack(Items.PAPER);
-        back.setHoverName(Component.literal("§eVoltar"));
-        cont.setItem(49, back);
+
+        // Control: open dedicated invite menu (avoids slot overflow)
+        if (player instanceof ServerPlayer sp) {
+            GuildMember self = guild.getMember(sp.getUUID());
+            boolean canInvite = self != null && (self.getRank() == GuildMember.Rank.LEADER || self.getRank() == GuildMember.Rank.OFFICER);
+            if (canInvite) {
+                ItemStack inviteBtn = new ItemStack(Items.WRITABLE_BOOK);
+                inviteBtn.setHoverName(Component.literal("§eConvidar Jogadores"));
+                addLore(inviteBtn, new java.util.ArrayList<>(java.util.List.of(
+                        Component.literal("§7Abrir lista paginada de jogadores elegíveis")
+                )));
+                cont.setItem(51, inviteBtn);
+            }
+        }
     }
 
     private String playerName(java.util.UUID uuid) {
@@ -108,19 +125,28 @@ public class GuildMembersMenu extends AbstractContainerMenu {
     @Override
     public void clicked(int slotId, int dragType, @NotNull ClickType clickType, @NotNull Player clickPlayer) {
         if (!(clickPlayer instanceof ServerPlayer sp)) { super.clicked(slotId, dragType, clickType, clickPlayer); return; }
-        if (slotId == 49 && clickType == ClickType.PICKUP) {
+        if (slotId == 49) {
             sp.openMenu(new net.minecraft.world.SimpleMenuProvider((id, inv, p) -> new GuildMainMenu(id, inv), Component.literal("Organização")));
             return;
         }
         // Open per-member actions when a head is clicked
-        if (clickType == ClickType.PICKUP && slotId >= 0 && slotId < 54) {
+        if (slotId >= 0 && slotId < 54) {
             int index = slotId;
             if (guild != null) {
                 java.util.List<GuildMember> list = new java.util.ArrayList<>(guild.getMembers());
                 list.sort(java.util.Comparator.comparing((GuildMember mm) -> mm.getRank().ordinal()).thenComparing(GuildMember::getPlayerUUID));
+                // Member head region
                 if (index < list.size()) {
                     java.util.UUID target = list.get(index).getPlayerUUID();
                     sp.openMenu(new net.minecraft.world.SimpleMenuProvider((id, inv, p) -> new GuildMemberActionsMenu(id, inv, target), Component.literal("Gerenciar Membro")));
+                    return;
+                }
+                // Open dedicated invite menu button
+                if (index == 51) {
+                    GuildMember self = guild.getMember(sp.getUUID());
+                    boolean canInvite = self != null && (self.getRank() == GuildMember.Rank.LEADER || self.getRank() == GuildMember.Rank.OFFICER);
+                    if (!canInvite) { sp.sendSystemMessage(Component.literal("§cSem permissão para convidar.")); return; }
+                    sp.openMenu(new net.minecraft.world.SimpleMenuProvider((id, inv, p) -> new GuildInviteMenu(id, inv), Component.literal("Convidar Jogadores")));
                     return;
                 }
             }

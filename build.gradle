@@ -158,6 +158,10 @@ dependencies {
 
     // Sponge Mixin annotation processor
     annotationProcessor 'org.spongepowered:mixin:0.8.5:processor'
+
+    // Unit testing (JUnit 5)
+    testImplementation 'org.junit.jupiter:junit-jupiter-api:5.10.2'
+    testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.10.2'
 }
 
 // This block of code expands all declared replace properties in the specified resource targets.
@@ -213,4 +217,9 @@ tasks.named('jar', Jar).configure {
 
 tasks.withType(JavaCompile).configureEach {
     options.encoding = 'UTF-8' // Use the UTF-8 charset for Java compilation
+}
+
+// Enable JUnit 5 platform
+tasks.named('test', Test).configure {
+    useJUnitPlatform()
 }

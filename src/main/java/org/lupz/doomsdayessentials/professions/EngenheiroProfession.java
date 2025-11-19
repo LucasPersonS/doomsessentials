@@ -25,7 +25,6 @@ import net.minecraftforge.fml.common.Mod;
 import org.lupz.doomsdayessentials.EssentialsMod;
 import org.lupz.doomsdayessentials.entity.ModEntities;
 import org.lupz.doomsdayessentials.entity.SentryEntity;
-import org.lupz.doomsdayessentials.professions.items.ProfessionItems;
 import org.lupz.doomsdayessentials.professions.shop.EngineerConfig;
 import org.slf4j.Logger;
 import com.google.common.collect.HashMultimap;
@@ -59,20 +58,7 @@ public final class EngenheiroProfession {
         player.getPersistentData().putBoolean(TAG_IS_ENGINEER, true);
         player.sendSystemMessage(Component.translatable("profession.engenheiro.become"));
 
-        player.getInventory().add(new net.minecraft.world.item.ItemStack(ProfessionItems.ENGINEER_HAMMER.get()));
-
         applyBonuses(player);
-    }
-
-    public static void handleHammerUse(ServerPlayer player) {
-        HitResult result = player.pick(5.0, 0, false);
-        BlockPos pos;
-        if (result.getType() == HitResult.Type.BLOCK) {
-            pos = ((net.minecraft.world.phys.BlockHitResult) result).getBlockPos().relative(((net.minecraft.world.phys.BlockHitResult) result).getDirection());
-        } else {
-            pos = player.blockPosition().relative(player.getDirection());
-        }
-        useTurretSkillAt(player, pos);
     }
 
     public static void onLeave(Player player) {

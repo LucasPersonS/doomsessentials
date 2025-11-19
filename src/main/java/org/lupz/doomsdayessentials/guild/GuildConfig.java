@@ -37,6 +37,7 @@ public class GuildConfig {
     public static final ForgeConfigSpec.IntValue WAR_MIN_ONLINE_ATTACKERS;
     public static final ForgeConfigSpec.BooleanValue INCLUDE_ALLIES_IN_WAR;
     public static final ForgeConfigSpec.IntValue PLUNDER_ITEM_COUNT;
+    public static final ForgeConfigSpec.BooleanValue STORAGE_DEBUG_ENABLED;
 
     // ---------------------------------------------------------------------
     // Reinforced block settings
@@ -59,6 +60,8 @@ public class GuildConfig {
 
         MAX_ALLIANCES = BUILDER.comment("Maximum number of simultaneous alliances a guild can have (0 = unlimited).")
                 .defineInRange("maxAlliances", 2, 0, 100);
+        STORAGE_DEBUG_ENABLED = BUILDER.comment("Enable detailed guild storage debugging logs (server).")
+                .define("storageDebugEnabled", false);
         BUILDER.pop();
 
         // Totem section ----------------------------------------------------
