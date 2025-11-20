@@ -14,15 +14,17 @@ import java.util.function.Supplier;
 
 /** C2S: Actions triggered from NightMarketAdminScreen */
 public class NightMarketAdminActionPacket {
-    public enum Type { ADD_TRADE, SAVE_PRESET, LOAD_PRESET, ACTIVATE_PRESET, CLEAR_MARKET, START_SESSION, UNDO, REDO, COMMIT, CANCEL }
+    public enum Type { ADD_TRADE, DELETE_TRADE, SAVE_PRESET, LOAD_PRESET, ACTIVATE_PRESET, CLEAR_MARKET, START_SESSION, UNDO, REDO, COMMIT, CANCEL, OPEN_EDITOR }
 
     private final Type type;
     private final UUID marketId;
     private final BlockPos pos; // for activate preset
     private final String buy1Id, buy2Id, sellId, presetName;
+    private final String bundleAlias, bundleItems;
     private final int buy1Count, buy2Count, sellCount, maxUses, xp;
     private final float priceMult;
     private final Integer version; // optional, for load
+    private final Integer deleteIndex; // for DELETE_TRADE
 
     public NightMarketAdminActionPacket(Type type, UUID marketId, BlockPos pos,
                                         String buy1Id, int buy1Count,
@@ -36,11 +38,37 @@ public class NightMarketAdminActionPacket {
         this.sellId = sellId; this.sellCount = sellCount;
         this.maxUses = maxUses; this.xp = xp; this.priceMult = priceMult;
         this.presetName = presetName; this.version = version;
+        this.bundleAlias = null; this.bundleItems = null; this.deleteIndex = null;
     }
 
     public static NightMarketAdminActionPacket addTrade(UUID marketId, String buy1Id, int buy1Count, String buy2Id, int buy2Count,
                                                         String sellId, int sellCount, int maxUses, int xp, float priceMult){
         return new NightMarketAdminActionPacket(Type.ADD_TRADE, marketId, null, buy1Id, buy1Count, buy2Id, buy2Count, sellId, sellCount, maxUses, xp, priceMult, null, null);
+    }
+
+    public static NightMarketAdminActionPacket addTradeHere(UUID marketId, BlockPos pos, String buy1Id, int buy1Count, String buy2Id, int buy2Count,
+                                                            String sellId, int sellCount, int maxUses, int xp, float priceMult){
+        return new NightMarketAdminActionPacket(Type.ADD_TRADE, marketId, pos, buy1Id, buy1Count, buy2Id, buy2Count, sellId, sellCount, maxUses, xp, priceMult, null, null);
+    }
+
+    public static NightMarketAdminActionPacket addBundleTrade(UUID marketId, String buy1Id, int buy1Count, String buy2Id, int buy2Count,
+                                                              String bundleAlias, String bundleItems, int maxUses, int xp, float priceMult){
+        NightMarketAdminActionPacket p = new NightMarketAdminActionPacket(Type.ADD_TRADE, marketId, null, buy1Id, buy1Count, buy2Id, buy2Count, org.lupz.doomsdayessentials.item.ModItems.BLACK_MARKET_BUNDLE.getId().toString(), 1, maxUses, xp, priceMult, null, null);
+        p.bundleAliasField(bundleAlias); p.bundleItemsField(bundleItems); return p;
+    }
+
+    public static NightMarketAdminActionPacket addBundleTradeHere(UUID marketId, BlockPos pos, String buy1Id, int buy1Count, String buy2Id, int buy2Count,
+                                                                  String bundleAlias, String bundleItems, int maxUses, int xp, float priceMult){
+        NightMarketAdminActionPacket p = new NightMarketAdminActionPacket(Type.ADD_TRADE, marketId, pos, buy1Id, buy1Count, buy2Id, buy2Count, org.lupz.doomsdayessentials.item.ModItems.BLACK_MARKET_BUNDLE.getId().toString(), 1, maxUses, xp, priceMult, null, null);
+        p.bundleAliasField(bundleAlias); p.bundleItemsField(bundleItems); return p;
+    }
+
+    private void bundleAliasField(String alias){
+        try{ java.lang.reflect.Field f = NightMarketAdminActionPacket.class.getDeclaredField("bundleAlias"); f.setAccessible(true); f.set(this, alias); }catch(Exception ignored){}
+    }
+
+    private void bundleItemsField(String items){
+        try{ java.lang.reflect.Field f = NightMarketAdminActionPacket.class.getDeclaredField("bundleItems"); f.setAccessible(true); f.set(this, items); }catch(Exception ignored){}
     }
 
     public static NightMarketAdminActionPacket savePreset(UUID marketId, String presetName){
@@ -79,6 +107,16 @@ public class NightMarketAdminActionPacket {
         return new NightMarketAdminActionPacket(Type.CANCEL, marketId, null, null,0,null,0,null,0,0,0,0f, null, null);
     }
 
+    public static NightMarketAdminActionPacket openEditor(UUID marketId, BlockPos pos){
+        return new NightMarketAdminActionPacket(Type.OPEN_EDITOR, marketId, pos, null,0,null,0,null,0,0,0,0f, null, null);
+    }
+
+    public static NightMarketAdminActionPacket deleteTrade(UUID marketId, int index){
+        NightMarketAdminActionPacket p = new NightMarketAdminActionPacket(Type.DELETE_TRADE, marketId, null, null,0,null,0,null,0,0,0,0f, null, null);
+        try{ java.lang.reflect.Field f = NightMarketAdminActionPacket.class.getDeclaredField("deleteIndex"); f.setAccessible(true); f.set(p, index);}catch(Exception ignored){}
+        return p;
+    }
+
     public static void encode(NightMarketAdminActionPacket msg, FriendlyByteBuf buf){
         buf.writeEnum(msg.type);
         buf.writeBoolean(msg.marketId != null); if (msg.marketId != null) buf.writeUUID(msg.marketId);
@@ -93,7 +131,10 @@ public class NightMarketAdminActionPacket {
         buf.writeInt(msg.xp);
         buf.writeFloat(msg.priceMult);
         buf.writeUtf(msg.presetName==null?"":msg.presetName);
+        buf.writeUtf(msg.bundleAlias==null?"":msg.bundleAlias);
+        buf.writeUtf(msg.bundleItems==null?"":msg.bundleItems);
         buf.writeBoolean(msg.version != null); if (msg.version != null) buf.writeInt(msg.version);
+        buf.writeBoolean(msg.deleteIndex != null); if (msg.deleteIndex != null) buf.writeInt(msg.deleteIndex);
     }
 
     public static NightMarketAdminActionPacket decode(FriendlyByteBuf buf){
@@ -104,9 +145,14 @@ public class NightMarketAdminActionPacket {
         String buy2Id = buf.readUtf(); int buy2Count = buf.readInt();
         String sellId = buf.readUtf(); int sellCount = buf.readInt();
         int maxUses = buf.readInt(); int xp = buf.readInt(); float priceMult = buf.readFloat();
-        String presetName = buf.readUtf(); Integer version = buf.readBoolean()?buf.readInt():null;
-        if (buy1Id.isBlank()) buy1Id = null; if (buy2Id.isBlank()) buy2Id = null; if (sellId.isBlank()) sellId = null; if (presetName.isBlank()) presetName = null;
-        return new NightMarketAdminActionPacket(t, mId, pos, buy1Id, buy1Count, buy2Id, buy2Count, sellId, sellCount, maxUses, xp, priceMult, presetName, version);
+        String presetName = buf.readUtf(); String bundleAlias = buf.readUtf(); String bundleItems = buf.readUtf(); Integer version = buf.readBoolean()?buf.readInt():null;
+        Integer delIdx = buf.readBoolean()?buf.readInt():null;
+        if (buy1Id.isBlank()) buy1Id = null; if (buy2Id.isBlank()) buy2Id = null; if (sellId.isBlank()) sellId = null; if (presetName.isBlank()) presetName = null; if (bundleAlias.isBlank()) bundleAlias = null; if (bundleItems.isBlank()) bundleItems = null;
+        NightMarketAdminActionPacket p = new NightMarketAdminActionPacket(t, mId, pos, buy1Id, buy1Count, buy2Id, buy2Count, sellId, sellCount, maxUses, xp, priceMult, presetName, version);
+        try{ java.lang.reflect.Field fa = NightMarketAdminActionPacket.class.getDeclaredField("bundleAlias"); fa.setAccessible(true); fa.set(p, bundleAlias);}catch(Exception ignored){}
+        try{ java.lang.reflect.Field fi = NightMarketAdminActionPacket.class.getDeclaredField("bundleItems"); fi.setAccessible(true); fi.set(p, bundleItems);}catch(Exception ignored){}
+        try{ java.lang.reflect.Field fd = NightMarketAdminActionPacket.class.getDeclaredField("deleteIndex"); fd.setAccessible(true); fd.set(p, delIdx);}catch(Exception ignored){}
+        return p;
     }
 
     public static void handle(NightMarketAdminActionPacket msg, Supplier<NetworkEvent.Context> ctx){
@@ -114,7 +160,7 @@ public class NightMarketAdminActionPacket {
             ServerPlayer sp = ctx.get().getSender(); if (sp == null) return;
             switch (msg.type){
                 case ADD_TRADE -> {
-                    if (msg.marketId == null || msg.buy1Id == null || msg.sellId == null){
+                    if ((msg.marketId == null && msg.pos == null) || msg.buy1Id == null || msg.sellId == null){
                         if (sp != null) sp.displayClientMessage(net.minecraft.network.chat.Component.literal("Missing required fields"), true);
                         return;
                     }
@@ -129,14 +175,62 @@ public class NightMarketAdminActionPacket {
                         if (sp != null) sp.displayClientMessage(net.minecraft.network.chat.Component.literal("Price multiplier must be between 0 and 1"), true);
                         return;
                     }
-                    boolean ok = NightMarketManager.addOfferTo(msg.marketId, msg.buy1Id, buy1C, msg.buy2Id, buy2C, msg.sellId, sellC, maxUses, xp, mult);
+                    java.util.UUID targetId = msg.marketId;
+                    if (msg.pos != null){
+                        var be = sp.level().getBlockEntity(msg.pos);
+                        if (be instanceof NightMarketBlockEntity nbe){ targetId = nbe.getMarketId(); }
+                    }
+                    boolean ok = false;
+                    net.minecraft.world.item.trading.MerchantOffer created = null;
+                    if (msg.bundleItems != null && msg.bundleAlias != null){
+                        java.util.List<org.lupz.doomsdayessentials.event.eclipse.market.ItemStackSpec> specs = new java.util.ArrayList<>();
+                        for (String part : msg.bundleItems.split(",")){
+                            String ptxt = part.trim(); if (ptxt.isEmpty()) continue;
+                            String[] toks = ptxt.split("\\s+"); if (toks.length == 0) continue;
+                            String idStr = toks[0]; int cnt = 1;
+                            for (int k=1;k<toks.length;k++){
+                                String tk = toks[k];
+                                if (tk.startsWith("x")) { try{ cnt = Integer.parseInt(tk.substring(1)); }catch(Exception ignored){} }
+                                else { try{ cnt = Integer.parseInt(tk); }catch(Exception ignored){} }
+                            }
+                            net.minecraft.resources.ResourceLocation rl = net.minecraft.resources.ResourceLocation.tryParse(idStr);
+                            if (rl != null) specs.add(org.lupz.doomsdayessentials.event.eclipse.market.ItemStackSpec.of(rl, cnt));
+                        }
+                        net.minecraft.world.item.ItemStack sellStack = org.lupz.doomsdayessentials.event.eclipse.market.BlackMarketBundleItem.createBundle(msg.bundleAlias, specs);
+                        created = NightMarketManager.addOfferStackTo(targetId, msg.buy1Id, buy1C, msg.buy2Id, buy2C, sellStack, maxUses, xp, mult);
+                        ok = created != null;
+                        if (ok && msg.bundleAlias != null) NightMarketManager.registerAlias(targetId, created, msg.bundleAlias);
+                    } else {
+                        ok = NightMarketManager.addOfferTo(targetId, msg.buy1Id, buy1C, msg.buy2Id, buy2C, msg.sellId, sellC, maxUses, xp, mult);
+                    }
                     sp.displayClientMessage(net.minecraft.network.chat.Component.literal(ok?"Trade added":"Trade already exists or invalid item IDs"), true);
                     if (ok){
-                        if (org.lupz.doomsdayessentials.event.eclipse.market.MarketEditSession.hasSession(msg.marketId)){
-                            org.lupz.doomsdayessentials.event.eclipse.market.MarketEditSession.snapshot(sp.level(), msg.marketId);
+                        if (targetId != null && org.lupz.doomsdayessentials.event.eclipse.market.MarketEditSession.hasSession(targetId)){
+                            org.lupz.doomsdayessentials.event.eclipse.market.MarketEditSession.snapshot(sp.level(), targetId);
                         }
-                        String json = org.lupz.doomsdayessentials.event.eclipse.market.MarketPresetManager.exportOffersToJson(sp.level(), org.lupz.doomsdayessentials.event.eclipse.market.NightMarketManager.getOffers(sp.level(), msg.marketId));
-                        org.lupz.doomsdayessentials.network.PacketHandler.CHANNEL.send(net.minecraftforge.network.PacketDistributor.PLAYER.with(() -> sp), new NightMarketAdminRefreshPacket(msg.marketId, null, json, null));
+                        String json = org.lupz.doomsdayessentials.event.eclipse.market.MarketPresetManager.exportOffersToJson(sp.level(), org.lupz.doomsdayessentials.event.eclipse.market.NightMarketManager.getOffers(sp.level(), targetId));
+                        org.lupz.doomsdayessentials.network.PacketHandler.CHANNEL.send(net.minecraftforge.network.PacketDistributor.PLAYER.with(() -> sp), new NightMarketAdminRefreshPacket(targetId, null, json, null));
+                        int size = org.lupz.doomsdayessentials.event.eclipse.market.NightMarketManager.getOffersMutable(targetId).size();
+                        sp.displayClientMessage(net.minecraft.network.chat.Component.literal("Offers now: " + size), true);
+                    }
+                }
+                case DELETE_TRADE -> {
+                    if ((msg.marketId == null && msg.pos == null) || msg.deleteIndex == null) return;
+                    java.util.UUID targetId = msg.marketId;
+                    if (msg.pos != null){
+                        var be = sp.level().getBlockEntity(msg.pos);
+                        if (be instanceof NightMarketBlockEntity nbe){ targetId = nbe.getMarketId(); }
+                    }
+                    boolean removed = NightMarketManager.removeOfferAt(targetId, Math.max(0, msg.deleteIndex));
+                    if (removed){
+                        if (org.lupz.doomsdayessentials.event.eclipse.market.MarketEditSession.hasSession(targetId)){
+                            org.lupz.doomsdayessentials.event.eclipse.market.MarketEditSession.snapshot(sp.level(), targetId);
+                        }
+                        String json = MarketPresetManager.exportOffersToJson(sp.level(), NightMarketManager.getOffers(sp.level(), targetId));
+                        org.lupz.doomsdayessentials.network.PacketHandler.CHANNEL.send(net.minecraftforge.network.PacketDistributor.PLAYER.with(() -> sp), new NightMarketAdminRefreshPacket(targetId, null, json, null));
+                        sp.displayClientMessage(net.minecraft.network.chat.Component.literal("Trade deleted"), true);
+                    } else {
+                        sp.displayClientMessage(net.minecraft.network.chat.Component.literal("Invalid trade index"), true);
                     }
                 }
                 case SAVE_PRESET -> {
@@ -217,6 +311,15 @@ public class NightMarketAdminActionPacket {
                         String json = org.lupz.doomsdayessentials.event.eclipse.market.MarketPresetManager.exportOffersToJson(sp.level(), org.lupz.doomsdayessentials.event.eclipse.market.NightMarketManager.getOffers(sp.level(), msg.marketId));
                         org.lupz.doomsdayessentials.network.PacketHandler.CHANNEL.send(net.minecraftforge.network.PacketDistributor.PLAYER.with(() -> sp), new NightMarketAdminRefreshPacket(msg.marketId, null, json, null));
                     }
+                }
+                case OPEN_EDITOR -> {
+                    if (msg.marketId == null || msg.pos == null) return;
+                    net.minecraftforge.network.NetworkHooks.openScreen(sp, new net.minecraft.world.MenuProvider() {
+                        @Override public net.minecraft.network.chat.Component getDisplayName() { return net.minecraft.network.chat.Component.literal("Editar Troca"); }
+                        @Override public net.minecraft.world.inventory.AbstractContainerMenu createMenu(int id, net.minecraft.world.entity.player.Inventory inv, net.minecraft.world.entity.player.Player p) {
+                            return new org.lupz.doomsdayessentials.event.eclipse.market.NightMarketMenu(id, inv);
+                        }
+                    }, buf -> { buf.writeUUID(msg.marketId); buf.writeBlockPos(msg.pos); });
                 }
             }
         });

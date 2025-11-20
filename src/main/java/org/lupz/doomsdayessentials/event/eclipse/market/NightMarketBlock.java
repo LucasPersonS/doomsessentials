@@ -62,13 +62,8 @@ public class NightMarketBlock extends BaseEntityBlock {
         if (!level.isClientSide && player instanceof ServerPlayer sp) {
             BlockEntity be = level.getBlockEntity(pos);
             java.util.UUID marketId = be instanceof NightMarketBlockEntity nbe ? nbe.getMarketId() : java.util.UUID.fromString("00000000-0000-0000-0000-000000000000");
-            MerchantOffers offers = NightMarketManager.getOffers(level, marketId);
-            if (offers.isEmpty()) {
-                // Lazy-load JSON offers into this specific market on first use
-                BlackMarketConfigManager.ensureDefault();
-                NightMarketManager.reloadIntoMarket(level, marketId);
-                offers = NightMarketManager.getOffers(level, marketId);
-            }
+            MerchantOffers offers = NightMarketManager.getOffersMutable(marketId);
+            sp.displayClientMessage(Component.literal("Market " + marketId + " offers=" + offers.size()), false);
             // If player is sneaking and has permission level >= 2 (OP), open Admin UI instead
             if (player.isShiftKeyDown() && sp.hasPermissions(2)) {
                 String json = MarketPresetManager.exportOffersToJson(level, offers);
@@ -79,12 +74,15 @@ public class NightMarketBlock extends BaseEntityBlock {
             }
             SimpleMerchantImpl merchant = new SimpleMerchantImpl(Component.literal("Mercado Negro"), offers);
             merchant.setTradingPlayer(sp);
-            sp.openMenu(new net.minecraft.world.MenuProvider() {
+            java.util.OptionalInt opened = sp.openMenu(new net.minecraft.world.MenuProvider() {
                 @Override public Component getDisplayName() { return Component.literal("Mercado Negro"); }
                 @Override public AbstractContainerMenu createMenu(int containerId, net.minecraft.world.entity.player.Inventory inv, Player p) {
                     return new MerchantMenu(containerId, inv, merchant);
                 }
             });
+            if (opened.isPresent()) {
+                sp.sendMerchantOffers(opened.getAsInt(), offers, 0, merchant.getVillagerXp(), merchant.showProgressBar(), false);
+            }
             return InteractionResult.CONSUME;
         }
         return InteractionResult.sidedSuccess(level.isClientSide);

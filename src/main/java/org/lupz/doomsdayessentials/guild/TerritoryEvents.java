@@ -235,6 +235,11 @@ public class TerritoryEvents {
         if (!java.util.Objects.equals(previousTag, currentTag)) {
             if (currentTag != null) {
                 sp.sendSystemMessage(Component.literal("Você está no território de " + currentTag).withStyle(ChatFormatting.GOLD));
+                Guild playerGuild = manager.getGuildByMember(sp.getUUID());
+                Guild territoryG = manager.getGuild(currentTag);
+                if (playerGuild != null && territoryG != null && playerGuild.getName().equals(territoryG.getName()) && manager.isTerritoryUnderWar(territoryG.getName())) {
+                    sp.sendSystemMessage(Component.literal("Seu território está sob invasão.").withStyle(ChatFormatting.RED));
+                }
             } else if (previousTag != null) {
                 sp.sendSystemMessage(Component.literal("Você saiu do território de " + previousTag).withStyle(ChatFormatting.YELLOW));
             }
@@ -267,7 +272,13 @@ public class TerritoryEvents {
             else tpZ = maxZ + 0.5;
 
             sp.teleportTo(tpX, sp.getY(), tpZ);
-            sp.sendSystemMessage(Component.literal("Você não pode entrar neste território.").withStyle(ChatFormatting.RED));
+            War war = manager.getActiveWarForGuild(territoryGuild.getName());
+            boolean locked = war != null && war.isPlayerLockedOut(sp.getUUID());
+            if (locked) {
+                sp.sendSystemMessage(Component.literal("Você está bloqueado nesta invasão.").withStyle(ChatFormatting.RED));
+            } else {
+                sp.sendSystemMessage(Component.literal("Você não pode entrar neste território.").withStyle(ChatFormatting.RED));
+            }
         }
     }
 } 

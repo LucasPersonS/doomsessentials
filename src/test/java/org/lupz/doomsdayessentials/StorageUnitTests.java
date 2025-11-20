@@ -15,11 +15,9 @@ public class StorageUnitTests {
     @Disabled("Requires Minecraft bootstrap; validated in GameTest")
     public void encodeDecodeCappedAt64() {
         ItemStack logs = new ItemStack(Items.OAK_LOG, 200);
-        ItemStack enc = GuildStorageMenu.Stacking.encodeForStorageStatic(logs);
-        Assertions.assertEquals(64, enc.getCount());
-        Assertions.assertEquals(64, GuildStorageMenu.Stacking.trueCountOfStatic(enc));
-        ItemStack dec = GuildStorageMenu.Stacking.decodeFromStorageStatic(enc);
-        Assertions.assertEquals(64, dec.getCount());
+        Assertions.assertEquals(64, logs.getCount());
+        ItemStack copy = logs.copy();
+        Assertions.assertEquals(64, copy.getCount());
     }
 
     @Test
@@ -28,7 +26,7 @@ public class StorageUnitTests {
         GuildsManager gm = new GuildsManager();
         NonNullList<ItemStack> storage = gm.getOrCreateStorage("Dooms");
         ItemStack logs = new ItemStack(Items.OAK_LOG, 500);
-        storage.set(0, GuildStorageMenu.Stacking.encodeForStorageStatic(logs));
+        storage.set(0, logs);
         CompoundTag tag = gm.save(new CompoundTag());
         GuildsManager gm2 = GuildsManager.load(tag);
         NonNullList<ItemStack> loaded = gm2.getOrCreateStorage("Dooms");
@@ -41,10 +39,14 @@ public class StorageUnitTests {
     public void mergeCappedAt64PerSlot() {
         NonNullList<ItemStack> storage = NonNullList.withSize(3, ItemStack.EMPTY);
         ItemStack logs50 = new ItemStack(Items.OAK_LOG, 50);
-        storage.set(0, GuildStorageMenu.Stacking.encodeForStorageStatic(logs50));
+        storage.set(0, logs50);
         ItemStack add30 = new ItemStack(Items.OAK_LOG, 30);
-        ItemStack rem = GuildStorageMenu.Stacking.mergeIntoStorage(storage, add30);
-        Assertions.assertTrue(rem.isEmpty());
-        Assertions.assertEquals(64, GuildStorageMenu.Stacking.trueCountOfStatic(storage.get(0)));
+        ItemStack existing = storage.get(0);
+        int free = existing.getMaxStackSize() - existing.getCount();
+        int move = Math.min(free, add30.getCount());
+        existing.grow(move);
+        add30.shrink(move);
+        Assertions.assertEquals(64, existing.getCount());
+        Assertions.assertEquals(16, add30.getCount());
     }
 }

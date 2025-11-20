@@ -19,6 +19,7 @@ public class GuildConfig {
     public static final ForgeConfigSpec.IntValue MAX_ALLIANCES;
     public static final ForgeConfigSpec.LongValue GUILD_LEAVE_COOLDOWN_HOURS;
     public static final ForgeConfigSpec.IntValue TERRITORY_RADIUS_CHUNKS;
+    public static final ForgeConfigSpec.IntValue GUILD_CREATION_COST_SCRAPS;
 
     // ---------------------------------------------------------------------
     // Totem settings
@@ -62,6 +63,8 @@ public class GuildConfig {
                 .defineInRange("maxAlliances", 2, 0, 100);
         STORAGE_DEBUG_ENABLED = BUILDER.comment("Enable detailed guild storage debugging logs (server).")
                 .define("storageDebugEnabled", false);
+        GUILD_CREATION_COST_SCRAPS = BUILDER.comment("Scrapmetal cost required to create a guild via /organizacao criar.")
+                .defineInRange("guildCreationCostScraps", 300, 0, 100000);
         BUILDER.pop();
 
         // Totem section ----------------------------------------------------

@@ -28,8 +28,16 @@ public class PlayerEventHandler {
             }
 
             // Send the full area and combat state to the player who just joined
-            PacketHandler.CHANNEL.send(net.minecraftforge.network.PacketDistributor.PLAYER.with(() -> player), new SyncAreasPacket(AreaManager.get().getAreas()));
-            PacketHandler.CHANNEL.send(net.minecraftforge.network.PacketDistributor.PLAYER.with(() -> player), new SyncCombatStatePacket(CombatManager.get().getPlayersInCombat()));
+            PacketHandler.CHANNEL.send(net.minecraftforge.network.PacketDistributor.PLAYER.with(() -> player),
+                    new SyncAreasPacket(AreaManager.get().getAreas()));
+            PacketHandler.CHANNEL.send(net.minecraftforge.network.PacketDistributor.PLAYER.with(() -> player),
+                    new SyncCombatStatePacket(CombatManager.get().getPlayersInCombat(),
+                            CombatManager.get().getWantedPlayers()));
+
+            int prisonSecs = org.lupz.doomsdayessentials.prison.PrisonManager.get().getRemainingTime(player.getUUID());
+            if (prisonSecs <= 0 && org.lupz.doomsdayessentials.prison.PrisonManager.get().isPrisoner(player.getUUID())) {
+                org.lupz.doomsdayessentials.prison.PrisonManager.get().releasePlayer(player);
+            }
         }
     }
 
@@ -48,7 +56,8 @@ public class PlayerEventHandler {
     public static void onCommand(CommandEvent event) {
         if (event.getParseResults().getContext().getSource().getEntity() instanceof ServerPlayer player) {
             // Bypass for creative / spectator or players with operator permission level 2+
-            if (player.isCreative() || player.isSpectator() || event.getParseResults().getContext().getSource().hasPermission(2)) {
+            if (player.isCreative() || player.isSpectator()
+                    || event.getParseResults().getContext().getSource().hasPermission(2)) {
                 return;
             }
 
@@ -58,15 +67,18 @@ public class PlayerEventHandler {
 
             if (inCombat || inDangerZone) {
                 String command = event.getParseResults().getReader().getString();
-                String commandName = command.startsWith("/") ? command.substring(1).split(" ")[0] : command.split(" ")[0];
+                String commandName = command.startsWith("/") ? command.substring(1).split(" ")[0]
+                        : command.split(" ")[0];
 
-                boolean allowed = EssentialsConfig.ALLOWED_COMBAT_COMMANDS.get().stream().anyMatch(cmd -> cmd.equalsIgnoreCase(commandName))
+                boolean allowed = EssentialsConfig.ALLOWED_COMBAT_COMMANDS.get().stream()
+                        .anyMatch(cmd -> cmd.equalsIgnoreCase(commandName))
                         || commandName.equalsIgnoreCase("profissoes")
                         || commandName.equalsIgnoreCase("medico")
                         || commandName.equalsIgnoreCase("rastreador");
 
                 if (!allowed) {
-                    player.sendSystemMessage(Component.literal("§cVocê não pode usar este comando em combate ou em uma zona de perigo."));
+                    player.sendSystemMessage(Component
+                            .literal("§cVocê não pode usar este comando em combate ou em uma zona de perigo."));
                     event.setCanceled(true);
                 }
             }
@@ -78,15 +90,18 @@ public class PlayerEventHandler {
         if (event.phase == TickEvent.Phase.END && !event.player.level().isClientSide()) {
             // NOTE: Profession-specific ticks are handled in ProfessionEvents
             // This handler only deals with generic cooldowns and mechanics
-            
+
             // Tick engineer cooldowns
             int cd = event.player.getPersistentData().getInt("engineerTurretCooldown");
-            if (cd > 0) event.player.getPersistentData().putInt("engineerTurretCooldown", cd - 1);
+            if (cd > 0)
+                event.player.getPersistentData().putInt("engineerTurretCooldown", cd - 1);
             // Tick combatente cooldown
             int acd = event.player.getPersistentData().getInt("combatenteAdrenalineCooldown");
-            if (acd > 0) event.player.getPersistentData().putInt("combatenteAdrenalineCooldown", acd - 1);
+            if (acd > 0)
+                event.player.getPersistentData().putInt("combatenteAdrenalineCooldown", acd - 1);
             int scd = event.player.getPersistentData().getInt("slideCooldown");
-            if (scd > 0) event.player.getPersistentData().putInt("slideCooldown", scd - 1);
+            if (scd > 0)
+                event.player.getPersistentData().putInt("slideCooldown", scd - 1);
             // Tick sliding
             if (event.player instanceof net.minecraft.server.level.ServerPlayer sp) {
                 org.lupz.doomsdayessentials.movement.SlideHandler.tick(sp);

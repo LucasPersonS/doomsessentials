@@ -256,6 +256,11 @@ public class TerritoryEventManager {
         am.addArea(safeArea);
         // Claim the generator for the guild (if it exists)
         org.lupz.doomsdayessentials.territory.ResourceGeneratorManager.get().claimArea(ev.area.getName(), guildName);
+        org.lupz.doomsdayessentials.territory.ResourceAreaData data = org.lupz.doomsdayessentials.territory.ResourceGeneratorManager.get().get(ev.area.getName());
+        if (data != null) {
+            data.dominationExpiry = System.currentTimeMillis() + 72L * 60L * 60L * 1000L;
+            org.lupz.doomsdayessentials.territory.ResourceGeneratorManager.get().save();
+        }
         BlockPos c2 = new BlockPos((ev.area.getPos1().getX()+ev.area.getPos2().getX())/2, ev.area.getPos1().getY()+4, (ev.area.getPos2().getZ()+ev.area.getPos1().getZ())/2);
         safeSend(PacketDistributor.ALL.noArg(),
                 new org.lupz.doomsdayessentials.network.packet.s2c.TerritoryMarkerPacket(ev.area.getName(), c2.getX()+0.5, c2.getY(), c2.getZ()+0.5, (byte)3));

@@ -20,6 +20,7 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.commands.arguments.item.ItemArgument;
 import net.minecraft.commands.arguments.item.ItemInput;
 import net.minecraft.commands.CommandBuildContext;
+import net.minecraftforge.server.ServerLifecycleHooks;
 
 @Mod.EventBusSubscriber(modid = EssentialsMod.MOD_ID, bus = Mod.EventBusSubscriber.Bus.FORGE)
 public class TerritoryCommand {
@@ -78,7 +79,20 @@ public class TerritoryCommand {
                                         .executes(TerritoryCommand::generatorDelItem))))
                 .then(Commands.literal("reload").executes(TerritoryCommand::reloadGenerators));
 
-        territoryRoot.then(eventCmd).then(generatorCmd);
+        var adminDelete = Commands.literal("deletearea")
+                .then(Commands.argument("area", StringArgumentType.word()).suggests(TerritoryCommand::suggestAreaNames)
+                        .executes(TerritoryCommand::adminDeleteArea));
+
+        var adminSetOwner = Commands.literal("setowner")
+                .then(Commands.argument("area", StringArgumentType.word()).suggests(TerritoryCommand::suggestAreaNames)
+                        .then(Commands.argument("guild", StringArgumentType.string()).suggests(TerritoryCommand::suggestGuildNames)
+                                .executes(TerritoryCommand::adminSetOwner)));
+
+        var adminUnclaim = Commands.literal("unclaim")
+                .then(Commands.argument("area", StringArgumentType.word()).suggests(TerritoryCommand::suggestAreaNames)
+                        .executes(TerritoryCommand::adminUnclaim));
+
+        territoryRoot.then(eventCmd).then(generatorCmd).then(adminDelete).then(adminSetOwner).then(adminUnclaim);
         dispatcher.register(territoryRoot);
     }
 
@@ -164,6 +178,60 @@ public class TerritoryCommand {
         return 1;
     }
 
+    private static int adminDeleteArea(CommandContext<CommandSourceStack> ctx) {
+        String areaName = StringArgumentType.getString(ctx, "area");
+        boolean ok = AreaManager.get().deleteArea(areaName);
+        if (ok) {
+            ctx.getSource().sendSuccess(() -> Component.literal("Área removida."), true);
+            return 1;
+        }
+        ctx.getSource().sendFailure(Component.literal("Área não encontrada."));
+        return 0;
+    }
+
+    private static int adminSetOwner(CommandContext<CommandSourceStack> ctx) {
+        String areaName = StringArgumentType.getString(ctx, "area");
+        String guild = StringArgumentType.getString(ctx, "guild");
+        var am = AreaManager.get();
+        var cur = am.getArea(areaName);
+        if (cur == null) {
+            ctx.getSource().sendFailure(Component.literal("Área não encontrada."));
+            return 0;
+        }
+        am.deleteArea(areaName);
+        ManagedArea safe = new ManagedArea(areaName, org.lupz.doomsdayessentials.combat.AreaType.SAFE, cur.getDimension(), cur.getPos1(), cur.getPos2());
+        am.addArea(safe);
+        org.lupz.doomsdayessentials.territory.ResourceGeneratorManager.get().claimArea(areaName, guild);
+        var c1 = cur.getPos1(); var c2 = cur.getPos2();
+        double cx = (c1.getX() + c2.getX()) / 2.0 + 0.5;
+        double cy = c1.getY() + 4;
+        double cz = (c2.getZ() + c1.getZ()) / 2.0 + 0.5;
+        org.lupz.doomsdayessentials.network.PacketHandler.CHANNEL.send(net.minecraftforge.network.PacketDistributor.ALL.noArg(), new org.lupz.doomsdayessentials.network.packet.s2c.TerritoryMarkerPacket(areaName, cx, cy, cz, (byte)3));
+        ctx.getSource().sendSuccess(() -> Component.literal("Dono atualizado."), true);
+        return 1;
+    }
+
+    private static int adminUnclaim(CommandContext<CommandSourceStack> ctx) {
+        String areaName = StringArgumentType.getString(ctx, "area");
+        var am = AreaManager.get();
+        var cur = am.getArea(areaName);
+        if (cur == null) {
+            ctx.getSource().sendFailure(Component.literal("Área não encontrada."));
+            return 0;
+        }
+        am.deleteArea(areaName);
+        ManagedArea danger = new ManagedArea(areaName, org.lupz.doomsdayessentials.combat.AreaType.DANGER, cur.getDimension(), cur.getPos1(), cur.getPos2());
+        am.addArea(danger);
+        org.lupz.doomsdayessentials.territory.ResourceGeneratorManager.get().unclaimArea(areaName);
+        var c1 = cur.getPos1(); var c2 = cur.getPos2();
+        double cx = (c1.getX() + c2.getX()) / 2.0 + 0.5;
+        double cy = c1.getY() + 4;
+        double cz = (c2.getZ() + c1.getZ()) / 2.0 + 0.5;
+        org.lupz.doomsdayessentials.network.PacketHandler.CHANNEL.send(net.minecraftforge.network.PacketDistributor.ALL.noArg(), new org.lupz.doomsdayessentials.network.packet.s2c.TerritoryMarkerPacket(areaName, cx, cy, cz, (byte)0));
+        ctx.getSource().sendSuccess(() -> Component.literal("Território liberado."), true);
+        return 1;
+    }
+
     private static java.util.concurrent.CompletableFuture<com.mojang.brigadier.suggestion.Suggestions> suggestAreaNames(CommandContext<CommandSourceStack> c, SuggestionsBuilder b) {
         // Suggest all defined areas
         org.lupz.doomsdayessentials.combat.AreaManager.get().getAreas().forEach(a -> b.suggest(a.getName()));
@@ -180,6 +248,14 @@ public class TerritoryCommand {
 
     private static java.util.concurrent.CompletableFuture<com.mojang.brigadier.suggestion.Suggestions> suggestItemNames(CommandContext<CommandSourceStack> c, SuggestionsBuilder b) {
         net.minecraftforge.registries.ForgeRegistries.ITEMS.getKeys().forEach(rl -> b.suggest(rl.toString()));
+        return b.buildFuture();
+    }
+
+    private static java.util.concurrent.CompletableFuture<com.mojang.brigadier.suggestion.Suggestions> suggestGuildNames(CommandContext<CommandSourceStack> c, SuggestionsBuilder b) {
+        var srv = ServerLifecycleHooks.getCurrentServer();
+        if (srv != null && srv.overworld() != null) {
+            org.lupz.doomsdayessentials.guild.GuildsManager.get(srv.overworld()).getGuildNames().forEach(b::suggest);
+        }
         return b.buildFuture();
     }
 

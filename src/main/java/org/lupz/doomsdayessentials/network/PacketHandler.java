@@ -228,6 +228,12 @@ public class PacketHandler {
                 .consumerMainThread(TerritoryProgressPacket::handle)
                 .add();
 
+        CHANNEL.messageBuilder(org.lupz.doomsdayessentials.network.packet.s2c.SyncPrisonTimePacket.class, index++, NetworkDirection.PLAY_TO_CLIENT)
+                .encoder(org.lupz.doomsdayessentials.network.packet.s2c.SyncPrisonTimePacket::encode)
+                .decoder(org.lupz.doomsdayessentials.network.packet.s2c.SyncPrisonTimePacket::decode)
+                .consumerMainThread(org.lupz.doomsdayessentials.network.packet.s2c.SyncPrisonTimePacket::handle)
+                .add();
+
         // KOFH scoreboard HUD sync (S2C)
         CHANNEL.messageBuilder(org.lupz.doomsdayessentials.network.packet.s2c.KofhScorePacket.class, index++, NetworkDirection.PLAY_TO_CLIENT)
                 .encoder(org.lupz.doomsdayessentials.network.packet.s2c.KofhScorePacket::encode)

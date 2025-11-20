@@ -27,9 +27,15 @@ public class NightMarketAdminScreen extends Screen {
     private final net.minecraft.core.BlockPos blockPos;
     private String activePreset;
     private final List<OfferEntry> offers = new ArrayList<>();
+    private final java.util.List<Button> offerDeleteButtons = new java.util.ArrayList<>();
 
     // Form widgets
     private EditBox buy1IdBox, buy1CountBox, buy2IdBox, buy2CountBox, sellIdBox, sellCountBox, maxUsesBox, xpBox, priceMultBox;
+    private EditBox bundleAliasBox, bundleItemsBox;
+    private final java.util.List<BundleRow> bundleRows = new java.util.ArrayList<>();
+    private Button addBundleItemBtn;
+    private boolean showSecondBuy = false, sellBundle = false, showParams = false;
+    private Button toggleSecondBtn, toggleBundleBtn, toggleParamsBtn, createBtn, slotEditorBtn;
     private EditBox presetNameBox, presetVersionBox;
     private @Nullable OfferEntry selectedOffer;
 
@@ -76,15 +82,13 @@ public class NightMarketAdminScreen extends Screen {
 
     @Override
     protected void init(){
-        // Layout constants
-        left = this.width/2 - 200;
-        top = this.height/2 - 110;
+        left = this.width/2 - 220;
+        top = this.height/2 - 120;
 
-        rowH = 18;
+        rowH = 20;
         colLabel = left;
-        colInput = left + 100;
-        // Right-side input column for SELL
-        colInputRight = colInput + 200;
+        colInput = left + 120;
+        colInputRight = left + 360;
 
         // Build item ID list for autocompletion (client-side registry)
         try{
@@ -95,14 +99,14 @@ public class NightMarketAdminScreen extends Screen {
         }catch(Exception ignored){}
 
         // Preset section
-        presetNameBox = new EditBox(this.font, colInput, top, 160, 16, Component.literal("Preset"));
+        presetNameBox = new EditBox(this.font, colInput, top, 180, 18, Component.literal("Preset"));
         presetNameBox.setMaxLength(64);
         presetNameBox.setValue(activePreset);
         presetNameBox.setSuggestion("Preset name (e.g. default)");
         placeholders.put(presetNameBox, "Preset name (e.g. default)");
         this.addRenderableWidget(presetNameBox);
 
-        presetVersionBox = new EditBox(this.font, colInput + 164, top, 40, 16, Component.literal("v"));
+        presetVersionBox = new EditBox(this.font, colInput + 184, top, 44, 18, Component.literal("v"));
         presetVersionBox.setMaxLength(4);
         presetVersionBox.setSuggestion("v#");
         placeholders.put(presetVersionBox, "v#");
@@ -130,40 +134,47 @@ public class NightMarketAdminScreen extends Screen {
         }).pos(colLabel, top + 3*rowH).size(80, 18).build());
 
         // Add trade section (refactored layout with BUY on left and SELL on right)
-        int formTop = top + 5*rowH;
+        int formTop = top + 4*rowH;
         // Buy 1
-        buy1IdBox = new EditBox(this.font, colInput, formTop, 170, 16, Component.literal("Buy 1"));
+        buy1IdBox = new EditBox(this.font, colInput, formTop, 190, 18, Component.literal("Buy 1"));
         buy1IdBox.setSuggestion("Item to buy (e.g. minecraft:emerald)");
         placeholders.put(buy1IdBox, "Item to buy (e.g. minecraft:emerald)");
-        buy1CountBox = new EditBox(this.font, colInput + 174, formTop, 40, 16, Component.literal("x"));
+        buy1CountBox = new EditBox(this.font, colInput + 194, formTop, 44, 18, Component.literal("x"));
         buy1CountBox.setSuggestion("count");
         placeholders.put(buy1CountBox, "count");
         // Buy 2 (optional)
-        buy2IdBox = new EditBox(this.font, colInput, formTop + rowH, 170, 16, Component.literal("Buy 2 (optional)"));
+        buy2IdBox = new EditBox(this.font, colInput, formTop + rowH, 190, 18, Component.literal("Buy 2 (optional)"));
         buy2IdBox.setSuggestion("Optional item (e.g. minecraft:diamond)");
         placeholders.put(buy2IdBox, "Optional item (e.g. minecraft:diamond)");
-        buy2CountBox = new EditBox(this.font, colInput + 174, formTop + rowH, 40, 16, Component.literal("x"));
+        buy2CountBox = new EditBox(this.font, colInput + 194, formTop + rowH, 44, 18, Component.literal("x"));
         buy2CountBox.setSuggestion("count");
         placeholders.put(buy2CountBox, "count");
         // Sell (on right)
-        sellIdBox = new EditBox(this.font, colInputRight, formTop, 170, 16, Component.literal("Sell"));
+        sellIdBox = new EditBox(this.font, colInputRight, formTop, 190, 18, Component.literal("Sell"));
         sellIdBox.setSuggestion("Item to sell (e.g. minecraft:arrow)");
         placeholders.put(sellIdBox, "Item to sell (e.g. minecraft:arrow)");
-        sellCountBox = new EditBox(this.font, colInputRight + 174, formTop, 40, 16, Component.literal("x"));
+        sellCountBox = new EditBox(this.font, colInputRight + 194, formTop, 44, 18, Component.literal("x"));
         sellCountBox.setSuggestion("count");
         placeholders.put(sellCountBox, "count");
+        // Bundle (optional alternative to Sell item): alias + items spec
+        bundleAliasBox = new EditBox(this.font, colInputRight, formTop + rowH, 190, 18, Component.literal("Bundle Alias"));
+        bundleAliasBox.setSuggestion("e.g. Starter Pack");
+        placeholders.put(bundleAliasBox, "e.g. Starter Pack");
+        bundleItemsBox = new EditBox(this.font, colInputRight + 194, formTop + rowH, 220, 18, Component.literal("Items"));
+        bundleItemsBox.setSuggestion("ns:id x count, ns:id x count");
+        placeholders.put(bundleItemsBox, "ns:id x count, ns:id x count");
         // Trade parameters
-        maxUsesBox = new EditBox(this.font, colInputRight, formTop + 2*rowH, 60, 16, Component.literal("Max Uses"));
+        maxUsesBox = new EditBox(this.font, colInputRight, formTop + 2*rowH, 68, 18, Component.literal("Max Uses"));
         maxUsesBox.setSuggestion("e.g. 64");
         placeholders.put(maxUsesBox, "e.g. 64");
-        xpBox = new EditBox(this.font, colInputRight + 64, formTop + 2*rowH, 60, 16, Component.literal("XP"));
+        xpBox = new EditBox(this.font, colInputRight + 72, formTop + 2*rowH, 68, 18, Component.literal("XP"));
         xpBox.setSuggestion("e.g. 1");
         placeholders.put(xpBox, "e.g. 1");
-        priceMultBox = new EditBox(this.font, colInputRight + 128, formTop + 2*rowH, 60, 16, Component.literal("Price Mult"));
+        priceMultBox = new EditBox(this.font, colInputRight + 144, formTop + 2*rowH, 68, 18, Component.literal("Price Mult"));
         priceMultBox.setSuggestion("e.g. 0.05");
         placeholders.put(priceMultBox, "e.g. 0.05");
 
-        for (EditBox eb : new EditBox[]{buy1IdBox,buy1CountBox,buy2IdBox,buy2CountBox,sellIdBox,sellCountBox,maxUsesBox,xpBox,priceMultBox}){
+        for (EditBox eb : new EditBox[]{buy1IdBox,buy1CountBox,buy2IdBox,buy2CountBox,sellIdBox,sellCountBox,bundleAliasBox,bundleItemsBox,maxUsesBox,xpBox,priceMultBox}){
             this.addRenderableWidget(eb);
         }
 
@@ -174,6 +185,8 @@ public class NightMarketAdminScreen extends Screen {
         attachPlaceholderAutoHide(buy1CountBox);
         attachPlaceholderAutoHide(buy2CountBox);
         attachPlaceholderAutoHide(sellCountBox);
+        attachPlaceholderAutoHide(bundleAliasBox);
+        attachPlaceholderAutoHide(bundleItemsBox);
         attachPlaceholderAutoHide(maxUsesBox);
         attachPlaceholderAutoHide(xpBox);
         attachPlaceholderAutoHide(priceMultBox);
@@ -194,31 +207,224 @@ public class NightMarketAdminScreen extends Screen {
             }catch(Exception ignored){}
         }).pos(colLabel, formTop).size(90, 18).build());
 
+        this.addRenderableWidget(Button.builder(Component.literal("Add Bundle Trade"), b -> {
+            try{
+                String buy1Id = buy1IdBox.getValue(); int buy1Count = parseIntOr(buy1CountBox.getValue(), 1);
+                String buy2Id = buy2IdBox.getValue(); int buy2Count = parseIntOr(buy2CountBox.getValue(), 0);
+                String alias = bundleAliasBox.getValue(); String itemsSpec = bundleItemsBox.getValue();
+                int maxUses = parseIntOr(maxUsesBox.getValue(), 64);
+                int xp = parseIntOr(xpBox.getValue(), 1);
+                float priceMult = parseFloatOr(priceMultBox.getValue(), 0.05f);
+                if (validateTradeInputs(buy1Id, buy1Count, "minecraft:stone", 1, priceMult) && !alias.isBlank() && !itemsSpec.isBlank()){
+                    PacketHandler.CHANNEL.sendToServer(NightMarketAdminActionPacket.addBundleTrade(marketId, buy1Id, buy1Count, buy2Id, buy2Count, alias, itemsSpec, maxUses, xp, priceMult));
+                }
+            }catch(Exception ignored){}
+        }).pos(colLabel + 96, formTop).size(130, 18).build());
+
         // Quick templates to speed up editing
-        int tmplY = formTop + 3*rowH + 2;
+        int tmplY = formTop + 3*rowH + 4;
         this.addRenderableWidget(Button.builder(Component.literal("Template: 1 emerald -> 16 bread"), b -> {
             buy1IdBox.setValue("minecraft:emerald"); buy1CountBox.setValue("1");
             sellIdBox.setValue("minecraft:bread"); sellCountBox.setValue("16");
             maxUsesBox.setValue("64"); xpBox.setValue("1"); priceMultBox.setValue("0.05");
-        }).pos(colLabel, tmplY).size(220, 18).build());
+        }).pos(colLabel, tmplY).size(240, 20).build());
         this.addRenderableWidget(Button.builder(Component.literal("Template: 32 emerald -> 1 diamond"), b -> {
             buy1IdBox.setValue("minecraft:emerald"); buy1CountBox.setValue("32");
             sellIdBox.setValue("minecraft:diamond"); sellCountBox.setValue("1");
             maxUsesBox.setValue("64"); xpBox.setValue("1"); priceMultBox.setValue("0.1");
-        }).pos(colLabel + 224, tmplY).size(220, 18).build());
+        }).pos(colLabel + 244, tmplY).size(240, 20).build());
 
         // Edit session controls
         int ctrlY = top + 2*rowH;
         this.addRenderableWidget(Button.builder(Component.literal("Start Edit"), b -> PacketHandler.CHANNEL.sendToServer(NightMarketAdminActionPacket.startSession(marketId)))
-                .pos(colLabel, ctrlY).size(85, 18).build());
+                .pos(colLabel, ctrlY).size(88, 20).build());
         this.addRenderableWidget(Button.builder(Component.literal("Undo"), b -> PacketHandler.CHANNEL.sendToServer(NightMarketAdminActionPacket.undo(marketId)))
-                .pos(colLabel + 90, ctrlY).size(60, 18).build());
+                .pos(colLabel + 92, ctrlY).size(64, 20).build());
         this.addRenderableWidget(Button.builder(Component.literal("Redo"), b -> PacketHandler.CHANNEL.sendToServer(NightMarketAdminActionPacket.redo(marketId)))
-                .pos(colLabel + 152, ctrlY).size(60, 18).build());
+                .pos(colLabel + 158, ctrlY).size(64, 20).build());
         this.addRenderableWidget(Button.builder(Component.literal("Apply"), b -> PacketHandler.CHANNEL.sendToServer(NightMarketAdminActionPacket.commit(marketId)))
-                .pos(colLabel + 214, ctrlY).size(60, 18).build());
+                .pos(colLabel + 224, ctrlY).size(72, 20).build());
         this.addRenderableWidget(Button.builder(Component.literal("Cancel"), b -> PacketHandler.CHANNEL.sendToServer(NightMarketAdminActionPacket.cancel(marketId)))
-                .pos(colLabel + 276, ctrlY).size(60, 18).build());
+                .pos(colLabel + 300, ctrlY).size(72, 20).build());
+
+        this.addRenderableWidget(Button.builder(Component.literal("Editar com Slots"), b -> PacketHandler.CHANNEL.sendToServer(NightMarketAdminActionPacket.openEditor(marketId, blockPos)))
+                .pos(colLabel + 376, ctrlY).size(128, 20).build());
+
+        this.clearWidgets();
+        buildSimplified();
+    }
+
+    private void buildSimplified(){
+        left = this.width/2 - 160;
+        top = this.height/2 - 110;
+        rowH = 22;
+        colInput = left;
+
+        try{
+            for (var key : net.minecraftforge.registries.ForgeRegistries.ITEMS.getKeys()){
+                allItemIds.add(key.toString());
+            }
+            allItemIds.sort(String::compareTo);
+        }catch(Exception ignored){}
+
+        int formTop = top + rowH;
+        buy1IdBox = new EditBox(this.font, colInput, formTop, 220, 20, Component.literal("Buy 1"));
+        buy1IdBox.setSuggestion("namespace:item");
+        placeholders.put(buy1IdBox, "namespace:item");
+        buy1CountBox = new EditBox(this.font, colInput + 226, formTop, 54, 20, Component.literal("x"));
+        buy1CountBox.setSuggestion("count");
+        placeholders.put(buy1CountBox, "count");
+
+        buy2IdBox = new EditBox(this.font, colInput, formTop + rowH, 220, 20, Component.literal("Buy 2"));
+        buy2IdBox.setSuggestion("optional");
+        placeholders.put(buy2IdBox, "optional");
+        buy2CountBox = new EditBox(this.font, colInput + 226, formTop + rowH, 54, 20, Component.literal("x"));
+        buy2CountBox.setSuggestion("count");
+        placeholders.put(buy2CountBox, "count");
+
+        sellIdBox = new EditBox(this.font, colInput, formTop + 2*rowH, 220, 20, Component.literal("Sell"));
+        sellIdBox.setSuggestion("namespace:item");
+        placeholders.put(sellIdBox, "namespace:item");
+        sellCountBox = new EditBox(this.font, colInput + 226, formTop + 2*rowH, 54, 20, Component.literal("x"));
+        sellCountBox.setSuggestion("count");
+        placeholders.put(sellCountBox, "count");
+
+        bundleAliasBox = new EditBox(this.font, colInput, formTop + 2*rowH, 140, 20, Component.literal("Alias"));
+        bundleAliasBox.setSuggestion("pack name");
+        placeholders.put(bundleAliasBox, "pack name");
+        bundleItemsBox = new EditBox(this.font, colInput + 146, formTop + 2*rowH, 134, 20, Component.literal("Items"));
+        bundleItemsBox.setVisible(false);
+
+        maxUsesBox = new EditBox(this.font, colInput, formTop + 3*rowH, 80, 20, Component.literal("Uses"));
+        maxUsesBox.setValue("64");
+        xpBox = new EditBox(this.font, colInput + 84, formTop + 3*rowH, 80, 20, Component.literal("XP"));
+        xpBox.setValue("1");
+        priceMultBox = new EditBox(this.font, colInput + 168, formTop + 3*rowH, 112, 20, Component.literal("Mult"));
+        priceMultBox.setValue("0.05");
+
+        for (EditBox eb : new EditBox[]{buy1IdBox,buy1CountBox,buy2IdBox,buy2CountBox,sellIdBox,sellCountBox,bundleAliasBox,bundleItemsBox,maxUsesBox,xpBox,priceMultBox}){
+            this.addRenderableWidget(eb);
+        }
+
+        attachItemResponder(buy1IdBox);
+        attachItemResponder(buy2IdBox);
+        attachItemResponder(sellIdBox);
+        for (EditBox eb : new EditBox[]{buy1CountBox,buy2CountBox,sellCountBox,bundleAliasBox,bundleItemsBox,maxUsesBox,xpBox,priceMultBox}) attachPlaceholderAutoHide(eb);
+
+        toggleSecondBtn = this.addRenderableWidget(Button.builder(Component.literal("Second Item: Off"), b -> {
+            showSecondBuy = !showSecondBuy; b.setMessage(Component.literal(showSecondBuy?"Second Item: On":"Second Item: Off"));
+            buy2IdBox.setVisible(showSecondBuy); buy2CountBox.setVisible(showSecondBuy);
+        }).pos(colInput, top).size(140, 20).build());
+
+        toggleBundleBtn = this.addRenderableWidget(Button.builder(Component.literal("Sell: Item"), b -> {
+            sellBundle = !sellBundle; b.setMessage(Component.literal(sellBundle?"Sell: Bundle":"Sell: Item"));
+            sellIdBox.setVisible(!sellBundle); sellCountBox.setVisible(!sellBundle);
+            bundleAliasBox.setVisible(sellBundle);
+            for (BundleRow r : bundleRows){ r.setVisible(sellBundle); }
+            addBundleItemBtn.visible = sellBundle;
+        }).pos(colInput + 146, top).size(134, 20).build());
+
+        toggleParamsBtn = this.addRenderableWidget(Button.builder(Component.literal("Params: Default"), b -> {
+            showParams = !showParams; b.setMessage(Component.literal(showParams?"Params: Custom":"Params: Default"));
+            maxUsesBox.setVisible(showParams); xpBox.setVisible(showParams); priceMultBox.setVisible(showParams);
+        }).pos(colInput, formTop + 3*rowH + 24).size(180, 20).build());
+
+        createBtn = this.addRenderableWidget(Button.builder(Component.literal("Create Trade"), b -> {
+            try{
+                String buy1Id = buy1IdBox.getValue(); int buy1Count = parseIntOr(buy1CountBox.getValue(), 1);
+                String buy2Id = showSecondBuy ? buy2IdBox.getValue() : null; int buy2Count = showSecondBuy ? parseIntOr(buy2CountBox.getValue(), 0) : 0;
+                int maxUses = showParams ? parseIntOr(maxUsesBox.getValue(), 64) : 64;
+                int xp = showParams ? parseIntOr(xpBox.getValue(), 1) : 1;
+                float priceMult = showParams ? parseFloatOr(priceMultBox.getValue(), 0.05f) : 0.05f;
+                if (!sellBundle){
+                    String sellId = sellIdBox.getValue(); int sellCount = parseIntOr(sellCountBox.getValue(), 1);
+                    if (validateTradeInputs(buy1Id, buy1Count, sellId, sellCount, priceMult)){
+                        PacketHandler.CHANNEL.sendToServer(NightMarketAdminActionPacket.addTrade(marketId, buy1Id, buy1Count, buy2Id, buy2Count, sellId, sellCount, maxUses, xp, priceMult));
+                    }
+                } else {
+                    String alias = bundleAliasBox.getValue();
+                    StringBuilder sb = new StringBuilder();
+                    for (int i=0;i<bundleRows.size();i++){
+                        BundleRow r = bundleRows.get(i);
+                        String id = r.idBox.getValue(); int cnt = parseIntOr(r.countBox.getValue(), 1);
+                        if (id != null && !id.isBlank()){
+                            if (sb.length()>0) sb.append(", ");
+                            sb.append(id).append(" x ").append(cnt);
+                        }
+                    }
+                    String itemsSpec = sb.toString();
+                    if (validateTradeInputs(buy1Id, buy1Count, "minecraft:stone", 1, priceMult) && !alias.isBlank() && !itemsSpec.isBlank()){
+                        PacketHandler.CHANNEL.sendToServer(NightMarketAdminActionPacket.addBundleTrade(marketId, buy1Id, buy1Count, buy2Id, buy2Count, alias, itemsSpec, maxUses, xp, priceMult));
+                    }
+                }
+            }catch(Exception ignored){}
+        }).pos(colInput, formTop + 4*rowH + 24).size(180, 22).build());
+
+        slotEditorBtn = this.addRenderableWidget(Button.builder(Component.literal("Editar com Slots"), b -> PacketHandler.CHANNEL.sendToServer(NightMarketAdminActionPacket.openEditor(marketId, blockPos)))
+                .pos(colInput + 186, formTop + 4*rowH + 24).size(180, 22).build());
+
+        buy2IdBox.setVisible(false); buy2CountBox.setVisible(false);
+        bundleAliasBox.setVisible(false); bundleItemsBox.setVisible(false);
+        maxUsesBox.setVisible(false); xpBox.setVisible(false); priceMultBox.setVisible(false);
+        addBundleItemBtn = this.addRenderableWidget(Button.builder(Component.literal("+ Item"), b -> {
+            addBundleRow();
+        }).pos(colInput + 146, formTop + 3*rowH).size(134, 20).build());
+        addBundleItemBtn.visible = false;
+        buildOfferListButtons();
+    }
+
+    private void buildOfferListButtons(){
+        for (Button b : offerDeleteButtons) this.removeWidget(b);
+        offerDeleteButtons.clear();
+        int listLeft = this.width - 220;
+        int listTop = top;
+        int visible = Math.min(12, offers.size());
+        for (int i=0;i<visible;i++){
+            int y = listTop + i*20;
+            final int idx = i;
+            Button del = Button.builder(Component.literal("🗑"), b -> PacketHandler.CHANNEL.sendToServer(NightMarketAdminActionPacket.deleteTrade(marketId, idx)))
+                    .pos(listLeft + 180, y).size(30, 20).build();
+            this.addRenderableWidget(del);
+            offerDeleteButtons.add(del);
+        }
+    }
+
+    private void addBundleRow(){
+        int idx = bundleRows.size();
+        BundleRow r = new BundleRow();
+        int formTop = top + rowH;
+        r.idBox = new EditBox(this.font, colInput, formTop + 3*rowH + idx*rowH, 220, 20, Component.literal("Item"));
+        r.idBox.setSuggestion("namespace:item");
+        r.countBox = new EditBox(this.font, colInput + 226, formTop + 3*rowH + idx*rowH, 54, 20, Component.literal("x"));
+        r.countBox.setSuggestion("count");
+        r.removeBtn = Button.builder(Component.literal("-"), b -> {
+            this.removeWidget(r.idBox); this.removeWidget(r.countBox); this.removeWidget(r.removeBtn);
+            bundleRows.remove(r); relayoutBundleRows();
+        }).pos(colInput + 284, formTop + 3*rowH + idx*rowH).size(24, 20).build();
+        this.addRenderableWidget(r.idBox); this.addRenderableWidget(r.countBox); this.addRenderableWidget(r.removeBtn);
+        attachItemResponder(r.idBox); attachPlaceholderAutoHide(r.countBox);
+        bundleRows.add(r);
+        relayoutBundleRows();
+        if (sellBundle){ r.setVisible(true);} else { r.setVisible(false); }
+    }
+
+    private void relayoutBundleRows(){
+        int formTop = top + rowH;
+        for (int i=0;i<bundleRows.size();i++){
+            BundleRow r = bundleRows.get(i);
+            int y = formTop + 3*rowH + i*rowH;
+            r.idBox.setX(colInput); r.idBox.setY(y);
+            r.countBox.setX(colInput + 226); r.countBox.setY(y);
+            r.removeBtn.setPosition(colInput + 284, y);
+        }
+        addBundleItemBtn.setPosition(colInput + 146, formTop + 3*rowH + bundleRows.size()*rowH);
+    }
+
+    
+
+    private static class BundleRow {
+        EditBox idBox; EditBox countBox; Button removeBtn;
+        void setVisible(boolean v){ idBox.setVisible(v); countBox.setVisible(v); removeBtn.visible = v; }
     }
 
     private int parseIntOr(String s, int def){ try{ return Integer.parseInt(s);}catch(Exception e){ return def; } }
@@ -229,45 +435,62 @@ public class NightMarketAdminScreen extends Screen {
         this.renderBackground(g);
         super.render(g, mx, my, pt);
 
-        // Titles
-        g.drawString(this.font, Component.literal("§6Night Market Admin"), left, top - 40, 0xFFFFFF, false);
-        g.drawString(this.font, Component.literal("Active preset: " + (activePreset.isEmpty()?"<none>":activePreset)), left, top - 24, 0xAAAAAA, false);
+        g.drawString(this.font, Component.literal("§6Mercado Negro - Admin"), left, top - 24, 0xFFFFFF, false);
+        g.drawString(this.font, Component.literal((showSecondBuy?"2º item: On":"2º item: Off") + "  |  " + (sellBundle?"Saída: Bundle":"Saída: Item")), left, top - 6, 0xAAAAAA, false);
 
-        // Section headers
-        g.drawString(this.font, Component.literal("Presets"), left, top - 12, 0xFFD580, false);
-        g.drawString(this.font, Component.literal("Buy Items"), colInput, top + 5*rowH - 12, 0xFFD580, false);
-        g.drawString(this.font, Component.literal("Sell Item"), colInputRight, top + 5*rowH - 12, 0xFFD580, false);
-
-        // Offers preview list on the right
-        int listLeft = left + 360;
+        int listLeft = this.width - 220;
         int listTop = top;
-        int i=0;
-        for (OfferEntry e : offers){
-            int y = listTop + i*18;
-            boolean hovered = mx >= listLeft && mx <= listLeft+180 && my >= y && my <= y+16;
-            int color = hovered ? 0xFFFFEE : 0xFFFFFF;
-            g.drawString(this.font, Component.literal((i+1)+". "+ (e.alias.isBlank()?"<sem alias>":e.alias)), listLeft + 20, y, color, false);
-            // render result item icon if available
-            if (!e.sellId.isBlank()){
-                ItemStack icon = itemFromId(e.sellId, e.sellCount);
-                if (!icon.isEmpty()) g.renderItem(icon, listLeft, y-2);
-            }
-            i++; if (i>10) break; // simple preview up to 10 entries
+        for (int i=0;i<Math.min(12, offers.size());i++){
+            OfferEntry e = offers.get(i);
+            int y = listTop + i*20;
+            ItemStack icon = itemFromId(e.sellId, e.sellCount);
+            if (!icon.isEmpty()) g.renderItem(icon, listLeft, y-2);
+            g.drawString(this.font, Component.literal(e.alias), listLeft + 22, y, 0xFFFFFF, false);
         }
 
-        // Render clickable suggestion overlay for focused item boxes
+        // Render clickable suggestion overlay with adaptive anchoring
         if (this.getFocused() instanceof EditBox eb && isItemBox(eb)){
             List<String> sugg = findItemMatches(eb.getValue(), 5);
             currentSuggestions = sugg;
             if (!sugg.isEmpty()){
-                int sx = eb.getX();
-                int sy = eb.getY() + eb.getHeight() + 2;
-                // Keep overlay within screen bounds
-                int w = Math.min(220, Math.max(120, this.width - sx - 20));
-                int h = 16 * sugg.size() + 4;
+                int boxX = eb.getX();
+                int boxY = eb.getY();
+                int boxW = eb.getWidth();
+                int boxH = eb.getHeight();
+                int w = 180;
+                int h = 18 * sugg.size() + 6;
+
+                java.util.function.BiPredicate<Integer,Integer> overlapsAny = (ox, oy) -> {
+                    int ow = w, oh = h;
+                    for (var child : this.children()){
+                        if (child instanceof net.minecraft.client.gui.components.AbstractWidget aw){
+                            if (!aw.visible) continue;
+                            int cx = aw.getX(), cy = aw.getY(), cw = aw.getWidth(), ch = aw.getHeight();
+                            boolean inter = ox < cx + cw && ox + ow > cx && oy < cy + ch && oy + oh > cy;
+                            if (inter) return true;
+                        }
+                    }
+                    return false;
+                };
+
+                int sx = boxX + boxW + 6; int sy = boxY - 2; // prefer right
+                if (sx + w + 6 > this.width || overlapsAny.test(sx, sy)){
+                    sx = boxX - w - 6; sy = boxY - 2; // try left
+                }
+                if (sx < 6 || overlapsAny.test(sx, sy)){
+                    sx = boxX; sy = boxY + boxH + 2; // try below
+                }
+                if (sy + h + 6 > this.height || overlapsAny.test(sx, sy)){
+                    sx = boxX; sy = boxY - h - 2; // try above
+                }
+                if (sx < 6 || sy < 6 || sx + w + 6 > this.width || sy + h + 6 > this.height || overlapsAny.test(sx, sy)){
+                    sx = Math.max(6, this.width - w - 6);
+                    sy = Math.max(6, Math.min(boxY, this.height - h - 6));
+                }
                 suggX = sx; suggY = sy; suggW = w; suggH = h;
-                // Background
-                g.fill(sx, sy, sx + w, sy + h, 0xAA000000);
+                g.pose().pushPose();
+                g.pose().translate(0, 0, 400);
+                g.fill(sx, sy, sx + w, sy + h, 0xCC101010);
                 int y = sy + 2;
                 for (int j=0;j<sugg.size();j++){
                     String id = sugg.get(j);
@@ -276,8 +499,9 @@ public class NightMarketAdminScreen extends Screen {
                     if (!icon.isEmpty()) g.renderItem(icon, sx + 2, y - 2);
                     // Text
                     g.drawString(this.font, Component.literal(id), sx + 22, y, 0xE0FFFF, false);
-                    y += 16;
+                    y += 18;
                 }
+                g.pose().popPose();
             } else {
                 suggH = 0;
             }
@@ -291,7 +515,7 @@ public class NightMarketAdminScreen extends Screen {
         // Click suggestion overlay
         if (button == 0 && suggH > 0 && this.getFocused() instanceof EditBox eb && isItemBox(eb)){
             if (mx >= suggX && mx <= suggX + suggW && my >= suggY && my <= suggY + suggH){
-                int idx = (int)((my - suggY - 2) / 16);
+                int idx = (int)((my - suggY - 2) / 18);
                 if (idx >= 0 && idx < currentSuggestions.size()){
                     eb.setValue(currentSuggestions.get(idx));
                     eb.setCursorPosition(eb.getValue().length());
@@ -299,16 +523,7 @@ public class NightMarketAdminScreen extends Screen {
                 }
             }
         }
-        // Click offer list selection
-        int listLeft = this.width/2 - 180 + 240;
-        int listTop = this.height/2 - 110;
-        for (int i=0;i<offers.size();i++){
-            int y = listTop + i*18;
-            if (mx >= listLeft && mx <= listLeft+180 && my >= y && my <= y+16){
-                selectedOffer = offers.get(i);
-                return true;
-            }
-        }
+        
         return super.mouseClicked(mx, my, button);
     }
 
@@ -344,7 +559,9 @@ public class NightMarketAdminScreen extends Screen {
     }
 
     private boolean isItemBox(EditBox eb){
-        return eb == buy1IdBox || eb == buy2IdBox || eb == sellIdBox;
+        if (eb == buy1IdBox || eb == buy2IdBox || eb == sellIdBox) return true;
+        for (BundleRow r : bundleRows){ if (eb == r.idBox) return true; }
+        return false;
     }
 
     private List<String> findItemMatches(String input, int limit){
@@ -397,6 +614,7 @@ public class NightMarketAdminScreen extends Screen {
             this.activePreset = activePreset == null ? this.activePreset : activePreset;
             this.offers.clear();
             parseOffersJson(offersJson);
+            buildOfferListButtons();
         }catch(Exception ignored){}
     }
 

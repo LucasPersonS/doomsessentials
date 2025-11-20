@@ -652,14 +652,12 @@ public class GuildsManager extends SavedData {
     }
 
     public boolean canEnterTerritory(UUID playerUUID, String territoryGuildName) {
-        if (!isTerritoryUnderWar(territoryGuildName))
-            return true;
+        if (!isTerritoryUnderWar(territoryGuildName)) return true;
         Guild playerGuild = getGuildByMember(playerUUID);
-        if (playerGuild == null)
-            return false;
+        if (playerGuild == null) return false;
+        if (playerGuild.getName().equals(territoryGuildName)) return true;
         War war = getWar(playerGuild.getName(), territoryGuildName);
-        if (war == null)
-            return false;
+        if (war == null) return false;
         return !war.isPlayerLockedOut(playerUUID);
     }
 
@@ -825,20 +823,39 @@ public class GuildsManager extends SavedData {
     public void onAttackerVictory(String attacker, String defender) {
         long now = System.currentTimeMillis();
         long weekMs = GuildConfig.WAR_COOLDOWN_HOURS.get() * 60L * 60L * 1000L;
-        // Shield defender for a week
         setDefenderShield(defender, now + weekMs);
-        // End this war instance if present
         endWar(attacker, defender);
-        // Plunder resources
-        int moved = org.lupz.doomsdayessentials.territory.ResourceGeneratorManager.get().plunder(defender, attacker,
+        java.util.Map<String, Integer> details = org.lupz.doomsdayessentials.territory.ResourceGeneratorManager.get().plunderDetailed(defender, attacker,
                 GuildConfig.PLUNDER_ITEM_COUNT.get());
+        int moved = 0;
+        for (Integer v : details.values()) moved += v;
         var server = net.minecraftforge.server.ServerLifecycleHooks.getCurrentServer();
         if (server != null) {
             net.minecraft.network.chat.Component msg = net.minecraft.network.chat.Component.literal(
                     "§cCofre destruído! §e" + moved + " itens saqueados de " + defender + " para " + attacker + ".");
             server.getPlayerList().broadcastSystemMessage(msg, false);
+            java.util.List<net.minecraft.server.level.ServerPlayer> players = server.getPlayerList().getPlayers();
+            java.util.List<String> lines = new java.util.ArrayList<>();
+            int shown = 0;
+            for (var e : details.entrySet()) {
+                if (shown >= 8) break;
+                lines.add("§7- §f" + e.getKey() + " §ex" + e.getValue());
+                shown++;
+            }
+            for (var p : players) {
+                Guild g = getGuildByMember(p.getUUID());
+                if (g == null) continue;
+                String gn = g.getName();
+                if (attacker.equals(gn) || defender.equals(gn)) {
+                    p.connection.send(new net.minecraft.network.protocol.game.ClientboundSetTitleTextPacket(net.minecraft.network.chat.Component.literal("§cSaque Concluído")));
+                    for (String s : lines) p.sendSystemMessage(net.minecraft.network.chat.Component.literal(s));
+                }
+            }
+            for (var e : details.entrySet()) {
+                logStorageChangeWithName(defender, null, attacker, "plunder_out", e.getKey(), e.getValue(), 0, 0);
+                logStorageChangeWithName(attacker, null, defender, "plunder_in", e.getKey(), e.getValue(), 0, 0);
+            }
         }
-        // Refresh defender territory cooldown to now
         territoryWarCooldowns.put(defender, now);
         setDirty();
     }
@@ -860,8 +877,9 @@ public class GuildsManager extends SavedData {
     // -------------------------------------------------------------------------------------
 
     public int getStorageCapacityItems(String guildName) {
-        var inv = getOrCreateStorage(guildName);
-        return inv.size();
+        Guild g = guilds.get(guildName);
+        int pages = (g == null ? 5 : (4 + g.getStorageLevel()));
+        return 54 * pages;
     }
 
     /**

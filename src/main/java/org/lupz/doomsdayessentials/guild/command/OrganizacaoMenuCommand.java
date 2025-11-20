@@ -52,7 +52,25 @@ public final class OrganizacaoMenuCommand {
                 source.sendFailure(Component.literal("§cA tag da organização deve ter entre 2 e 6 caracteres."));
                 return 0;
             }
-            
+
+            int cost = org.lupz.doomsdayessentials.guild.GuildConfig.GUILD_CREATION_COST_SCRAPS.get();
+            net.minecraft.world.item.Item scrapItem = org.lupz.doomsdayessentials.item.ModItems.SCRAPMETAL.get();
+            int available = p.getInventory().countItem(scrapItem);
+            if (available < cost) {
+                source.sendFailure(Component.literal("§cVocê precisa de " + cost + " sucatas para criar uma organização."));
+                return 0;
+            }
+            int toRemove = cost;
+            for (int i = 0; i < p.getInventory().getContainerSize(); i++) {
+                net.minecraft.world.item.ItemStack stack = p.getInventory().getItem(i);
+                if (stack.is(scrapItem)) {
+                    int rem = Math.min(toRemove, stack.getCount());
+                    stack.shrink(rem);
+                    toRemove -= rem;
+                    if (toRemove <= 0) break;
+                }
+            }
+
             // Create the guild
             gm.createGuild(name, tag, p.getUUID());
             source.sendSuccess(() -> Component.literal("§aOrganização '§6" + name + "§a' [§6" + tag + "§a] criada com sucesso!"), true);

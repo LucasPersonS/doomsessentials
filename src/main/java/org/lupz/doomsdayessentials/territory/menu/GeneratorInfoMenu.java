@@ -55,31 +55,22 @@ public class GeneratorInfoMenu extends AbstractContainerMenu {
         addLore(header,hlore);
         container.setItem(49, header);
 
-        // ---------------------------------------------------------
-        // Fill remaining empty slots with black stained glass panes
-        // ---------------------------------------------------------
-        ItemStack filler = new ItemStack(net.minecraft.world.item.Items.BLACK_STAINED_GLASS_PANE);
-        filler.setHoverName(Component.literal(""));
-        for (int i = 0; i < 54; i++) {
-            if (container.getItem(i).isEmpty()) {
-                container.setItem(i, filler.copy());
-            }
-        }
         for (ResourceAreaData.LootEntry e : data.lootEntries) {
             var item = ForgeRegistries.ITEMS.getValue(net.minecraft.resources.ResourceLocation.tryParse(e.id));
             if (item==null) continue;
-            int remaining = e.stored;
-            while (remaining>0 && slot<54) {
-                ItemStack st = new ItemStack(item);
-                int cnt = Math.min(64, remaining);
-                st.setCount(cnt);
-                List<Component> lore=new ArrayList<>();
-                lore.add(Component.literal("§aProduzindo: §f"+e.perHour+"/h"));
-                lore.add(Component.literal("§eArmazenado: §f"+e.stored+"/"+data.storageCap));
-                addLore(st,lore);
-                container.setItem(slot++, st);
-                remaining -= cnt;
-            }
+            ItemStack st = new ItemStack(item);
+            int cnt = Math.min(64, Math.max(1, e.perHour));
+            st.setCount(cnt);
+            List<Component> lore=new ArrayList<>();
+            lore.add(Component.literal("§aProduzindo: §f"+e.perHour+"/h"));
+            lore.add(Component.literal("§eArmazenado: §f"+e.stored+"/"+data.storageCap));
+            addLore(st,lore);
+            if (slot < 54) container.setItem(slot++, st);
+        }
+        ItemStack filler = new ItemStack(net.minecraft.world.item.Items.BLACK_STAINED_GLASS_PANE);
+        filler.setHoverName(Component.literal(""));
+        for (int i = 0; i < 54; i++) {
+            if (container.getItem(i).isEmpty()) container.setItem(i, filler.copy());
         }
     }
 

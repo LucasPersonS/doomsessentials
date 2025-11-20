@@ -38,6 +38,7 @@ public class ResourceAreaData {
     public String ownerGuild; // nullable
     public long lastTimestamp;
     public long claimTimestamp;
+    public long dominationExpiry;
 
     public ResourceAreaData(String areaName, String lootId, int itemsPerHour, int storageCap) {
         this.areaName = areaName;
@@ -45,6 +46,7 @@ public class ResourceAreaData {
         this.lootEntries.add(new LootEntry(lootId, itemsPerHour));
         this.lastTimestamp = System.currentTimeMillis();
         this.claimTimestamp = 0;
+        this.dominationExpiry = 0L;
     }
 
     public ResourceAreaData(String areaName, List<LootEntry> entries, int storageCap) {
@@ -53,6 +55,7 @@ public class ResourceAreaData {
         this.storageCap = storageCap;
         this.lastTimestamp = System.currentTimeMillis();
         this.claimTimestamp = 0;
+        this.dominationExpiry = 0L;
     }
 
     // ----------------------------------
@@ -66,6 +69,7 @@ public class ResourceAreaData {
         obj.addProperty("storageCap", storageCap);
         if (ownerGuild != null) obj.addProperty("owner", ownerGuild);
         if (claimTimestamp > 0) obj.addProperty("claim", claimTimestamp);
+        if (dominationExpiry > 0) obj.addProperty("dominationExpiry", dominationExpiry);
         obj.addProperty("last", lastTimestamp);
         return obj;
     }
@@ -88,7 +92,8 @@ public class ResourceAreaData {
         ResourceAreaData data = new ResourceAreaData(name, entries, cap);
         if (obj.has("owner")) data.ownerGuild = obj.get("owner").getAsString();
         if (obj.has("claim")) data.claimTimestamp = obj.get("claim").getAsLong();
+        if (obj.has("dominationExpiry")) data.dominationExpiry = obj.get("dominationExpiry").getAsLong();
         if (obj.has("last")) data.lastTimestamp = obj.get("last").getAsLong();
         return data;
     }
-} 
+}
