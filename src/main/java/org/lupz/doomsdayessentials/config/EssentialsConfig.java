@@ -10,6 +10,9 @@ public class EssentialsConfig {
     public static final ForgeConfigSpec.IntValue COMBAT_DURATION_SECONDS;
     public static final ForgeConfigSpec.ConfigValue<java.util.List<? extends String>> ALLOWED_COMBAT_COMMANDS;
     public static final ForgeConfigSpec.IntValue COMBAT_LOG_TIMER;
+    public static final ForgeConfigSpec.IntValue COMBAT_FUGITIVE_DURATION_SECONDS;
+    public static final ForgeConfigSpec.BooleanValue COMBAT_ENTER_ON_ATTACK_ONLY;
+    public static final ForgeConfigSpec.DoubleValue WANTED_ICON_SCALE;
 
     // Injury System
     public static final ForgeConfigSpec.BooleanValue INJURY_SYSTEM_ENABLED;
@@ -56,6 +59,9 @@ public class EssentialsConfig {
     public static final ForgeConfigSpec.IntValue TRACKER_COMPASS_DURATION;
     public static final ForgeConfigSpec.IntValue TRACKER_COMPASS_COOLDOWN;
 
+    // Professions.bounty
+    public static final ForgeConfigSpec.IntValue AUTO_BOUNTY_COOLDOWN_MINUTES;
+
     // Professions.Chat
     public static final ForgeConfigSpec.IntValue LOCAL_CHAT_RADIUS;
 
@@ -64,6 +70,11 @@ public class EssentialsConfig {
 
     // Shop Items
     public static final ForgeConfigSpec.ConfigValue<java.util.List<? extends String>> SHOP_ITEMS;
+    // Zombies / Market
+    public static final ForgeConfigSpec.BooleanValue ZOMBIES_STRIP_ARMOR_AGGRESSIVE;
+    public static final ForgeConfigSpec.BooleanValue MARKET_DISABLE_DEBUG_OPEN_TRADES;
+    // Recycler
+    public static final ForgeConfigSpec.IntValue RECYCLER_PROCESS_SECONDS;
 
     static {
         BUILDER.push("combat");
@@ -75,6 +86,12 @@ public class EssentialsConfig {
                 .defineList("allowedCombatCommands", java.util.Arrays.asList("msg", "r"), s -> s instanceof String);
         COMBAT_LOG_TIMER = BUILDER.comment("The duration (in seconds) that combat logs are visible.")
                 .defineInRange("combatLogTimer", 30, 1, 300);
+        COMBAT_FUGITIVE_DURATION_SECONDS = BUILDER.comment("Duration (in seconds) of the 'foragido' status when a player kills unjustly.")
+                .defineInRange("fugitiveDurationSeconds", 1800, 60, 86400);
+        COMBAT_ENTER_ON_ATTACK_ONLY = BUILDER.comment("If true, only attackers are combat-tagged on hit; victims are not.")
+                .define("enterOnAttackOnly", true);
+        WANTED_ICON_SCALE = BUILDER.comment("Escala do ícone de foragido acima da cabeça (1.0 = padrão).")
+                .defineInRange("wantedIconScale", 1.0, 0.5, 3.0);
         BUILDER.pop();
 
         BUILDER.push("injury");
@@ -159,6 +176,11 @@ public class EssentialsConfig {
                 .defineInRange("trackerCompassCooldown", 30, 10, 300);
         BUILDER.pop();
 
+        BUILDER.comment("Configurações para o sistema de Caçador de Recompensas").push("bounty");
+        AUTO_BOUNTY_COOLDOWN_MINUTES = BUILDER.comment("Cooldown (em minutos) por jogador para criar bounty automática quando vira foragido.")
+                .defineInRange("autoBountyCooldownMinutes", 1440, 10, 10080);
+        BUILDER.pop();
+
         BUILDER.push("Chat");
         LOCAL_CHAT_RADIUS = BUILDER.comment("The radius in blocks for local chat.")
                 .defineInRange("localChatRadius", 16, 1, 256);
@@ -175,6 +197,21 @@ public class EssentialsConfig {
 
         BUILDER.pop();
 
+        BUILDER.push("zombies");
+        ZOMBIES_STRIP_ARMOR_AGGRESSIVE = BUILDER.comment("If true, zombies and variants are forcibly stripped of armor on spawn and when equipped.")
+                .define("stripArmorAggressive", true);
+        BUILDER.pop();
+
+        BUILDER.push("market");
+        MARKET_DISABLE_DEBUG_OPEN_TRADES = BUILDER.comment("Disable debug logs when opening night market trades.")
+                .define("disableDebugOpenTrades", true);
+        BUILDER.pop();
+
+        BUILDER.push("recycler");
+        RECYCLER_PROCESS_SECONDS = BUILDER.comment("Tempo em segundos para reciclar 1 item (tempo real, independente de ticks).")
+                .defineInRange("processSeconds", 10, 1, 600);
+        BUILDER.pop();
+
         SPEC = BUILDER.build();
     }
-} 
+}

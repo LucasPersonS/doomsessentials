@@ -2,12 +2,6 @@ package org.lupz.doomsdayessentials.guild;
 
 import net.minecraftforge.common.ForgeConfigSpec;
 
-/**
- * Configuration values for the guild (/organizacao) system.
- *
- * They are kept in a separate file (<modid>-guilds.toml) so server owners can
- * tweak guild mechanics without touching the rest of the Essentials config.
- */
 public class GuildConfig {
     public static final ForgeConfigSpec.Builder BUILDER = new ForgeConfigSpec.Builder();
     public static final ForgeConfigSpec SPEC;
@@ -20,6 +14,7 @@ public class GuildConfig {
     public static final ForgeConfigSpec.LongValue GUILD_LEAVE_COOLDOWN_HOURS;
     public static final ForgeConfigSpec.IntValue TERRITORY_RADIUS_CHUNKS;
     public static final ForgeConfigSpec.IntValue GUILD_CREATION_COST_SCRAPS;
+    public static final ForgeConfigSpec.LongValue MAIL_COLLECT_COOLDOWN_MINUTES;
 
     // ---------------------------------------------------------------------
     // Totem settings
@@ -65,6 +60,8 @@ public class GuildConfig {
                 .define("storageDebugEnabled", false);
         GUILD_CREATION_COST_SCRAPS = BUILDER.comment("Scrapmetal cost required to create a guild via /organizacao criar.")
                 .defineInRange("guildCreationCostScraps", 300, 0, 100000);
+        MAIL_COLLECT_COOLDOWN_MINUTES = BUILDER.comment("Cooldown (in minutes) between /organizacao correio collect actions per player.")
+                .defineInRange("mailCollectCooldownMinutes", 5L, 0L, 1440L);
         BUILDER.pop();
 
         // Totem section ----------------------------------------------------

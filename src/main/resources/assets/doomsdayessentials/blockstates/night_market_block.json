@@ -1,7 +1,8 @@
 {
   "variants": {
-    "": {
-      "model": "doomsdayessentials:block/night_market_block"
-    }
+    "facing=north": { "model": "doomsdayessentials:block/night_market_block" },
+    "facing=south": { "model": "doomsdayessentials:block/night_market_block", "y": 180 },
+    "facing=west":  { "model": "doomsdayessentials:block/night_market_block", "y": 270 },
+    "facing=east":  { "model": "doomsdayessentials:block/night_market_block", "y": 90 }
   }
 }

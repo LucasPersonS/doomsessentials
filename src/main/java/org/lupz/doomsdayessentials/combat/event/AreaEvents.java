@@ -34,6 +34,11 @@ public class AreaEvents {
 
     private static final Map<UUID, ManagedArea> lastArea = new HashMap<>();
     private static final Map<UUID, Boolean> flightGrantedByMod = new HashMap<>();
+    private static final java.util.Map<java.util.UUID, Long> lastClosedEjectMs = new java.util.HashMap<>();
+    private static final java.util.Map<java.util.UUID, String> lastClosedZoneName = new java.util.HashMap<>();
+    private static final java.util.Map<java.util.UUID, Long> lastCloseMsgMs = new java.util.HashMap<>();
+    private static final java.util.Map<java.util.UUID, Integer> lastCloseMsgMinute = new java.util.HashMap<>();
+    private static final java.util.Map<java.util.UUID, Long> lastClosedHintMs = new java.util.HashMap<>();
 
     /** Count of consecutive blocked attack messages per player to avoid chat spam. */
     private static final java.util.Map<java.util.UUID, Integer> blockedMessageCounter = new java.util.HashMap<>();
@@ -57,11 +62,34 @@ public class AreaEvents {
         if (!(e.player instanceof ServerPlayer player)) return;
         if (e.phase != TickEvent.Phase.END) return;
 
-        // First: if zone closed, eject immediately for snappy response
         ManagedArea rawArea = AreaManager.get().getAreaAtIncludingClosed(player.serverLevel(), player.blockPosition());
         if (rawArea != null && !rawArea.isCurrentlyOpen()) {
-            ejectFromClosedArea(player, rawArea);
-            return; // skip rest
+            long nowMs = System.currentTimeMillis();
+            String currName = rawArea.getName();
+            String lastName = lastClosedZoneName.get(player.getUUID());
+            Long lastMs = lastClosedEjectMs.get(player.getUUID());
+            boolean shouldEject = lastMs == null || nowMs - lastMs > 5000 || lastName == null || !lastName.equals(currName);
+            lastClosedZoneName.put(player.getUUID(), currName);
+            if (shouldEject) {
+                lastClosedEjectMs.put(player.getUUID(), nowMs);
+                ejectFromClosedArea(player, rawArea);
+            }
+            Long lastHint = lastClosedHintMs.get(player.getUUID());
+            if (lastHint == null || nowMs - lastHint >= 300000L) {
+                lastClosedHintMs.put(player.getUUID(), nowMs);
+                org.lupz.doomsdayessentials.network.PacketHandler.CHANNEL.send(
+                        net.minecraftforge.network.PacketDistributor.PLAYER.with(() -> player),
+                        new org.lupz.doomsdayessentials.airdrop.network.AirdropNoticePacket(
+                                "hud.doomsdayessentials.zone_closed",
+                                org.lupz.doomsdayessentials.airdrop.network.AirdropNoticePacket.STATE_DESPAWNED
+                        )
+                );
+            }
+            return;
+        } else {
+            lastClosedZoneName.remove(player.getUUID());
+            lastClosedEjectMs.remove(player.getUUID());
+            lastClosedHintMs.remove(player.getUUID());
         }
 
         ManagedArea currentArea = AreaManager.get().getAreaAt(player.serverLevel(), player.blockPosition());
@@ -78,6 +106,27 @@ public class AreaEvents {
         
         if (currentArea != null) {
             applyAreaEffects(player, currentArea);
+            if (!currentArea.getOpenWindows().isEmpty()) {
+                Integer mins = minutesUntilClose(currentArea);
+                if (mins != null && mins > 0) {
+                    long nowMs = System.currentTimeMillis();
+                    long period = mins <= 5 ? 60000L : 300000L;
+                    Long lastMs = lastCloseMsgMs.get(player.getUUID());
+                    Integer lastMin = lastCloseMsgMinute.get(player.getUUID());
+                    boolean send = lastMs == null || nowMs - lastMs >= period || (mins <= 5 && (lastMin == null || !mins.equals(lastMin)));
+                    if (send) {
+                        lastCloseMsgMs.put(player.getUUID(), nowMs);
+                        lastCloseMsgMinute.put(player.getUUID(), mins);
+                        org.lupz.doomsdayessentials.network.PacketHandler.CHANNEL.send(
+                                net.minecraftforge.network.PacketDistributor.PLAYER.with(() -> player),
+                                new org.lupz.doomsdayessentials.airdrop.network.AirdropNoticePacket(
+                                        "hud.doomsdayessentials.zone_close_minutes",
+                                        org.lupz.doomsdayessentials.airdrop.network.AirdropNoticePacket.STATE_OPENED,
+                                        Integer.toString(mins))
+                        );
+                    }
+                }
+            }
         }
 
         // Always render marker for CLOSED areas if player is within 30 blocks of center
@@ -122,11 +171,13 @@ public class AreaEvents {
                 }
                 flightGrantedByMod.remove(player.getUUID());
             }
-            // Trigger combat countdown if leaving a danger zone (danger / frequency)
             boolean fromHazard = from.getType() == AreaType.DANGER;
             boolean toHazard = to != null && to.getType() == AreaType.DANGER;
             if (fromHazard && !toHazard) {
-                CombatManager.get().tagPlayer(player);
+                boolean enteringOverlaySafe = to != null && to.getType() == AreaType.SAFE && to.isOverlayPreferred();
+                if (!enteringOverlaySafe) {
+                    CombatManager.get().tagPlayer(player);
+                }
             }
         }
         
@@ -147,13 +198,27 @@ public class AreaEvents {
                     flightGrantedByMod.put(player.getUUID(), true);
                 }
             }
+            if (!to.getOpenWindows().isEmpty() && to.getType() == AreaType.DANGER) {
+                Integer mins = minutesUntilClose(to);
+                if (mins != null && mins > 0 && mins <= 5) {
+                    org.lupz.doomsdayessentials.network.PacketHandler.CHANNEL.send(
+                            net.minecraftforge.network.PacketDistributor.PLAYER.with(() -> player),
+                            new org.lupz.doomsdayessentials.airdrop.network.AirdropNoticePacket(
+                                    "hud.doomsdayessentials.zone_close_minutes",
+                                    org.lupz.doomsdayessentials.airdrop.network.AirdropNoticePacket.STATE_OPENED,
+                                    Integer.toString(mins))
+                    );
+                }
+            }
         }
     }
 
     private static void applyAreaEffects(ServerPlayer player, ManagedArea area) {
-        // Put player in combat if in a DANGER zone
+        // Maintain combat while inside DANGER zones
         if (area.getType() == AreaType.DANGER) {
-            CombatManager.get().tagPlayer(player);
+            if (!player.isCreative() && !player.isSpectator()) {
+                CombatManager.get().tagPlayer(player);
+            }
         }
 
         // Heal players
@@ -216,60 +281,56 @@ public class AreaEvents {
         }
 
         ManagedArea area = AreaManager.get().getAreaAt(level, e.getEntity().blockPosition());
-        if (area == null) return;
 
         // SAFE zones: completely block damage.
-        if (area.getType() == AreaType.SAFE) {
+        if (area != null && area.getType() == AreaType.SAFE) {
             e.setCanceled(true);
             return;
         }
 
-        // Custom NEUTRAL zone logic – PvP only allowed if at least one player is in combat.
-        if (area.getType() == AreaType.NEUTRAL) {
+        // Default NEUTRAL semantics: anywhere not DANGER or SAFE behaves as NEUTRAL
+        boolean defaultNeutral = (area == null) || (area.getType() != AreaType.DANGER && area.getType() != AreaType.SAFE && area.getType() != AreaType.ARENA && area.getType() != AreaType.FREQUENCY && area.getType() != AreaType.RESOURCE && area.getType() != AreaType.PRISON);
+        if (defaultNeutral) {
             boolean neutralWarOverride = false;
             if (e.getSource().getEntity() instanceof net.minecraft.world.entity.player.Player attackerP && e.getEntity() instanceof net.minecraft.world.entity.player.Player victimP) {
                 var gm = org.lupz.doomsdayessentials.guild.GuildsManager.get(level);
                 var gA = gm.getGuildByMember(attackerP.getUUID());
                 var gV = gm.getGuildByMember(victimP.getUUID());
 
-                // Check if the two guilds are at war with each other
-                if (gA != null && gV != null && gm.getWar(gA.getName(), gV.getName()) != null) {
-                    neutralWarOverride = true; // They may fight freely
-                } else {
-                    // If either player belongs to a guild that is currently at war (with someone else), block combat
-                    boolean attackerInWar = gA != null && gm.getActiveWarForGuild(gA.getName()) != null;
-                    boolean victimInWar   = gV != null && gm.getActiveWarForGuild(gV.getName()) != null;
-
-                    if (attackerInWar || victimInWar) {
+                if (gA != null && gV != null) {
+                    boolean atWar = gm.getWar(gA.getName(), gV.getName()) != null;
+                    boolean allied = gm.areAllied(gA.getName(), gV.getName());
+                    if (allied && !atWar) {
                         e.setCanceled(true);
-                        sendThrottled(attackerP, Component.literal("§eVocê não pode atacar jogadores fora da guerra na zona amarela."));
+                        sendThrottled(attackerP, Component.literal("§eVocê não pode atacar aliados."));
                         return;
+                    }
+                    if (atWar) {
+                        neutralWarOverride = true;
+                    } else {
+                        boolean attackerInWar = gm.getActiveWarForGuild(gA.getName()) != null;
+                        boolean victimInWar   = gm.getActiveWarForGuild(gV.getName()) != null;
+                        if (attackerInWar || victimInWar) {
+                            e.setCanceled(true);
+                            sendThrottled(attackerP, Component.literal("§eVocê não pode atacar jogadores fora da guerra na zona amarela."));
+                            return;
+                        }
                     }
                 }
             }
 
             if (!neutralWarOverride) {
-                if (e.getSource().getEntity() instanceof Player attacker && e.getEntity() instanceof Player victim) {
-                    var cm = org.lupz.doomsdayessentials.combat.CombatManager.get();
-                    boolean attackerCombat = cm.isInCombat(attacker.getUUID());
-                    boolean victimCombat = cm.isInCombat(victim.getUUID());
-
-                    // Cancel if NEITHER is in combat (temporary tag or permanent activate)
-                    if (!attackerCombat && !victimCombat) {
-                        e.setCanceled(true);
-                        sendThrottled(attacker, Component.literal("§eVocê não está em combate nesta zona. Entre em uma zona de perigo ou use /combat activate."));
-                        // Victim gets a hint only if not in combat
-                        if (!victimCombat) {
-                            sendThrottled(victim, Component.literal("§eVocê não está em combate nesta zona. PvP bloqueado."));
-                        }
-                        return;
+                if (e.getSource().getEntity() instanceof ServerPlayer attacker && e.getEntity() instanceof ServerPlayer victim) {
+                    if (!attacker.isCreative() && !attacker.isSpectator() && !victim.isCreative() && !victim.isSpectator()) {
+                        org.lupz.doomsdayessentials.combat.CombatManager.get().tagPlayer(attacker);
+                        // Victim só entra em combate se revidar (tratado em CombatManager.onPlayerAttack)
                     }
                 }
             }
         }
 
         // PvP Flag: specific override within an area
-        if (area.isPreventPvp() && e.getSource().getEntity() instanceof Player && e.getEntity() instanceof Player) {
+        if (area != null && area.isPreventPvp() && e.getSource().getEntity() instanceof Player && e.getEntity() instanceof Player) {
             e.setCanceled(true);
         }
     }
@@ -386,7 +447,8 @@ public class AreaEvents {
         }
 
         double y = player.getY();
-        player.teleportTo(newX + 0.5, y, newZ + 0.5);
+        double ty = findSafeY(player.serverLevel(), newX, newZ, y);
+        player.teleportTo(newX + 0.5, ty, newZ + 0.5);
 
         // Determine next opening time for message
         java.time.LocalTime now = java.time.LocalTime.now(java.time.ZoneId.of("America/Sao_Paulo"));
@@ -416,5 +478,32 @@ public class AreaEvents {
         org.lupz.doomsdayessentials.network.PacketHandler.CHANNEL.send(
                 net.minecraftforge.network.PacketDistributor.ALL.noArg(),
                 new org.lupz.doomsdayessentials.network.packet.s2c.TerritoryMarkerPacket(area.getName(), p.getX()+0.5, markerY, p.getZ()+0.5, (byte)4));
+    }
+
+    private static Integer minutesUntilClose(ManagedArea area) {
+        java.time.ZoneId zone = java.time.ZoneId.of("America/Sao_Paulo");
+        java.time.LocalTime now = java.time.LocalTime.now(zone);
+        for (ManagedArea.TimeWindow tw : area.getOpenWindows()) {
+            if (tw.isActive(now)) {
+                java.time.ZonedDateTime base = java.time.ZonedDateTime.now(zone);
+                java.time.ZonedDateTime end = base.withHour(tw.end().getHour()).withMinute(tw.end().getMinute()).withSecond(0).withNano(0);
+                if (!end.isAfter(base)) end = end.plusDays(1);
+                long mins = java.time.Duration.between(base, end).toMinutes();
+                return (int) mins;
+            }
+        }
+        return null;
+    }
+
+    private static double findSafeY(ServerLevel level, int x, int z, double baseY) {
+        int by = (int) Math.floor(baseY);
+        for (int dy = 0; dy <= 6; dy++) {
+            int yy = by + dy;
+            net.minecraft.core.BlockPos b1 = new net.minecraft.core.BlockPos(x, yy, z);
+            net.minecraft.core.BlockPos b2 = b1.above();
+            if (level.isEmptyBlock(b1) && level.isEmptyBlock(b2)) return yy + 0.0;
+        }
+        int ground = level.getHeight(net.minecraft.world.level.levelgen.Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, x, z);
+        return ground + 0.5;
     }
 } 

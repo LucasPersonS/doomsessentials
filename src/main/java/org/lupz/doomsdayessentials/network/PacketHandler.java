@@ -248,6 +248,12 @@ public class PacketHandler {
                 .consumerMainThread(org.lupz.doomsdayessentials.network.packet.s2c.TerritoryMarkerPacket::handle)
                 .add();
 
+        CHANNEL.messageBuilder(org.lupz.doomsdayessentials.network.packet.s2c.ClosedZonePacket.class, index++, NetworkDirection.PLAY_TO_CLIENT)
+                .encoder(org.lupz.doomsdayessentials.network.packet.s2c.ClosedZonePacket::encode)
+                .decoder(org.lupz.doomsdayessentials.network.packet.s2c.ClosedZonePacket::decode)
+                .consumerMainThread(org.lupz.doomsdayessentials.network.packet.s2c.ClosedZonePacket::handle)
+                .add();
+
         // Sentry weapon mounting (C2S)
         CHANNEL.messageBuilder(MountSentryWeaponPacket.class, index++, NetworkDirection.PLAY_TO_SERVER)
                 .encoder(MountSentryWeaponPacket::encode)

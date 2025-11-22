@@ -52,7 +52,9 @@ public class AreaCommand {
                             })
                             .then(Commands.argument("pos1", BlockPosArgument.blockPos())
                                 .then(Commands.argument("pos2", BlockPosArgument.blockPos())
-                                    .executes(AreaCommand::createArea))))))
+                                    .executes(AreaCommand::createArea)
+                                    .then(Commands.literal("--overlay")
+                                        .executes(AreaCommand::createAreaOverride)))))))
                 
                 
                 .then(Commands.literal("list")
@@ -157,6 +159,14 @@ public class AreaCommand {
     // ---------------------------------------------------------------------
 
     private static int createArea(CommandContext<CommandSourceStack> ctx) throws CommandSyntaxException {
+        return doCreateArea(ctx, false);
+    }
+
+    private static int createAreaOverride(CommandContext<CommandSourceStack> ctx) throws CommandSyntaxException {
+        return doCreateArea(ctx, true);
+    }
+
+    private static int doCreateArea(CommandContext<CommandSourceStack> ctx, boolean overlay) throws CommandSyntaxException {
         String name = StringArgumentType.getString(ctx, "name");
         String typeStr = StringArgumentType.getString(ctx, "type");
         AreaType type;
@@ -178,7 +188,28 @@ public class AreaCommand {
             return 0;
         }
 
+        if (!overlay) {
+            int minX = Math.min(pos1.getX(), pos2.getX());
+            int minY = Math.min(pos1.getY(), pos2.getY());
+            int minZ = Math.min(pos1.getZ(), pos2.getZ());
+            int maxX = Math.max(pos1.getX(), pos2.getX());
+            int maxY = Math.max(pos1.getY(), pos2.getY());
+            int maxZ = Math.max(pos1.getZ(), pos2.getZ());
+
+            for (ManagedArea a : AreaManager.get().getAreas()) {
+                if (!a.getDimension().equals(dim)) continue;
+                boolean xOverlap = minX <= a.getPos2().getX() && maxX >= a.getPos1().getX();
+                boolean yOverlap = minY <= a.getPos2().getY() && maxY >= a.getPos1().getY();
+                boolean zOverlap = minZ <= a.getPos2().getZ() && maxZ >= a.getPos1().getZ();
+                if (xOverlap && yOverlap && zOverlap) {
+                    ctx.getSource().sendFailure(Component.literal("Area overlaps an existing area. Use --overlay to allow.").withStyle(ChatFormatting.RED));
+                    return 0;
+                }
+            }
+        }
+
         ManagedArea area = new ManagedArea(name, type, dim, pos1, pos2);
+        area.setOverlayPreferred(overlay);
         AreaManager.get().addArea(area);
         ctx.getSource().sendSuccess(() -> Component.literal("Created area '").withStyle(ChatFormatting.GREEN)
                 .append(Component.literal(name).withStyle(ChatFormatting.WHITE))

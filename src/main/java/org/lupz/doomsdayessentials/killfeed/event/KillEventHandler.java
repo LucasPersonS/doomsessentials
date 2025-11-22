@@ -34,17 +34,20 @@ public class KillEventHandler {
 			return;
 		}
 
-		// Allow any living victim (players or mobs)
-		LivingEntity victim = event.getEntity();
+        // Only consider player victims for PvP killfeed
+        if (!(event.getEntity() instanceof Player)) {
+            return;
+        }
+        LivingEntity victim = event.getEntity();
 
 		DamageSource source = event.getSource();
 		Entity killer = source.getEntity();
 		Entity directKiller = source.getDirectEntity();
 
-		// Only broadcast when a PLAYER is the killer (PvP or PvE)
-		if (!(killer instanceof Player) || killer == victim) {
-			return;
-		}
+        // Only broadcast when a PLAYER kills a PLAYER (PvP only)
+        if (!(killer instanceof Player) || killer == victim) {
+            return;
+        }
 		Player killerPlayer = (Player) killer;
 
 		String victimName = victim.getDisplayName().getString();

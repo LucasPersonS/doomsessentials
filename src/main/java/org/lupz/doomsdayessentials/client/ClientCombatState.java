@@ -57,16 +57,12 @@ public class ClientCombatState {
             return 0;
         }
         int ticksRemaining = playersInCombat.get(playerUUID);
-        if (ticksRemaining < 0) {
-            return 0; // permanent combat, treat as no countdown
-        }
         long msRemaining = (long) (ticksRemaining / 20.0 * 1000);
         return lastCombatSyncTime + msRemaining;
     }
 
     public static boolean isPlayerAlwaysActive(UUID uuid) {
-        Integer v = playersInCombat.get(uuid);
-        return v != null && v < 0;
+        return false;
     }
 
     public static void setWantedPlayers(java.util.Set<UUID> wanted) {
@@ -103,27 +99,25 @@ public class ClientCombatState {
         if (areasInDim == null) {
             return null;
         }
-        ManagedArea best = null;
-        int bestPriority = Integer.MAX_VALUE;
+        ManagedArea overlayBest = null;
+        long overlayBestVol = Long.MAX_VALUE;
+        ManagedArea normalBest = null;
+        long normalBestVol = Long.MAX_VALUE;
+        net.minecraft.core.BlockPos pos = player.blockPosition();
         for (ManagedArea area : areasInDim) {
-            if (!area.contains(player.blockPosition()))
-                continue;
-            if (!area.isCurrentlyOpen())
-                continue;
-            int prio;
-            switch (area.getType()) {
-                case DANGER -> prio = 0;
-                case SAFE -> prio = 1;
-                case FREQUENCY -> prio = 2;
-                case NEUTRAL -> prio = 3;
-                default -> prio = 4;
-            }
-            if (prio < bestPriority) {
-                bestPriority = prio;
-                best = area;
+            if (!area.contains(pos)) continue;
+            if (!area.isCurrentlyOpen()) continue;
+            long dx = (long) (area.getPos2().getX() - area.getPos1().getX() + 1);
+            long dy = (long) (area.getPos2().getY() - area.getPos1().getY() + 1);
+            long dz = (long) (area.getPos2().getZ() - area.getPos1().getZ() + 1);
+            long vol = dx * dy * dz;
+            if (area.isOverlayPreferred()) {
+                if (vol < overlayBestVol) { overlayBestVol = vol; overlayBest = area; }
+            } else {
+                if (vol < normalBestVol) { normalBestVol = vol; normalBest = area; }
             }
         }
-        return best;
+        return overlayBest != null ? overlayBest : normalBest;
     }
 
     public static boolean isInDangerArea() {

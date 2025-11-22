@@ -43,6 +43,7 @@ public class GuildsManager extends SavedData {
     private final java.util.Map<String, java.util.List<StorageLogEntry>> storageLogs = new java.util.HashMap<>();
     /** Guild resources (balances) keyed by guild -> (resourceId -> amount). */
     private final java.util.Map<String, java.util.Map<String, Integer>> guildResources = new java.util.HashMap<>();
+    private final java.util.Map<String, java.util.Map<String, Integer>> guildMail = new java.util.HashMap<>();
     /**
      * Preferred timezone ID for storage logs (applies globally). Defaults to
      * America/Sao_Paulo.
@@ -77,7 +78,9 @@ public class GuildsManager extends SavedData {
         public net.minecraft.nbt.CompoundTag toTag() {
             net.minecraft.nbt.CompoundTag t = new net.minecraft.nbt.CompoundTag();
             t.putLong("ts", ts);
-            t.putUUID("actor", actor);
+            if (actor != null) {
+                t.putUUID("actor", actor);
+            }
             t.putString("actorName", actorName == null ? "" : actorName);
             t.putString("action", action);
             t.putString("itemId", itemId);
@@ -90,7 +93,7 @@ public class GuildsManager extends SavedData {
         public static StorageLogEntry fromTag(net.minecraft.nbt.CompoundTag t) {
             StorageLogEntry e = new StorageLogEntry();
             e.ts = t.getLong("ts");
-            e.actor = t.getUUID("actor");
+            e.actor = t.contains("actor") ? t.getUUID("actor") : null;
             e.actorName = t.contains("actorName") ? t.getString("actorName") : ""; // backward compat
             e.action = t.getString("action");
             e.itemId = t.getString("itemId");
@@ -124,6 +127,7 @@ public class GuildsManager extends SavedData {
             gtag.putString("name", guild.getName());
             gtag.putString("tag", guild.getTag());
             gtag.putInt("storageLevel", guild.getStorageLevel());
+            gtag.putInt("protectionLevel", guild.getProtectionLevel());
 
             // Leader UUID stored separately so we know who is leader when loading
             guild.getMembers().stream()
@@ -231,6 +235,15 @@ public class GuildsManager extends SavedData {
             }
             tag.put("storageLogs", logs);
         }
+        if (!guildMail.isEmpty()) {
+            CompoundTag mails = new CompoundTag();
+            for (var e : guildMail.entrySet()) {
+                CompoundTag inner = new CompoundTag();
+                for (var m : e.getValue().entrySet()) inner.putInt(m.getKey(), m.getValue());
+                mails.put(e.getKey(), inner);
+            }
+            tag.put("guildMail", mails);
+        }
         // Persist log timezone
         tag.putString("storageLogTimeZone", storageLogTimeZone == null ? "America/Sao_Paulo" : storageLogTimeZone);
         return tag;
@@ -247,6 +260,9 @@ public class GuildsManager extends SavedData {
                 Guild guild = new Guild(name, gtagTag, leader);
                 if (gtag.contains("storageLevel")) {
                     guild.setStorageLevel(gtag.getInt("storageLevel"));
+                }
+                if (gtag.contains("protectionLevel")) {
+                    guild.setProtectionLevel(gtag.getInt("protectionLevel"));
                 }
 
                 if (gtag.contains("totemX")) {
@@ -374,6 +390,15 @@ public class GuildsManager extends SavedData {
                 storageLogs.put(gname, arr);
             }
         }
+        if (tag.contains("guildMail")) {
+            CompoundTag mails = tag.getCompound("guildMail");
+            for (String gname : mails.getAllKeys()) {
+                CompoundTag inner = mails.getCompound(gname);
+                java.util.Map<String, Integer> map = new java.util.HashMap<>();
+                for (String id : inner.getAllKeys()) map.put(id, inner.getInt(id));
+                guildMail.put(gname, map);
+            }
+        }
     }
 
     // ---------------------------------------------------------------------
@@ -402,6 +427,38 @@ public class GuildsManager extends SavedData {
                 .filter(g -> g.getMember(uuid) != null)
                 .findFirst()
                 .orElse(null);
+    }
+
+    public int getProtectionLevel(String guildName) {
+        Guild g = guilds.get(guildName);
+        return g == null ? 0 : g.getProtectionLevel();
+    }
+
+    public int getProtectionPercent(String guildName) {
+        int lvl = getProtectionLevel(guildName);
+        return switch (lvl) {
+            case 1 -> 20;
+            case 2 -> 30;
+            case 3 -> 40;
+            case 4 -> 50;
+            case 5 -> 55;
+            case 6 -> 60;
+            case 7 -> 65;
+            default -> 0;
+        };
+    }
+
+    public int getProtectionUpgradeCost(int nextLevel) {
+        return switch (nextLevel) {
+            case 1 -> 500;
+            case 2 -> 700;
+            case 3 -> 900;
+            case 4 -> 1200;
+            case 5 -> 1800;
+            case 6 -> 2400;
+            case 7 -> 3000;
+            default -> Integer.MAX_VALUE;
+        };
     }
 
     public @Nullable Guild getGuildAt(BlockPos pos) {
@@ -591,6 +648,17 @@ public class GuildsManager extends SavedData {
             };
             guilds.get(attackingGuild).getMembers().forEach(play);
             guilds.get(defendingGuild).getMembers().forEach(play);
+
+            int protPct = getProtectionPercent(defendingGuild);
+            if (protPct > 0) {
+                for (GuildMember gmbr : guilds.get(defendingGuild).getMembers()) {
+                    var p = server.getPlayerList().getPlayer(gmbr.getPlayerUUID());
+                    if (p != null) {
+                        p.connection.send(new net.minecraft.network.protocol.game.ClientboundSetTitleTextPacket(net.minecraft.network.chat.Component.literal("§aProteção Ativa")));
+                        p.connection.send(new net.minecraft.network.protocol.game.ClientboundSetSubtitleTextPacket(net.minecraft.network.chat.Component.literal("§7Cofre protegido em §e" + protPct + "%")));
+                    }
+                }
+            }
         }
         territoryWarCooldowns.put(defendingGuild, System.currentTimeMillis());
         setDirty();
@@ -791,6 +859,91 @@ public class GuildsManager extends SavedData {
         }
     }
 
+    public java.util.Map<String, Integer> getGuildMail(String guildName) {
+        return guildMail.computeIfAbsent(guildName, k -> new java.util.HashMap<>());
+    }
+
+    public void addToGuildMail(String guildName, String itemId, int amount) {
+        if (guildName == null || itemId == null || amount <= 0) return;
+        java.util.Map<String, Integer> mail = getGuildMail(guildName);
+        mail.merge(itemId, amount, Integer::sum);
+        setDirty();
+    }
+
+    /** Collects all mail items into the player's inventory; returns total items given. */
+    public int collectGuildMail(net.minecraft.server.level.ServerPlayer player, String guildName) {
+        long cdMin = org.lupz.doomsdayessentials.guild.GuildConfig.MAIL_COLLECT_COOLDOWN_MINUTES.get();
+        if (cdMin > 0) {
+            var tag = player.getPersistentData();
+            long last = tag.getLong("de_mail_collect");
+            long now = System.currentTimeMillis();
+            long cdMs = cdMin * 60L * 1000L;
+            if (now - last < cdMs) {
+                long rem = cdMs - (now - last);
+                long min = rem / 60000L; long sec = (rem % 60000L) / 1000L;
+                player.sendSystemMessage(net.minecraft.network.chat.Component.literal("§eAguarde " + min + "m" + sec + "s para coletar novamente."));
+                return 0;
+            }
+            tag.putLong("de_mail_collect", now);
+        }
+        java.util.Map<String, Integer> mail = guildMail.get(guildName);
+        if (mail == null || mail.isEmpty()) return 0;
+        int given = 0;
+        java.util.List<String> ids = new java.util.ArrayList<>(mail.keySet());
+        for (String id : ids) {
+            int amt = mail.getOrDefault(id, 0);
+            if (amt <= 0) continue;
+            net.minecraft.world.item.Item itemReg = net.minecraftforge.registries.ForgeRegistries.ITEMS.getValue(net.minecraft.resources.ResourceLocation.tryParse(id));
+            if (itemReg == null || itemReg == net.minecraft.world.level.block.Blocks.AIR.asItem()) continue;
+            int remaining = amt;
+            while (remaining > 0) {
+                int stackSize = Math.min(itemReg.getMaxStackSize(), remaining);
+                net.minecraft.world.item.ItemStack stack = new net.minecraft.world.item.ItemStack(itemReg, stackSize);
+                if (!player.getInventory().add(stack)) {
+                    player.drop(stack, false);
+                }
+                remaining -= stackSize;
+            }
+            given += amt;
+            try {
+                logStorageChangeWithName(guildName, player.getUUID(), player.getName().getString(), "mail_collect", id, amt, 0, 0);
+            } catch (Throwable ignored) {}
+            mail.remove(id);
+        }
+        if (given > 0) setDirty();
+        return given;
+    }
+
+    public int withdrawFromGuildStorage(net.minecraft.server.level.ServerPlayer player, String guildName, String itemId, int amount) {
+        if (guildName == null || itemId == null || amount <= 0) return 0;
+        net.minecraft.core.NonNullList<net.minecraft.world.item.ItemStack> storage = getOrCreateStorage(guildName);
+        net.minecraft.resources.ResourceLocation rl = net.minecraft.resources.ResourceLocation.tryParse(itemId);
+        net.minecraft.world.item.Item item = net.minecraftforge.registries.ForgeRegistries.ITEMS.getValue(rl);
+        if (item == null || item == net.minecraft.world.level.block.Blocks.AIR.asItem()) return 0;
+        int remaining = amount;
+        int removed = 0;
+        for (int i = 0; i < storage.size() && remaining > 0; i++) {
+            net.minecraft.world.item.ItemStack st = storage.get(i);
+            if (st.isEmpty() || st.getItem() != item) continue;
+            int take = Math.min(remaining, st.getCount());
+            st.shrink(take);
+            remaining -= take;
+            removed += take;
+            if (st.getCount() <= 0) storage.set(i, net.minecraft.world.item.ItemStack.EMPTY);
+        }
+        if (removed <= 0) return 0;
+        int giveLeft = removed;
+        while (giveLeft > 0) {
+            int stackSize = Math.min(item.getMaxStackSize(), giveLeft);
+            net.minecraft.world.item.ItemStack stack = new net.minecraft.world.item.ItemStack(item, stackSize);
+            if (!player.getInventory().add(stack)) player.drop(stack, false);
+            giveLeft -= stackSize;
+        }
+        logStorageChangeWithName(guildName, player.getUUID(), player.getName().getString(), "withdraw", itemId, removed, 0, 0);
+        setDirty();
+        return removed;
+    }
+
     // -------------------------------------------------------------------------------------
     // Additional helpers for new rules
     // -------------------------------------------------------------------------------------
@@ -819,20 +972,49 @@ public class GuildsManager extends SavedData {
         setDirty();
     }
 
-    /** Call when attacker destroyed defender's vault/totem and won the war. */
-    public void onAttackerVictory(String attacker, String defender) {
+    public void onAttackerVictory(net.minecraft.server.level.ServerLevel level, String attacker, String defender) {
         long now = System.currentTimeMillis();
         long weekMs = GuildConfig.WAR_COOLDOWN_HOURS.get() * 60L * 60L * 1000L;
         setDefenderShield(defender, now + weekMs);
         endWar(attacker, defender);
-        java.util.Map<String, Integer> details = org.lupz.doomsdayessentials.territory.ResourceGeneratorManager.get().plunderDetailed(defender, attacker,
-                GuildConfig.PLUNDER_ITEM_COUNT.get());
+        int target = GuildConfig.PLUNDER_ITEM_COUNT.get();
+        int protPct = getProtectionPercent(defender);
+        int availGen = 0;
+        var genMgr = org.lupz.doomsdayessentials.territory.ResourceGeneratorManager.get();
+        var gens = genMgr.getGeneratorsForGuild(defender);
+        if (gens != null) {
+            for (var g : gens) {
+                for (org.lupz.doomsdayessentials.territory.ResourceAreaData.LootEntry e : g.lootEntries) {
+                    availGen += Math.max(0, e.stored);
+                }
+            }
+        }
+        int availSt = getStorageItemCount(defender);
+        int availBank = org.lupz.doomsdayessentials.guild.GuildResourceBank.get(level).getTotal(defender);
+        int totalAvail = Math.max(0, availGen + availSt + availBank);
+        int capByProt = (int) Math.floor(totalAvail * (100 - protPct) / 100.0);
+        target = Math.min(target, capByProt);
+        java.util.Map<String, Integer> details = new java.util.HashMap<>();
+        java.util.Map<String, Integer> gen = org.lupz.doomsdayessentials.territory.ResourceGeneratorManager.get().plunderDetailed(defender, attacker, target);
+        int movedGen = 0; for (Integer v : gen.values()) movedGen += v;
+        for (var e : gen.entrySet()) details.merge(e.getKey(), e.getValue(), Integer::sum);
+        int remain = Math.max(0, target - movedGen);
+        if (remain > 0) {
+            java.util.Map<String, Integer> stor = plunderFromGuildStorageDetailed(defender, attacker, remain);
+            for (var e : stor.entrySet()) details.merge(e.getKey(), e.getValue(), Integer::sum);
+            int movedStor = 0; for (Integer v : stor.values()) movedStor += v;
+            remain = Math.max(0, remain - movedStor);
+        }
+        if (remain > 0) {
+            java.util.Map<String, Integer> bank = org.lupz.doomsdayessentials.guild.GuildResourceBank.get(level).plunderDetailed(defender, attacker, remain);
+            for (var e : bank.entrySet()) details.merge(e.getKey(), e.getValue(), Integer::sum);
+        }
         int moved = 0;
         for (Integer v : details.values()) moved += v;
         var server = net.minecraftforge.server.ServerLifecycleHooks.getCurrentServer();
         if (server != null) {
             net.minecraft.network.chat.Component msg = net.minecraft.network.chat.Component.literal(
-                    "§cCofre destruído! §e" + moved + " itens saqueados de " + defender + " para " + attacker + ".");
+                "§cCofre destruído! §e" + moved + " itens saqueados de " + defender + " para " + attacker + ".");
             server.getPlayerList().broadcastSystemMessage(msg, false);
             java.util.List<net.minecraft.server.level.ServerPlayer> players = server.getPlayerList().getPlayers();
             java.util.List<String> lines = new java.util.ArrayList<>();
@@ -854,6 +1036,12 @@ public class GuildsManager extends SavedData {
             for (var e : details.entrySet()) {
                 logStorageChangeWithName(defender, null, attacker, "plunder_out", e.getKey(), e.getValue(), 0, 0);
                 logStorageChangeWithName(attacker, null, defender, "plunder_in", e.getKey(), e.getValue(), 0, 0);
+            }
+            if (protPct > 0) {
+                int protectedCount = Math.max(0, totalAvail - target);
+                net.minecraft.network.chat.Component protMsg = net.minecraft.network.chat.Component.literal(
+                        "§aProteção salvou §e" + protectedCount + " itens/recursos (" + protPct + "%).");
+                server.getPlayerList().broadcastSystemMessage(protMsg, false);
             }
         }
         territoryWarCooldowns.put(defender, now);
@@ -893,6 +1081,79 @@ public class GuildsManager extends SavedData {
             if (!s.isEmpty())
                 total += s.getCount();
         return total;
+    }
+
+    public java.util.Map<String, Integer> plunderFromGuildStorageDetailed(String defenderGuild, String attackerGuild, int totalCount) {
+        java.util.Map<String, Integer> movedById = new java.util.HashMap<>();
+        if (totalCount <= 0) return movedById;
+        var src = getOrCreateStorage(defenderGuild);
+        var dst = getOrCreateStorage(attackerGuild);
+        java.util.List<Integer> idxs = new java.util.ArrayList<>();
+        for (int i = 0; i < src.size(); i++) {
+            if (!src.get(i).isEmpty()) idxs.add(i);
+        }
+        if (idxs.isEmpty()) return movedById;
+        java.util.Collections.shuffle(idxs);
+        int remaining = totalCount;
+        for (int i : idxs) {
+            if (remaining <= 0) break;
+            net.minecraft.world.item.ItemStack st = src.get(i);
+            if (st.isEmpty()) continue;
+            int take = Math.min(st.getCount(), remaining);
+            if (take <= 0) continue;
+            String id = net.minecraftforge.registries.ForgeRegistries.ITEMS.getKey(st.getItem()).toString();
+            int canPut = getPutCapacity(dst, st.getItem(), take);
+            int toMail = take - canPut;
+            // Remove full take from defender
+            st.shrink(take);
+            if (st.getCount() <= 0) src.set(i, net.minecraft.world.item.ItemStack.EMPTY);
+            // Deposit into attacker storage up to capacity
+            int putLeft = canPut;
+            for (int j = 0; j < dst.size() && putLeft > 0; j++) {
+                net.minecraft.world.item.ItemStack cur = dst.get(j);
+                if (!cur.isEmpty() && cur.getItem() == st.getItem() && cur.getCount() < cur.getMaxStackSize()) {
+                    int space = cur.getMaxStackSize() - cur.getCount();
+                    int add = Math.min(space, putLeft);
+                    cur.grow(add);
+                    putLeft -= add;
+                }
+            }
+            for (int j = 0; j < dst.size() && putLeft > 0; j++) {
+                net.minecraft.world.item.ItemStack cur = dst.get(j);
+                if (cur.isEmpty()) {
+                    int add = Math.min(st.getItem().getMaxStackSize(), putLeft);
+                    dst.set(j, new net.minecraft.world.item.ItemStack(st.getItem(), add));
+                    putLeft -= add;
+                }
+            }
+            if (toMail > 0) {
+                addToGuildMail(attackerGuild, id, toMail);
+                logStorageChangeWithName(attackerGuild, null, defenderGuild, "plunder_mail", id, toMail, 0, 0);
+            }
+            movedById.merge(id, take, Integer::sum);
+        }
+        setDirty();
+        return movedById;
+    }
+
+    private int getPutCapacity(net.minecraft.core.NonNullList<net.minecraft.world.item.ItemStack> dst, net.minecraft.world.item.Item item, int desired) {
+        int maxStack = item.getMaxStackSize();
+        int space = 0;
+        for (int j = 0; j < dst.size(); j++) {
+            net.minecraft.world.item.ItemStack cur = dst.get(j);
+            if (!cur.isEmpty() && cur.getItem() == item && cur.getCount() < cur.getMaxStackSize()) {
+                space += (cur.getMaxStackSize() - cur.getCount());
+                if (space >= desired) return desired;
+            }
+        }
+        for (int j = 0; j < dst.size(); j++) {
+            net.minecraft.world.item.ItemStack cur = dst.get(j);
+            if (cur.isEmpty()) {
+                space += maxStack;
+                if (space >= desired) return desired;
+            }
+        }
+        return Math.min(space, desired);
     }
 
     /** Increases storage level by one and resizes storage to add one page. */

@@ -20,6 +20,8 @@ public class Guild {
     private final java.util.Set<String> allies = new java.util.HashSet<>();
     /** Upgrade level for organization storage pages (>=1). */
     private int storageLevel = 1;
+    /** Protection upgrade level for war plunder mitigation (0..7). */
+    private int protectionLevel = 0;
 
     public Guild(String name, String tag, UUID leaderUUID) {
         this.name = name;
@@ -127,4 +129,14 @@ public class Guild {
         if (level < 1) level = 1;
         this.storageLevel = level;
     }
-} 
+
+    public int getProtectionLevel() {
+        return Math.max(0, protectionLevel);
+    }
+
+    public void setProtectionLevel(int level) {
+        if (level < 0) level = 0;
+        if (level > 7) level = 7;
+        this.protectionLevel = level;
+    }
+}

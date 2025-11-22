@@ -125,8 +125,34 @@ public final class OrganizacaoMenuCommand {
             .executes(ctx -> openMenu(ctx.getSource()))
             // Explicit subcommand
             .then(Commands.literal("menu").executes(ctx -> openMenu(ctx.getSource())))
+            // Open organization mail UI
+            .then(Commands.literal("correio").executes(ctx -> openMail(ctx.getSource())))
             // New: upgrade subcommand opens the upgrade GUI
             .then(Commands.literal("upgrade").executes(ctx -> openUpgrade(ctx.getSource())))
+            // Withdraw items from guild storage: /organizacao sacar <item_id> <quantidade>
+            .then(Commands.literal("sacar")
+                .then(Commands.argument("item", com.mojang.brigadier.arguments.StringArgumentType.string())
+                    .then(Commands.argument("quantidade", com.mojang.brigadier.arguments.IntegerArgumentType.integer(1))
+                        .executes(ctx -> withdraw(
+                            ctx.getSource(),
+                            com.mojang.brigadier.arguments.StringArgumentType.getString(ctx, "item"),
+                            com.mojang.brigadier.arguments.IntegerArgumentType.getInteger(ctx, "quantidade")
+                        ))
+                    )
+                )
+            )
+            // Withdraw items from guild resource bank: /organizacao sacarrecursos <item_id> <quantidade>
+            .then(Commands.literal("sacarrecursos")
+                .then(Commands.argument("item", com.mojang.brigadier.arguments.StringArgumentType.string())
+                    .then(Commands.argument("quantidade", com.mojang.brigadier.arguments.IntegerArgumentType.integer(1))
+                        .executes(ctx -> withdrawResources(
+                            ctx.getSource(),
+                            com.mojang.brigadier.arguments.StringArgumentType.getString(ctx, "item"),
+                            com.mojang.brigadier.arguments.IntegerArgumentType.getInteger(ctx, "quantidade")
+                        ))
+                    )
+                )
+            )
             // Create guild: /organizacao criar <nome> <tag>
             .then(Commands.literal("criar")
                 .then(Commands.argument("nome", com.mojang.brigadier.arguments.StringArgumentType.word())
@@ -147,6 +173,44 @@ public final class OrganizacaoMenuCommand {
             )
             // Leader-only: delete guild if storage and resources are empty
             .then(Commands.literal("deletar").executes(ctx -> deleteOwnGuild(ctx.getSource())))
+            // Alliances: invite via chat
+            .then(Commands.literal("alianca")
+                .then(Commands.argument("nome", com.mojang.brigadier.arguments.StringArgumentType.word())
+                    .executes(ctx -> inviteAlliance(
+                        ctx.getSource(),
+                        com.mojang.brigadier.arguments.StringArgumentType.getString(ctx, "nome")
+                    ))
+                )
+            )
+            // Alliances: accept invite
+            .then(Commands.literal("aceitar")
+                .then(Commands.argument("nome", com.mojang.brigadier.arguments.StringArgumentType.word())
+                    .executes(ctx -> acceptAlliance(
+                        ctx.getSource(),
+                        com.mojang.brigadier.arguments.StringArgumentType.getString(ctx, "nome")
+                    ))
+                )
+            )
+            // Alliances: break alliance
+            .then(Commands.literal("quebraralianca")
+                .then(Commands.argument("nome", com.mojang.brigadier.arguments.StringArgumentType.word())
+                    .executes(ctx -> breakAlliance(
+                        ctx.getSource(),
+                        com.mojang.brigadier.arguments.StringArgumentType.getString(ctx, "nome")
+                    ))
+                )
+            )
+            // List groups
+            .then(Commands.literal("grupos").executes(ctx -> listGroups(ctx.getSource())))
+            // Info by tag
+            .then(Commands.literal("info")
+                .then(Commands.argument("tag", com.mojang.brigadier.arguments.StringArgumentType.word())
+                    .executes(ctx -> infoByTag(
+                        ctx.getSource(),
+                        com.mojang.brigadier.arguments.StringArgumentType.getString(ctx, "tag")
+                    ))
+                )
+            )
             // Admin: toggle guild storage debug logging
             .then(Commands.literal("debugstorage")
                 .requires(src -> src.hasPermission(3))
@@ -190,6 +254,73 @@ public final class OrganizacaoMenuCommand {
         }
     }
 
+    private static int openMail(CommandSourceStack source) {
+        try {
+            ServerPlayer p = source.getPlayerOrException();
+            p.openMenu(new net.minecraft.world.SimpleMenuProvider(
+                    (id, inv, pl) -> new org.lupz.doomsdayessentials.guild.menu.GuildMailMenu(id, inv),
+                    Component.literal("Correio da Organização"))
+            );
+            return 1;
+        } catch (Exception e) {
+            return 0;
+        }
+    }
+
+    private static int withdraw(CommandSourceStack source, String itemId, int quantidade) {
+        try {
+            ServerPlayer p = source.getPlayerOrException();
+            net.minecraft.server.level.ServerLevel level = source.getLevel();
+            org.lupz.doomsdayessentials.guild.GuildsManager gm = org.lupz.doomsdayessentials.guild.GuildsManager.get(level);
+            org.lupz.doomsdayessentials.guild.Guild g = gm.getGuildByMember(p.getUUID());
+            if (g == null) { source.sendFailure(Component.literal("§cVocê não pertence a uma organização.")); return 0; }
+            int moved = gm.withdrawFromGuildStorage(p, g.getName(), itemId, quantidade);
+            if (moved <= 0) {
+                source.sendFailure(Component.literal("§eItem indisponível no cofre ou quantidade insuficiente."));
+                return 0;
+            }
+            source.sendSuccess(() -> Component.literal("§aSacado §e" + moved + "§a do item §f" + itemId + " §ado cofre."), true);
+            return 1;
+        } catch (Exception e) {
+            return 0;
+        }
+    }
+
+    private static int withdrawResources(CommandSourceStack source, String itemId, int quantidade) {
+        try {
+            ServerPlayer p = source.getPlayerOrException();
+            net.minecraft.server.level.ServerLevel level = source.getLevel();
+            org.lupz.doomsdayessentials.guild.GuildsManager gm = org.lupz.doomsdayessentials.guild.GuildsManager.get(level);
+            org.lupz.doomsdayessentials.guild.Guild g = gm.getGuildByMember(p.getUUID());
+            if (g == null) { source.sendFailure(Component.literal("§cVocê não pertence a uma organização.")); return 0; }
+            org.lupz.doomsdayessentials.guild.GuildResourceBank bank = org.lupz.doomsdayessentials.guild.GuildResourceBank.get(level);
+            net.minecraft.resources.ResourceLocation rl = net.minecraft.resources.ResourceLocation.tryParse(itemId);
+            net.minecraft.world.item.Item item = net.minecraftforge.registries.ForgeRegistries.ITEMS.getValue(rl);
+            if (item == null || item == net.minecraft.world.level.block.Blocks.AIR.asItem()) { source.sendFailure(Component.literal("§cItem inválido: " + itemId)); return 0; }
+            boolean accepted = item == org.lupz.doomsdayessentials.item.ModItems.SCRAPMETAL.get() ||
+                               item == org.lupz.doomsdayessentials.item.ModItems.METAL_FRAGMENTS.get() ||
+                               item == org.lupz.doomsdayessentials.item.ModItems.METALBLADE.get() ||
+                               item == org.lupz.doomsdayessentials.item.ModItems.SHEETMETAL.get();
+            if (!accepted) { source.sendFailure(Component.literal("§eApenas recursos aceitos podem ser sacados.")); return 0; }
+            int have = bank.get(g.getName(), itemId);
+            if (have < quantidade) { source.sendFailure(Component.literal("§eSaldo insuficiente: disponível=" + have)); return 0; }
+            boolean ok = bank.consume(g.getName(), itemId, quantidade);
+            if (!ok) { source.sendFailure(Component.literal("§cFalha ao debitar recursos.")); return 0; }
+            int left = quantidade;
+            while (left > 0) {
+                int stackSize = Math.min(item.getMaxStackSize(), left);
+                net.minecraft.world.item.ItemStack stack = new net.minecraft.world.item.ItemStack(item, stackSize);
+                if (!p.getInventory().add(stack)) p.drop(stack, false);
+                left -= stackSize;
+            }
+            gm.logStorageChangeWithName(g.getName(), p.getUUID(), p.getName().getString(), "bank_withdraw", itemId, quantidade, 0, 0);
+            source.sendSuccess(() -> Component.literal("§aSacado §e" + quantidade + "§a de §f" + itemId + " §ado banco de recursos."), true);
+            return 1;
+        } catch (Exception e) {
+            return 0;
+        }
+    }
+
     private static int resetUpgrades(CommandSourceStack source, String guildName) {
         try {
             net.minecraft.server.level.ServerLevel level = source.getLevel();
@@ -206,6 +337,97 @@ public final class OrganizacaoMenuCommand {
         } catch (Exception e) {
             return 0;
         }
+    }
+
+    private static int inviteAlliance(CommandSourceStack source, String targetGuildName) {
+        try {
+            ServerPlayer p = source.getPlayerOrException();
+            net.minecraft.server.level.ServerLevel level = source.getLevel();
+            org.lupz.doomsdayessentials.guild.GuildsManager gm = org.lupz.doomsdayessentials.guild.GuildsManager.get(level);
+            org.lupz.doomsdayessentials.guild.Guild self = gm.getGuildByMember(p.getUUID());
+            if (self == null) { source.sendFailure(net.minecraft.network.chat.Component.literal("§cVocê não pertence a uma organização.")); return 0; }
+            org.lupz.doomsdayessentials.guild.GuildMember me = self.getMember(p.getUUID());
+            if (me == null || (me.getRank() != org.lupz.doomsdayessentials.guild.GuildMember.Rank.LEADER && me.getRank() != org.lupz.doomsdayessentials.guild.GuildMember.Rank.OFFICER)) {
+                source.sendFailure(net.minecraft.network.chat.Component.literal("§cApenas Líderes/Oficiais podem convidar alianças."));
+                return 0;
+            }
+            org.lupz.doomsdayessentials.guild.Guild target = gm.getGuild(targetGuildName);
+            if (target == null) { source.sendFailure(net.minecraft.network.chat.Component.literal("§cOrganização não encontrada: " + targetGuildName)); return 0; }
+            if (self.getName().equals(target.getName())) { source.sendFailure(net.minecraft.network.chat.Component.literal("§cNão é possível formar aliança consigo mesmo.")); return 0; }
+            if (gm.areAllied(self.getName(), target.getName())) { source.sendFailure(net.minecraft.network.chat.Component.literal("§eJá existe aliança com " + target.getName())); return 0; }
+            int maxAllies = org.lupz.doomsdayessentials.guild.GuildConfig.MAX_ALLIANCES.get();
+            if (maxAllies != 0 && self.getAllies().size() >= maxAllies) { source.sendFailure(net.minecraft.network.chat.Component.literal("§cLimite de alianças atingido.")); return 0; }
+            gm.sendAllianceInvite(self.getName(), target.getName());
+            source.sendSuccess(() -> net.minecraft.network.chat.Component.literal("§aConvite de aliança enviado para §6" + target.getName()), true);
+            return 1;
+        } catch (Exception e) { return 0; }
+    }
+
+    private static int acceptAlliance(CommandSourceStack source, String fromGuildName) {
+        try {
+            ServerPlayer p = source.getPlayerOrException();
+            net.minecraft.server.level.ServerLevel level = source.getLevel();
+            org.lupz.doomsdayessentials.guild.GuildsManager gm = org.lupz.doomsdayessentials.guild.GuildsManager.get(level);
+            org.lupz.doomsdayessentials.guild.Guild self = gm.getGuildByMember(p.getUUID());
+            if (self == null) { source.sendFailure(net.minecraft.network.chat.Component.literal("§cVocê não pertence a uma organização.")); return 0; }
+            boolean ok = gm.acceptAllianceInvite(self.getName(), fromGuildName);
+            if (!ok) { source.sendFailure(net.minecraft.network.chat.Component.literal("§cNão há convite pendente de " + fromGuildName)); return 0; }
+            source.sendSuccess(() -> net.minecraft.network.chat.Component.literal("§aAliança formada com §6" + fromGuildName), true);
+            return 1;
+        } catch (Exception e) { return 0; }
+    }
+
+    private static int breakAlliance(CommandSourceStack source, String otherGuildName) {
+        try {
+            ServerPlayer p = source.getPlayerOrException();
+            net.minecraft.server.level.ServerLevel level = source.getLevel();
+            org.lupz.doomsdayessentials.guild.GuildsManager gm = org.lupz.doomsdayessentials.guild.GuildsManager.get(level);
+            org.lupz.doomsdayessentials.guild.Guild self = gm.getGuildByMember(p.getUUID());
+            if (self == null) { source.sendFailure(net.minecraft.network.chat.Component.literal("§cVocê não pertence a uma organização.")); return 0; }
+            boolean ok = gm.removeAlliance(self.getName(), otherGuildName);
+            if (!ok) { source.sendFailure(net.minecraft.network.chat.Component.literal("§cNão há aliança ativa com " + otherGuildName)); return 0; }
+            source.sendSuccess(() -> net.minecraft.network.chat.Component.literal("§eAliança encerrada com §6" + otherGuildName), true);
+            return 1;
+        } catch (Exception e) { return 0; }
+    }
+
+    private static int listGroups(CommandSourceStack source) {
+        try {
+            net.minecraft.server.level.ServerLevel level = source.getLevel();
+            org.lupz.doomsdayessentials.guild.GuildsManager gm = org.lupz.doomsdayessentials.guild.GuildsManager.get(level);
+            java.util.List<String> lines = new java.util.ArrayList<>();
+            for (org.lupz.doomsdayessentials.guild.Guild g : gm.getAllGuilds()) {
+                int leaders = (int) g.getMembers().stream().filter(m -> m.getRank() == org.lupz.doomsdayessentials.guild.GuildMember.Rank.LEADER).count();
+                int officers = (int) g.getMembers().stream().filter(m -> m.getRank() == org.lupz.doomsdayessentials.guild.GuildMember.Rank.OFFICER).count();
+                int members = (int) g.getMembers().stream().filter(m -> m.getRank() == org.lupz.doomsdayessentials.guild.GuildMember.Rank.MEMBER).count();
+                lines.add("§6" + g.getName() + " §7[" + g.getTag() + "] §fL:" + leaders + " O:" + officers + " M:" + members + " §eAllies:" + g.getAllies().size());
+            }
+            if (lines.isEmpty()) { source.sendFailure(net.minecraft.network.chat.Component.literal("§eNenhuma organização encontrada.")); return 0; }
+            for (String s : lines) source.sendSuccess(() -> net.minecraft.network.chat.Component.literal(s), false);
+            return 1;
+        } catch (Exception e) { return 0; }
+    }
+
+    private static int infoByTag(CommandSourceStack source, String tag) {
+        try {
+            net.minecraft.server.level.ServerLevel level = source.getLevel();
+            org.lupz.doomsdayessentials.guild.GuildsManager gm = org.lupz.doomsdayessentials.guild.GuildsManager.get(level);
+            org.lupz.doomsdayessentials.guild.Guild found = null;
+            for (org.lupz.doomsdayessentials.guild.Guild g : gm.getAllGuilds()) if (g.getTag().equalsIgnoreCase(tag)) { found = g; break; }
+            if (found == null) { source.sendFailure(net.minecraft.network.chat.Component.literal("§cOrganização não encontrada com a tag " + tag)); return 0; }
+            final String fName = found.getName();
+            final String fTag = found.getTag();
+            source.sendSuccess(() -> net.minecraft.network.chat.Component.literal("§6" + fName + " §7[" + fTag + "]"), false);
+            for (org.lupz.doomsdayessentials.guild.GuildMember m : found.getMembers()) {
+                String name = java.util.Optional.ofNullable(level.getServer().getPlayerList().getPlayer(m.getPlayerUUID())).map(p -> p.getName().getString()).orElse(m.getPlayerUUID().toString());
+                source.sendSuccess(() -> net.minecraft.network.chat.Component.literal("§f- " + name + " §7(" + m.getRank().name() + ")"), false);
+            }
+            if (!found.getAllies().isEmpty()) {
+                final String allies = String.join(", ", found.getAllies());
+                source.sendSuccess(() -> net.minecraft.network.chat.Component.literal("§eAlianças: " + allies), false);
+            }
+            return 1;
+        } catch (Exception e) { return 0; }
     }
 }
 

@@ -33,6 +33,7 @@ public class GuildResourceDepositMenu extends AbstractContainerMenu {
     private static final int SLOT_BACK = 45;      // bottom-left
     private static final int SLOT_INFO = 49;      // bottom-center
     private static final int SLOT_TITLE = 4;      // decorative title; must be non-pickable
+    private static final int SLOT_WITHDRAW = 50;  // bottom-right control: withdraw
 
     public GuildResourceDepositMenu(int windowId, Inventory inv) {
         super(ProfessionMenuTypes.GUILD_RESOURCE_DEPOSIT_MENU.get(), windowId);
@@ -50,10 +51,10 @@ public class GuildResourceDepositMenu extends AbstractContainerMenu {
                 this.addSlot(new Slot(cont, idx, 8 + col * 18, 18 + row * 18) {
                     @Override public boolean mayPlace(@NotNull ItemStack s) {
                         // Only allow deposit into non-control slots and only accepted items
-                        if (idx == SLOT_BACK || idx == SLOT_INFO || idx == SLOT_TITLE) return false;
+                        if (idx == SLOT_BACK || idx == SLOT_INFO || idx == SLOT_TITLE || idx == SLOT_WITHDRAW) return false;
                         return isAccepted(s.getItem());
                     }
-                    @Override public boolean mayPickup(@NotNull Player p) { return idx != SLOT_BACK && idx != SLOT_INFO && idx != SLOT_TITLE; }
+                    @Override public boolean mayPickup(@NotNull Player p) { return idx != SLOT_BACK && idx != SLOT_INFO && idx != SLOT_TITLE && idx != SLOT_WITHDRAW; }
                 });
             }
         }
@@ -101,6 +102,16 @@ public class GuildResourceDepositMenu extends AbstractContainerMenu {
         addLore(info, lore);
         cont.setItem(SLOT_INFO, info);
 
+        // Withdraw control
+        ItemStack withdraw = new ItemStack(net.minecraft.world.item.Items.PLAYER_HEAD);
+        withdraw.setHoverName(Component.literal("§6Sacar"));
+        addLore(withdraw, java.util.List.of(
+                Component.literal("§7Clique e digite no chat:"),
+                Component.literal("§f/organizacao sacarrecursos <item_id> <quantidade>"),
+                Component.literal("§8Ex.: /organizacao sacarrecursos doomsday:scrapmetal 100")
+        ));
+        cont.setItem(SLOT_WITHDRAW, withdraw);
+
         // Do not fill background: keep slots empty for deposit
     }
 
@@ -126,6 +137,13 @@ public class GuildResourceDepositMenu extends AbstractContainerMenu {
         if (!(clickPlayer instanceof ServerPlayer sp)) { super.clicked(slotId, dragType, clickType, clickPlayer); return; }
         if (slotId == SLOT_BACK) {
             sp.openMenu(new net.minecraft.world.SimpleMenuProvider((id, inv, p) -> new GuildMainMenu(id, inv), Component.literal("Organização")));
+            return;
+        }
+        if (slotId == SLOT_WITHDRAW && clickType == ClickType.PICKUP) {
+            if (guild != null) {
+                org.lupz.doomsdayessentials.guild.ResourceWithdrawConversationManager.start(sp);
+                sp.closeContainer();
+            }
             return;
         }
         super.clicked(slotId, dragType, clickType, clickPlayer);

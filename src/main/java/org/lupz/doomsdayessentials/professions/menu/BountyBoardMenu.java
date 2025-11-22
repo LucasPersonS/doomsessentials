@@ -89,14 +89,15 @@ public class BountyBoardMenu extends AbstractContainerMenu {
 		}
 	}
 
-	private String resolveName(java.util.UUID id) {
-		var server = ServerLifecycleHooks.getCurrentServer();
-		if (server != null) {
-			var p = server.getPlayerList().getPlayer(id);
-			if (p != null) return p.getName().getString();
-		}
-		return id.toString().substring(0, 8);
-	}
+    private String resolveName(java.util.UUID id) {
+        if (id == null) return "Sistema";
+        var server = ServerLifecycleHooks.getCurrentServer();
+        if (server != null) {
+            var p = server.getPlayerList().getPlayer(id);
+            if (p != null) return p.getName().getString();
+        }
+        return id.toString().substring(0, 8);
+    }
 
 	private void addLore(ItemStack stack, List<Component> lore) {
 		net.minecraft.nbt.ListTag tag = new net.minecraft.nbt.ListTag();

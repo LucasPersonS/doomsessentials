@@ -149,6 +149,24 @@ public class TerritoryEvents {
         ServerLevel level = player.serverLevel();
         GuildsManager manager = GuildsManager.get(level);
         BlockPos pos = e.getPos();
+        if (e.getState().getBlock() == org.lupz.doomsdayessentials.guild.block.StorageBlocks.STORAGE_BLOCK.get()) {
+            Guild playerGuild = manager.getGuildByMember(player.getUUID());
+            Guild territoryGuild = manager.getGuildAt(pos);
+            boolean underWar = territoryGuild != null && manager.isTerritoryUnderWar(territoryGuild.getName());
+            if (org.lupz.doomsdayessentials.config.EssentialsConfig.MARKET_DISABLE_DEBUG_OPEN_TRADES.get()) {
+                // no-op placeholder for compatibility; keeps branch even if config toggled
+            }
+            if (playerGuild == null || territoryGuild == null || !territoryGuild.getName().equals(playerGuild.getName())) {
+                player.sendSystemMessage(Component.literal("Você só pode quebrar o cofre dentro do seu território.").withStyle(ChatFormatting.RED));
+                e.setCanceled(true);
+                return;
+            }
+            if (underWar) {
+                player.sendSystemMessage(Component.literal("Você não pode quebrar o cofre durante uma invasão.").withStyle(ChatFormatting.RED));
+                e.setCanceled(true);
+                return;
+            }
+        }
         // Handle totem break: only leader, remove territory or victory plunder if enemy during war
         if (e.getState().getBlock() == ModBlocks.TOTEM_BLOCK.get() || e.getState().getBlock() == ModBlocks.TOTEM_BLOCK_TOP.get()) {
             Guild ownerGuild = manager.getGuildAt(pos);
@@ -196,7 +214,7 @@ public class TerritoryEvents {
             if (!isMember && underWar) {
                 Guild attackerGuild = manager.getGuildByMember(player.getUUID());
                 if (attackerGuild != null) {
-                    manager.onAttackerVictory(attackerGuild.getName(), ownerGuild.getName());
+                    manager.onAttackerVictory(level, attackerGuild.getName(), ownerGuild.getName());
                 }
             }
 

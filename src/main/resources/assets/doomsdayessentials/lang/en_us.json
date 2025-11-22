@@ -217,4 +217,7 @@
   "profession.cacador.plural": "Caçadores",
   "profession.armeiro.name": "Armeiro",
   "profession.armeiro.plural": "Armeiros"
+,
+  "hud.doomsdayessentials.zone_close_minutes": "This zone will close in: %s minutes",
+  "hud.doomsdayessentials.zone_closed": "Zone closed"
 }

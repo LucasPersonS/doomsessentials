@@ -52,8 +52,7 @@ public class RecycleBlock extends BaseEntityBlock {
     @Nullable
     @Override
     public <T extends BlockEntity> BlockEntityTicker<T> getTicker(Level level, BlockState state, BlockEntityType<T> type) {
-        return createTickerHelper(type, ModBlocks.RECYCLE_BLOCK_ENTITY.get(),
-                (lvl, pos, st, be) -> RecycleBlockEntity.tick(lvl, pos, st, be));
+        return null;
     }
 
     @Override

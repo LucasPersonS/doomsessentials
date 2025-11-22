@@ -89,6 +89,8 @@ public class PrisonManager {
         prisoners.put(player.getUUID(), data);
         save();
 
+        org.lupz.doomsdayessentials.combat.CombatManager.get().removeWanted(player.getUUID());
+
         // Teleport to prison center
         BlockPos prisonCenter = new BlockPos(
                 (prisonZone.getPos1().getX() + prisonZone.getPos2().getX()) / 2,
@@ -119,6 +121,10 @@ public class PrisonManager {
         }
 
         save();
+
+        org.lupz.doomsdayessentials.network.PacketHandler.CHANNEL.send(
+                net.minecraftforge.network.PacketDistributor.PLAYER.with(() -> player),
+                new org.lupz.doomsdayessentials.network.packet.s2c.SyncPrisonTimePacket(0));
 
         // Teleport back to original location
         MinecraftServer server = player.getServer();

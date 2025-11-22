@@ -41,6 +41,7 @@ public final class ManagedArea {
     private String exitMessage;
 
     private List<TimeWindow> openWindows;
+    private boolean overlayPreferred;
 
     public record TimeWindow(LocalTime start, LocalTime end) {
         public boolean isActive(LocalTime now) {
@@ -102,6 +103,7 @@ public final class ManagedArea {
         this.entryMessage = entryMessage;
         this.exitMessage = exitMessage;
         this.openWindows = openWindows != null ? new java.util.ArrayList<>(openWindows) : new java.util.ArrayList<>();
+        this.overlayPreferred = false;
     }
 
     public ManagedArea(@NotNull String name,
@@ -142,6 +144,7 @@ public final class ManagedArea {
                 other.preventBlockModification, other.allowFlight, other.disableFallDamage,
                 other.preventHungerLoss, other.healPlayers, other.radiationDamage,
                 other.entryMessage, other.exitMessage, other.openWindows);
+        this.overlayPreferred = other.overlayPreferred;
     }
 
     public static final Codec<ManagedArea> CODEC = RecordCodecBuilder.create(instance ->
@@ -161,9 +164,11 @@ public final class ManagedArea {
                     Codec.BOOL.optionalFieldOf("heal_players", false).forGetter(ManagedArea::isHealPlayers),
                     Codec.FLOAT.optionalFieldOf("radiation_damage", 0.0f).forGetter(ManagedArea::getRadiationDamage),
                     Codec.STRING.optionalFieldOf("entry_message", "").forGetter(ManagedArea::getEntryMessage),
-                    TimeWindow.CODEC.listOf().optionalFieldOf("open_windows", Collections.emptyList()).forGetter(ManagedArea::getOpenWindows)
-            ).apply(instance, (name, type, dim, p1, p2, pp, pe, pmg, pbm, af, dfd, phl, hp, rd, em, ow) ->
-                    new ManagedArea(name, type, dim, p1, p2, pp, pe, pmg, pbm, af, dfd, phl, hp, rd, em, "", ow))
+                    Codec.STRING.optionalFieldOf("exit_message", "").forGetter(ManagedArea::getExitMessage)
+            ).apply(instance, (name, type, dim, p1, p2, pp, pe, pmg, pbm, af, dfd, phl, hp, rd, em, xm) -> {
+                ManagedArea a = new ManagedArea(name, type, dim, p1, p2, pp, pe, pmg, pbm, af, dfd, phl, hp, rd, em, xm, Collections.emptyList());
+                return a;
+            })
     );
 
     // ------------------------------------------------------------------------
@@ -331,6 +336,8 @@ public final class ManagedArea {
         buf.writeBoolean(healPlayers);
         buf.writeFloat(radiationDamage);
         buf.writeUtf(entryMessage != null ? entryMessage : "");
+        buf.writeUtf(exitMessage != null ? exitMessage : "");
+        buf.writeBoolean(overlayPreferred);
         buf.writeInt(openWindows.size());
         for (TimeWindow tw : openWindows) {
             buf.writeUtf(tw.start().toString());
@@ -355,6 +362,8 @@ public final class ManagedArea {
         boolean healPlayers = buf.readBoolean();
         float radiationDamage = buf.readFloat();
         String entryMessage = buf.readUtf();
+        String exitMessage = buf.readUtf();
+        boolean overlay = buf.readBoolean();
 
         int winCount = buf.readInt();
         java.util.List<TimeWindow> wins = new java.util.ArrayList<>(winCount);
@@ -364,9 +373,14 @@ public final class ManagedArea {
             wins.add(new TimeWindow(s, e));
         }
 
-        return new ManagedArea(name, type, dimension, pos1, pos2,
+        ManagedArea a = new ManagedArea(name, type, dimension, pos1, pos2,
                 preventPvp, preventExplosions, preventMobGriefing, preventBlockModification,
                 allowFlight, disableFallDamage, preventHungerLoss, healPlayers,
-                radiationDamage, entryMessage, "", wins);
+                radiationDamage, entryMessage, exitMessage, wins);
+        a.setOverlayPreferred(overlay);
+        return a;
     }
+
+    public boolean isOverlayPreferred() { return overlayPreferred; }
+    public void setOverlayPreferred(boolean overlayPreferred) { this.overlayPreferred = overlayPreferred; }
 } 

@@ -36,6 +36,7 @@ import org.lupz.doomsdayessentials.EssentialsMod;
 import org.lupz.doomsdayessentials.combat.AreaType;
 import org.lupz.doomsdayessentials.combat.ManagedArea;
 import org.lupz.doomsdayessentials.sound.ModSounds;
+import org.lupz.doomsdayessentials.config.EssentialsConfig;
 
 @Mod.EventBusSubscriber(modid = EssentialsMod.MOD_ID, bus = Mod.EventBusSubscriber.Bus.FORGE, value = Dist.CLIENT)
 public class ClientCombatRenderHandler {
@@ -60,7 +61,7 @@ public class ClientCombatRenderHandler {
     private static final ResourceLocation FREQUENCY_OVERLAY = ResourceLocation
             .fromNamespaceAndPath(EssentialsMod.MOD_ID, "textures/misc/frequencia_overlay.png");
     private static final ResourceLocation WANTED_ICON = ResourceLocation.fromNamespaceAndPath(EssentialsMod.MOD_ID,
-            "textures/gui/foragido.png");
+            "textures/misc/foragido.png");
 
     private static boolean wasInDangerZone = false;
     private static boolean wasInSafeArea = false;
@@ -325,7 +326,10 @@ public class ClientCombatRenderHandler {
         var builder = tesselator.getBuilder();
         builder.begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION_TEX);
 
-        float size = 8.0f;
+        double scaleCfg = EssentialsConfig.WANTED_ICON_SCALE.get();
+        if (scaleCfg < 0.5) scaleCfg = 0.5;
+        if (scaleCfg > 3.0) scaleCfg = 3.0;
+        float size = (float)(8.0f * scaleCfg);
         builder.vertex(poseStack.last().pose(), -size, -size, 0).uv(0, 0).endVertex();
         builder.vertex(poseStack.last().pose(), -size, size, 0).uv(0, 1).endVertex();
         builder.vertex(poseStack.last().pose(), size, size, 0).uv(1, 1).endVertex();
