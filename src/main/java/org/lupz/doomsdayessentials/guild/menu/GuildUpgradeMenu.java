@@ -24,7 +24,9 @@ public class GuildUpgradeMenu extends AbstractContainerMenu {
     private Guild guild;
 
     private static final int SLOT_BACK = 45;
-    private static final int SLOT_UPGRADE = 22; // center button
+    private static final int SLOT_UPGRADE = 13;
+    private static final int SLOT_PROT_INFO = 16;
+    private static final int SLOT_PROT_UPGRADE = 22;
 
     public GuildUpgradeMenu(int windowId, Inventory inv) {
         super(ProfessionMenuTypes.GUILD_UPGRADE_MENU.get(), windowId);
@@ -46,16 +48,12 @@ public class GuildUpgradeMenu extends AbstractContainerMenu {
 
     private void rebuild() {
         for (int i = 0; i < 54; i++) cont.setItem(i, ItemStack.EMPTY);
-        ItemStack title = new ItemStack(net.minecraft.world.item.Items.PAPER);
-        title.setHoverName(Component.literal("§6§lAprimorar Cofre"));
-        cont.setItem(4, title);
 
         if (!(player instanceof ServerPlayer sp) || guild == null) return;
         GuildsManager gm = GuildsManager.get(sp.serverLevel());
         int level = guild.getStorageLevel();
         int pages = 4 + level;
         int nextLevel = level + 1;
-        // Cost curve: level N -> cost = 500 + (N-1)*500 scrapmetal
         int cost = 500 + (level - 1) * 500;
 
         ItemStack info = new ItemStack(net.minecraft.world.item.Items.BOOK);
@@ -63,15 +61,39 @@ public class GuildUpgradeMenu extends AbstractContainerMenu {
         addLore(info, java.util.List.of(
                 Component.literal("§7Páginas: §e" + pages),
                 Component.literal("§7Próximo Nível: §e" + nextLevel)));
-        cont.setItem(20, info);
+        cont.setItem(10, info);
 
         ItemStack upgrade = new ItemStack(net.minecraft.world.item.Items.ANVIL);
-        upgrade.setHoverName(Component.literal("§6Aprimorar para Nível " + nextLevel));
+        upgrade.setHoverName(Component.literal("§6Aprimorar Cofre para Nível " + nextLevel));
         java.util.List<Component> lore = new java.util.ArrayList<>();
         lore.add(Component.literal("§7Custo: §c" + cost + " sucata (recursos da organização)"));
         lore.add(Component.literal("§7Clique para comprar usando os recursos da guilda."));
         addLore(upgrade, lore);
         cont.setItem(SLOT_UPGRADE, upgrade);
+
+        int protLvl = guild.getProtectionLevel();
+        var gmLocal = org.lupz.doomsdayessentials.guild.GuildsManager.get(((ServerPlayer) player).serverLevel());
+        int protPct = gmLocal.getProtectionPercent(guild.getName());
+        int nextProt = Math.min(7, protLvl + 1);
+        int nextProtPct = switch (nextProt) { case 1 -> 20; case 2 -> 30; case 3 -> 40; case 4 -> 50; case 5 -> 55; case 6 -> 60; case 7 -> 65; default -> protPct; };
+        // Info
+        ItemStack protInfo = new ItemStack(net.minecraft.world.item.Items.SHIELD);
+        protInfo.setHoverName(Component.literal("§bProteção de Guerra: §fNível " + protLvl + " (" + protPct + "%)"));
+        addLore(protInfo, java.util.List.of(
+                Component.literal("§7Protege itens e recursos durante invasões."),
+                Component.literal("§7Próximo nível: §e" + (protLvl + 1) + (protLvl < 7 ? " (até 65%)" : " (máximo)"))
+        ));
+        cont.setItem(SLOT_PROT_INFO, protInfo);
+
+        // Upgrade button for protection
+        ItemStack protUp = new ItemStack(net.minecraft.world.item.Items.NETHERITE_UPGRADE_SMITHING_TEMPLATE);
+        int costProt = gmLocal.getProtectionUpgradeCost(nextProt);
+        protUp.setHoverName(Component.literal("§6Aprimorar Proteção para Nível " + nextProt));
+        java.util.List<Component> plore = new java.util.ArrayList<>();
+        plore.add(Component.literal("§7Custo: §c" + (nextProt <= protLvl ? 0 : costProt) + " sucata"));
+        plore.add(Component.literal("§7Atual: §e" + protPct + "% §7→ Próximo: §a" + (nextProt <= protLvl ? protPct : nextProtPct) + "%"));
+        addLore(protUp, plore);
+        cont.setItem(SLOT_PROT_UPGRADE, protUp);
 
         ItemStack back = new ItemStack(org.lupz.doomsdayessentials.item.ModItems.GUI_BACK.get());
         back.setHoverName(Component.literal("§eVoltar"));
@@ -120,6 +142,28 @@ public class GuildUpgradeMenu extends AbstractContainerMenu {
             } else {
                 sp.sendSystemMessage(Component.literal("§cNão foi possível aprimorar."));
             }
+            return;
+        }
+        if (slotId == SLOT_PROT_UPGRADE && clickType == ClickType.PICKUP) {
+            GuildMember self = guild.getMember(sp.getUUID());
+            if (self == null || (self.getRank() != GuildMember.Rank.LEADER && self.getRank() != GuildMember.Rank.OFFICER)) {
+                sp.sendSystemMessage(Component.literal("§cApenas Líder/Oficial pode comprar upgrades."));
+                return;
+            }
+            int cur = guild.getProtectionLevel();
+            if (cur >= 7) { sp.sendSystemMessage(Component.literal("§eProteção já está no nível máximo.")); return; }
+            int next = cur + 1;
+            int cost = gm.getProtectionUpgradeCost(next);
+            org.lupz.doomsdayessentials.guild.GuildResourceBank bank = org.lupz.doomsdayessentials.guild.GuildResourceBank.get(sp.serverLevel());
+            String scrapId = net.minecraftforge.registries.ForgeRegistries.ITEMS.getKey(ModItems.SCRAPMETAL.get()).toString();
+            int have = bank.get(guild.getName(), scrapId);
+            if (have < cost) { sp.sendSystemMessage(Component.literal("§cA organização precisa de " + cost + " sucata no cofre.")); return; }
+            boolean debited = bank.consume(guild.getName(), scrapId, cost);
+            if (!debited) { sp.sendSystemMessage(Component.literal("§cFalha ao debitar recursos da organização.")); return; }
+            guild.setProtectionLevel(next);
+            gm.setDirty();
+            sp.sendSystemMessage(Component.literal("§aProteção aprimorada para nível " + next + " (" + gm.getProtectionPercent(guild.getName()) + "%)."));
+            rebuild(); broadcastChanges();
             return;
         }
         super.clicked(slotId, dragType, clickType, clickPlayer);

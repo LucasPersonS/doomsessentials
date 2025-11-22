@@ -57,22 +57,23 @@ public final class BountyManager {
 		}
 	}
 
-	public static synchronized boolean placeBounty(ServerPlayer placer, UUID target, Item rewardItem, int amount) {
-		if (amount <= 0 || rewardItem == null) return false;
-		int removed = removeItems(placer, rewardItem, amount);
-		if (removed < amount) {
-			// refund partial
-			if (removed > 0) addItems(placer, rewardItem, removed);
-			return false;
-		}
-		cleanupExpiredBountiesFor(target);
-		List<Bounty> list = active.computeIfAbsent(target, k -> new ArrayList<>());
-		for (Bounty b : list) {
-			if (b.rewardItem == rewardItem && !isBountyExpired(b)) { b.amount += amount; return true; }
-		}
-		list.add(new Bounty(target, rewardItem, amount, placer.getUUID(), nowMs()));
-		return true;
-	}
+    public static synchronized boolean placeBounty(ServerPlayer placer, UUID target, Item rewardItem, int amount) {
+        if (amount <= 0 || rewardItem == null) return false;
+        if (placer != null) {
+            int removed = removeItems(placer, rewardItem, amount);
+            if (removed < amount) {
+                if (removed > 0) addItems(placer, rewardItem, removed);
+                return false;
+            }
+        }
+        cleanupExpiredBountiesFor(target);
+        List<Bounty> list = active.computeIfAbsent(target, k -> new ArrayList<>());
+        for (Bounty b : list) {
+            if (b.rewardItem == rewardItem && !isBountyExpired(b)) { b.amount += amount; return true; }
+        }
+        list.add(new Bounty(target, rewardItem, amount, placer != null ? placer.getUUID() : null, nowMs()));
+        return true;
+    }
 
 	public static Optional<Bounty> getBounty(UUID target) {
 		cleanupExpiredBountiesFor(target);
@@ -82,13 +83,21 @@ public final class BountyManager {
 		return Optional.of(list.get(0));
 	}
 
-	public static synchronized void onPlayerKilled(ServerPlayer killer, ServerPlayer victim) {
-		// Only hunters who accepted this target and are within the 1-day validity can claim
-		var acceptance = acceptedByHunter.get(killer.getUUID());
-		long now = nowMs();
-		if (acceptance == null || !acceptance.target.equals(victim.getUUID()) || now > acceptance.expiresAtMs) {
-			return;
-		}
+    public static synchronized void onPlayerKilled(ServerPlayer killer, ServerPlayer victim) {
+        org.lupz.doomsdayessentials.guild.GuildsManager gm = org.lupz.doomsdayessentials.guild.GuildsManager.get(killer.serverLevel());
+        org.lupz.doomsdayessentials.guild.Guild gK = gm.getGuildByMember(killer.getUUID());
+        org.lupz.doomsdayessentials.guild.Guild gV = gm.getGuildByMember(victim.getUUID());
+        if (gK != null && gV != null && gK.getName().equals(gV.getName())) {
+            clearAcceptanceForHunter(killer.getUUID());
+            killer.sendSystemMessage(net.minecraft.network.chat.Component.literal("§cSem recompensa por caçada dentro da mesma organização."));
+            return;
+        }
+        // Only hunters who accepted this target and are within the 1-day validity can claim
+        var acceptance = acceptedByHunter.get(killer.getUUID());
+        long now = nowMs();
+        if (acceptance == null || !acceptance.target.equals(victim.getUUID()) || now > acceptance.expiresAtMs) {
+            return;
+        }
 		// Payout and cleanup acceptance and bounties (filter out expired bounties before paying)
 		cleanupExpiredBountiesFor(victim.getUUID());
 		List<Bounty> list = active.remove(victim.getUUID());

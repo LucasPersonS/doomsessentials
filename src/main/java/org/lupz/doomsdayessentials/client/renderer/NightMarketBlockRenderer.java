@@ -8,4 +8,6 @@ public class NightMarketBlockRenderer extends GeoBlockRenderer<NightMarketBlockE
     public NightMarketBlockRenderer() {
         super(new NightMarketBlockModel());
     }
-} 
+
+    
+}

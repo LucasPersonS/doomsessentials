@@ -149,6 +149,24 @@ public class TerritoryEvents {
         ServerLevel level = player.serverLevel();
         GuildsManager manager = GuildsManager.get(level);
         BlockPos pos = e.getPos();
+        if (e.getState().getBlock() == org.lupz.doomsdayessentials.guild.block.StorageBlocks.STORAGE_BLOCK.get()) {
+            Guild playerGuild = manager.getGuildByMember(player.getUUID());
+            Guild territoryGuild = manager.getGuildAt(pos);
+            boolean underWar = territoryGuild != null && manager.isTerritoryUnderWar(territoryGuild.getName());
+            if (org.lupz.doomsdayessentials.config.EssentialsConfig.MARKET_DISABLE_DEBUG_OPEN_TRADES.get()) {
+                // no-op placeholder for compatibility; keeps branch even if config toggled
+            }
+            if (playerGuild == null || territoryGuild == null || !territoryGuild.getName().equals(playerGuild.getName())) {
+                player.sendSystemMessage(Component.literal("Você só pode quebrar o cofre dentro do seu território.").withStyle(ChatFormatting.RED));
+                e.setCanceled(true);
+                return;
+            }
+            if (underWar) {
+                player.sendSystemMessage(Component.literal("Você não pode quebrar o cofre durante uma invasão.").withStyle(ChatFormatting.RED));
+                e.setCanceled(true);
+                return;
+            }
+        }
         // Handle totem break: only leader, remove territory or victory plunder if enemy during war
         if (e.getState().getBlock() == ModBlocks.TOTEM_BLOCK.get() || e.getState().getBlock() == ModBlocks.TOTEM_BLOCK_TOP.get()) {
             Guild ownerGuild = manager.getGuildAt(pos);
@@ -196,7 +214,7 @@ public class TerritoryEvents {
             if (!isMember && underWar) {
                 Guild attackerGuild = manager.getGuildByMember(player.getUUID());
                 if (attackerGuild != null) {
-                    manager.onAttackerVictory(attackerGuild.getName(), ownerGuild.getName());
+                    manager.onAttackerVictory(level, attackerGuild.getName(), ownerGuild.getName());
                 }
             }
 
@@ -235,6 +253,11 @@ public class TerritoryEvents {
         if (!java.util.Objects.equals(previousTag, currentTag)) {
             if (currentTag != null) {
                 sp.sendSystemMessage(Component.literal("Você está no território de " + currentTag).withStyle(ChatFormatting.GOLD));
+                Guild playerGuild = manager.getGuildByMember(sp.getUUID());
+                Guild territoryG = manager.getGuild(currentTag);
+                if (playerGuild != null && territoryG != null && playerGuild.getName().equals(territoryG.getName()) && manager.isTerritoryUnderWar(territoryG.getName())) {
+                    sp.sendSystemMessage(Component.literal("Seu território está sob invasão.").withStyle(ChatFormatting.RED));
+                }
             } else if (previousTag != null) {
                 sp.sendSystemMessage(Component.literal("Você saiu do território de " + previousTag).withStyle(ChatFormatting.YELLOW));
             }
@@ -267,7 +290,13 @@ public class TerritoryEvents {
             else tpZ = maxZ + 0.5;
 
             sp.teleportTo(tpX, sp.getY(), tpZ);
-            sp.sendSystemMessage(Component.literal("Você não pode entrar neste território.").withStyle(ChatFormatting.RED));
+            War war = manager.getActiveWarForGuild(territoryGuild.getName());
+            boolean locked = war != null && war.isPlayerLockedOut(sp.getUUID());
+            if (locked) {
+                sp.sendSystemMessage(Component.literal("Você está bloqueado nesta invasão.").withStyle(ChatFormatting.RED));
+            } else {
+                sp.sendSystemMessage(Component.literal("Você não pode entrar neste território.").withStyle(ChatFormatting.RED));
+            }
         }
     }
 } 

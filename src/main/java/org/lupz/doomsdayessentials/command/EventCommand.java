@@ -30,6 +30,7 @@ public final class EventCommand {
         dispatcher.register(
             Commands.literal("dooms").requires(src -> src.hasPermission(2))
                 .then(Commands.literal("event")
+                    .executes(ctx -> showEventHelp(ctx.getSource()))
                     .then(Commands.literal("eclipse")
                         .then(Commands.literal("iniciar")
                             .executes(ctx -> startEclipse(ctx.getSource(), 0.0f, 6.0f, 0.65f))
@@ -50,7 +51,7 @@ public final class EventCommand {
                     )
                     .then(Commands.literal("kofh")
                         .then(Commands.literal("iniciar")
-                            .then(Commands.argument("area", StringArgumentType.string())
+                            .then(Commands.argument("area", StringArgumentType.string()).suggests(org.lupz.doomsdayessentials.territory.command.EventCommands::suggestAreaNames)
                                 .executes(ctx -> startKofh(ctx.getSource(), StringArgumentType.getString(ctx, "area"), KofhConfig.TIMER_DURATION_SECONDS.get()))
                                 .then(Commands.argument("duracaoSegundos", IntegerArgumentType.integer(30, 36000))
                                     .executes(ctx -> startKofh(
@@ -67,6 +68,14 @@ public final class EventCommand {
                     )
                 )
         );
+    }
+
+    private static int showEventHelp(CommandSourceStack src) {
+        src.sendSuccess(() -> Component.literal("Uso: /dooms event eclipse iniciar [near] [far] [overlayAlpha]"), false);
+        src.sendSuccess(() -> Component.literal("Uso: /dooms event eclipse parar"), false);
+        src.sendSuccess(() -> Component.literal("Uso: /dooms event kofh iniciar <area> [duracaoSegundos]"), false);
+        src.sendSuccess(() -> Component.literal("Uso: /dooms event kofh parar"), false);
+        return 1;
     }
 
     private static int startEclipse(CommandSourceStack src, float near, float far, float overlay){

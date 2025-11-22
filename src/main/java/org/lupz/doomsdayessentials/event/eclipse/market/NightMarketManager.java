@@ -72,6 +72,44 @@ public final class NightMarketManager {
         return true;
     }
 
+    public static MerchantOffer addOfferStackTo(java.util.UUID marketId, String buy1Id, int buy1Count, String buy2Id, int buy2Count, ItemStack sellS, int maxUses, int xp, float priceMult){
+        Item buy1 = itemOf(buy1Id); if (buy1 == null) return null;
+        ItemStack buy1s = new ItemStack(buy1, Math.max(1,buy1Count));
+        MerchantOffer offer;
+        if (buy2Id != null && !buy2Id.isBlank()){
+            Item buy2 = itemOf(buy2Id); if (buy2 == null) return null;
+            ItemStack buy2s = new ItemStack(buy2, Math.max(1,buy2Count));
+            offer = new MerchantOffer(buy1s, buy2s, sellS, maxUses, xp, priceMult);
+        }else{
+            offer = new MerchantOffer(buy1s, sellS, maxUses, xp, priceMult);
+        }
+        MerchantOffers existing = MARKET_OFFERS.computeIfAbsent(marketId, id -> new MerchantOffers());
+        for (MerchantOffer o : existing){
+            boolean sameBuys = o.getBaseCostA().getItem() == buy1s.getItem()
+                    && o.getBaseCostA().getCount() == buy1s.getCount()
+                    && (o.getCostB().isEmpty() ? (buy2Id == null || buy2Id.isBlank()) : (itemOf(buy2Id) == o.getCostB().getItem() && o.getCostB().getCount() == Math.max(1,buy2Count)));
+            boolean sameSell = net.minecraft.world.item.ItemStack.isSameItemSameTags(o.getResult(), sellS) && o.getResult().getCount() == sellS.getCount();
+            boolean sameParams = o.getMaxUses() == maxUses && o.getXp() == xp && Math.abs(o.getPriceMultiplier() - priceMult) < 1e-6;
+            if (sameBuys && sameSell && sameParams){
+                return null; // duplicate
+            }
+        }
+        existing.add(offer);
+        return offer;
+    }
+
+    /** Remove offer at index for a specific market. Returns true if removed. */
+    public static boolean removeOfferAt(java.util.UUID marketId, int index){
+        MerchantOffers offers = MARKET_OFFERS.get(marketId);
+        if (offers == null) return false;
+        if (index < 0 || index >= offers.size()) return false;
+        MerchantOffer off = offers.get(index);
+        java.util.IdentityHashMap<MerchantOffer, String> aliases = MARKET_ALIASES.get(marketId);
+        if (aliases != null) aliases.remove(off);
+        offers.remove(index);
+        return true;
+    }
+
     /** Backwards-compatible method targeting the global market. */
     @Deprecated
     public static boolean addOffer(String buy1Id, int buy1Count, String buy2Id, int buy2Count, String sellId, int sellCount, int maxUses, int xp, float priceMult){

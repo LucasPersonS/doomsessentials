@@ -87,6 +87,41 @@ public class GuildResourceBank extends SavedData {
         return true;
     }
 
+    public int getTotal(String guildName) {
+        Map<String, Integer> map = balances.get(guildName);
+        if (map == null || map.isEmpty()) return 0;
+        int total = 0;
+        for (int v : map.values()) total += Math.max(0, v);
+        return total;
+    }
+
+    public java.util.Map<String, Integer> plunderDetailed(String defenderGuild, String attackerGuild, int totalCount) {
+        java.util.Map<String, Integer> movedById = new java.util.HashMap<>();
+        if (defenderGuild == null || attackerGuild == null || totalCount <= 0) return movedById;
+        Map<String, Integer> src = balances.get(defenderGuild);
+        if (src == null || src.isEmpty()) return movedById;
+        int available = 0;
+        for (int v : src.values()) available += Math.max(0, v);
+        if (available <= 0) return movedById;
+        int toMove = Math.min(totalCount, available);
+        for (var e : new java.util.ArrayList<>(src.entrySet())) {
+            if (toMove <= 0) break;
+            int have = Math.max(0, e.getValue());
+            if (have <= 0) continue;
+            int take = Math.min(have, toMove);
+            if (take <= 0) continue;
+            int left = have - take;
+            if (left > 0) src.put(e.getKey(), left); else src.remove(e.getKey());
+            balances.computeIfAbsent(attackerGuild, k -> new java.util.HashMap<>());
+            java.util.Map<String, Integer> dst = balances.get(attackerGuild);
+            dst.put(e.getKey(), dst.getOrDefault(e.getKey(), 0) + take);
+            movedById.merge(e.getKey(), take, Integer::sum);
+            toMove -= take;
+        }
+        if (!movedById.isEmpty()) setDirty();
+        return movedById;
+    }
+
     public void removeGuild(String guildName) {
         if (guildName == null) return;
         if (balances.remove(guildName) != null) setDirty();

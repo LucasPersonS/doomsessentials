@@ -40,6 +40,10 @@ public final class ProfessionMenuTypes {
             "territory_reward_menu",
             () -> IForgeMenuType.create((windowId, inv, data) -> new org.lupz.doomsdayessentials.territory.menu.TerritoryRewardMenu(windowId, inv)));
 
+    public static final RegistryObject<MenuType<org.lupz.doomsdayessentials.guild.menu.GuildMailMenu>> GUILD_MAIL_MENU = MENUS.register(
+            "guild_mail_menu",
+            () -> IForgeMenuType.create((windowId, inv, data) -> new org.lupz.doomsdayessentials.guild.menu.GuildMailMenu(windowId, inv)));
+
     public static final RegistryObject<MenuType<org.lupz.doomsdayessentials.territory.menu.GeneratorInfoMenu>> GENERATOR_INFO_MENU = MENUS.register(
             "generator_info_menu",
             () -> net.minecraftforge.common.extensions.IForgeMenuType.create((windowId, inv, data) -> {

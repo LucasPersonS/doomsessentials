@@ -114,6 +114,26 @@ public final class LootboxManager {
 		return out;
 	}
 
+	public static boolean removeItem(String rarity, int index) {
+		if (!RARITIES.contains(rarity)) return false;
+		List<LootEntry> list = byRarity.getOrDefault(rarity, Collections.emptyList());
+		if (index < 0 || index >= list.size()) return false;
+		byRarity.get(rarity).remove(index);
+		save();
+		return true;
+	}
+
+	public static java.util.List<String> getItemNames(String rarity) {
+		java.util.List<String> names = new java.util.ArrayList<>();
+		java.util.List<LootEntry> list = byRarity.getOrDefault(rarity, Collections.emptyList());
+		for (int i = 0; i < list.size(); i++) {
+			ItemStack s = list.get(i).toStack();
+			String n = s.isEmpty() ? "<invalid>" : s.getHoverName().getString();
+			names.add(n);
+		}
+		return names;
+	}
+
 	public static List<ItemStack> getRandomSample(String rarity, int count) {
 		List<LootEntry> src = byRarity.getOrDefault(rarity, Collections.emptyList());
 		if (src.isEmpty()) return Collections.emptyList();

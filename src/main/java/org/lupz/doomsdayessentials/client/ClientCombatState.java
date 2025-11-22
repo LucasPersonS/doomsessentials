@@ -20,6 +20,8 @@ public class ClientCombatState {
     private static Map<ResourceLocation, List<ManagedArea>> managedAreasByDimension = new HashMap<>();
     private static Map<UUID, Integer> playersInCombat = new HashMap<>();
     private static long lastCombatSyncTime = 0;
+    private static java.util.Set<UUID> wantedPlayers = new java.util.HashSet<>();
+    private static int prisonTimeRemaining = 0;
 
     // Simple cache for local player's area per tick and block position
     private static long cachedTick = -1;
@@ -49,26 +51,31 @@ public class ClientCombatState {
     public static boolean isPlayerInCombat(UUID uuid) {
         return playersInCombat.containsKey(uuid);
     }
-    
+
     public static long getCombatEndTime(UUID playerUUID) {
         if (!playersInCombat.containsKey(playerUUID)) {
             return 0;
         }
         int ticksRemaining = playersInCombat.get(playerUUID);
-        if (ticksRemaining < 0) {
-            return 0; // permanent combat, treat as no countdown
-        }
         long msRemaining = (long) (ticksRemaining / 20.0 * 1000);
         return lastCombatSyncTime + msRemaining;
     }
 
     public static boolean isPlayerAlwaysActive(UUID uuid) {
-        Integer v = playersInCombat.get(uuid);
-        return v != null && v < 0;
+        return false;
+    }
+
+    public static void setWantedPlayers(java.util.Set<UUID> wanted) {
+        wantedPlayers = new java.util.HashSet<>(wanted);
+    }
+
+    public static boolean isWanted(UUID uuid) {
+        return wantedPlayers.contains(uuid);
     }
 
     public static ManagedArea getPlayerArea(Player player) {
-        if (player == null) return null;
+        if (player == null)
+            return null;
         // Fast path: for local player, cache by tick and block pos
         Minecraft mc = Minecraft.getInstance();
         if (player == mc.player && mc.level != null) {
@@ -92,43 +99,46 @@ public class ClientCombatState {
         if (areasInDim == null) {
             return null;
         }
-        ManagedArea best = null;
-        int bestPriority = Integer.MAX_VALUE;
+        ManagedArea overlayBest = null;
+        long overlayBestVol = Long.MAX_VALUE;
+        ManagedArea normalBest = null;
+        long normalBestVol = Long.MAX_VALUE;
+        net.minecraft.core.BlockPos pos = player.blockPosition();
         for (ManagedArea area : areasInDim) {
-            if (!area.contains(player.blockPosition())) continue;
+            if (!area.contains(pos)) continue;
             if (!area.isCurrentlyOpen()) continue;
-            int prio;
-            switch (area.getType()) {
-                case DANGER -> prio = 0;
-                case SAFE -> prio = 1;
-                case FREQUENCY -> prio = 2;
-                case NEUTRAL -> prio = 3;
-                default -> prio = 4;
-            }
-            if (prio < bestPriority) {
-                bestPriority = prio;
-                best = area;
+            long dx = (long) (area.getPos2().getX() - area.getPos1().getX() + 1);
+            long dy = (long) (area.getPos2().getY() - area.getPos1().getY() + 1);
+            long dz = (long) (area.getPos2().getZ() - area.getPos1().getZ() + 1);
+            long vol = dx * dy * dz;
+            if (area.isOverlayPreferred()) {
+                if (vol < overlayBestVol) { overlayBestVol = vol; overlayBest = area; }
+            } else {
+                if (vol < normalBestVol) { normalBestVol = vol; normalBest = area; }
             }
         }
-        return best;
+        return overlayBest != null ? overlayBest : normalBest;
     }
 
     public static boolean isInDangerArea() {
         Player player = Minecraft.getInstance().player;
-        if (player == null) return false;
+        if (player == null)
+            return false;
         ManagedArea area = getPlayerArea(player);
         return area != null && area.getType() == AreaType.DANGER;
     }
 
     public static boolean isInSafeArea() {
         Player player = Minecraft.getInstance().player;
-        if (player == null) return false;
+        if (player == null)
+            return false;
         ManagedArea area = getPlayerArea(player);
         return area != null && area.getType() == AreaType.SAFE;
     }
 
     public static ManagedArea getAreaByName(String name) {
-        if (name == null) return null;
+        if (name == null)
+            return null;
         for (List<ManagedArea> list : managedAreasByDimension.values()) {
             for (ManagedArea a : list) {
                 if (a.getName().equalsIgnoreCase(name)) {
@@ -138,4 +148,12 @@ public class ClientCombatState {
         }
         return null;
     }
-} 
+
+    public static void setPrisonTimeRemaining(int seconds) {
+        prisonTimeRemaining = Math.max(0, seconds);
+    }
+
+    public static int getPrisonTimeRemaining() {
+        return prisonTimeRemaining;
+    }
+}

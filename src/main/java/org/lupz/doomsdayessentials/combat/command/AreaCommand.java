@@ -7,10 +7,12 @@ import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
 import net.minecraft.commands.arguments.coordinates.BlockPosArgument;
+import net.minecraft.commands.arguments.EntityArgument;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.level.Level;
 import net.minecraftforge.event.RegisterCommandsEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
@@ -50,7 +52,11 @@ public class AreaCommand {
                             })
                             .then(Commands.argument("pos1", BlockPosArgument.blockPos())
                                 .then(Commands.argument("pos2", BlockPosArgument.blockPos())
-                                    .executes(AreaCommand::createArea))))))
+                                    .executes(AreaCommand::createArea)
+                                    .then(Commands.literal("--overlay")
+                                        .executes(AreaCommand::createAreaOverride)))))))
+                
+                
                 .then(Commands.literal("list")
                     .executes(AreaCommand::listAreas))
                 .then(Commands.literal("delete")
@@ -123,6 +129,13 @@ public class AreaCommand {
         return b.buildFuture();
     }
 
+    private static CompletableFuture<com.mojang.brigadier.suggestion.Suggestions> suggestPrisonAreaNames(CommandContext<CommandSourceStack> c, SuggestionsBuilder b) {
+        AreaManager.get().getAreas().forEach(area -> {
+            if (area.getType() == AreaType.PRISON) b.suggest(area.getName());
+        });
+        return b.buildFuture();
+    }
+
     private static CompletableFuture<com.mojang.brigadier.suggestion.Suggestions> suggestFlagValue(CommandContext<CommandSourceStack> c, SuggestionsBuilder b) {
         String flagName = StringArgumentType.getString(c, "flag");
         switch (flagName) {
@@ -146,6 +159,14 @@ public class AreaCommand {
     // ---------------------------------------------------------------------
 
     private static int createArea(CommandContext<CommandSourceStack> ctx) throws CommandSyntaxException {
+        return doCreateArea(ctx, false);
+    }
+
+    private static int createAreaOverride(CommandContext<CommandSourceStack> ctx) throws CommandSyntaxException {
+        return doCreateArea(ctx, true);
+    }
+
+    private static int doCreateArea(CommandContext<CommandSourceStack> ctx, boolean overlay) throws CommandSyntaxException {
         String name = StringArgumentType.getString(ctx, "name");
         String typeStr = StringArgumentType.getString(ctx, "type");
         AreaType type;
@@ -167,12 +188,70 @@ public class AreaCommand {
             return 0;
         }
 
+        if (!overlay) {
+            int minX = Math.min(pos1.getX(), pos2.getX());
+            int minY = Math.min(pos1.getY(), pos2.getY());
+            int minZ = Math.min(pos1.getZ(), pos2.getZ());
+            int maxX = Math.max(pos1.getX(), pos2.getX());
+            int maxY = Math.max(pos1.getY(), pos2.getY());
+            int maxZ = Math.max(pos1.getZ(), pos2.getZ());
+
+            for (ManagedArea a : AreaManager.get().getAreas()) {
+                if (!a.getDimension().equals(dim)) continue;
+                boolean xOverlap = minX <= a.getPos2().getX() && maxX >= a.getPos1().getX();
+                boolean yOverlap = minY <= a.getPos2().getY() && maxY >= a.getPos1().getY();
+                boolean zOverlap = minZ <= a.getPos2().getZ() && maxZ >= a.getPos1().getZ();
+                if (xOverlap && yOverlap && zOverlap) {
+                    ctx.getSource().sendFailure(Component.literal("Area overlaps an existing area. Use --overlay to allow.").withStyle(ChatFormatting.RED));
+                    return 0;
+                }
+            }
+        }
+
         ManagedArea area = new ManagedArea(name, type, dim, pos1, pos2);
+        area.setOverlayPreferred(overlay);
         AreaManager.get().addArea(area);
         ctx.getSource().sendSuccess(() -> Component.literal("Created area '").withStyle(ChatFormatting.GREEN)
                 .append(Component.literal(name).withStyle(ChatFormatting.WHITE))
                 .append(Component.literal("'").withStyle(ChatFormatting.GREEN)), true);
         return 1;
+    }
+
+    private static int cmdPrender(CommandContext<CommandSourceStack> ctx) throws CommandSyntaxException {
+        ctx.getSource().sendSuccess(() -> Component.literal("§e[DEPRECADO] Use /prisao prender <jogador> <zona> <duracaoSegundos>."), false);
+        ServerPlayer alvo = EntityArgument.getPlayer(ctx, "jogador");
+        String zona = StringArgumentType.getString(ctx, "zona");
+        int dur = IntegerArgumentType.getInteger(ctx, "duracaoSegundos");
+
+        ManagedArea area = AreaManager.get().getArea(zona);
+        if (area == null) {
+            ctx.getSource().sendFailure(Component.literal("Zona '" + zona + "' não encontrada.").withStyle(ChatFormatting.RED));
+            return 0;
+        }
+        if (area.getType() != AreaType.PRISON) {
+            ctx.getSource().sendFailure(Component.literal("Zona deve ser do tipo PRISON.").withStyle(ChatFormatting.RED));
+            return 0;
+        }
+
+        boolean ok = org.lupz.doomsdayessentials.prison.PrisonManager.get().jailPlayer(alvo, zona, dur);
+        if (ok) {
+            ctx.getSource().sendSuccess(() -> Component.literal("§c§l[PRISÃO] §e" + alvo.getName().getString() + " preso por " + dur + "s na zona '" + zona + "'."), true);
+            return 1;
+        }
+        ctx.getSource().sendFailure(Component.literal("Falha ao prender jogador.").withStyle(ChatFormatting.RED));
+        return 0;
+    }
+
+    private static int cmdSoltar(CommandContext<CommandSourceStack> ctx) throws CommandSyntaxException {
+        ctx.getSource().sendSuccess(() -> Component.literal("§e[DEPRECADO] Use /prisao liberar <jogador>."), false);
+        ServerPlayer alvo = EntityArgument.getPlayer(ctx, "jogador");
+        boolean ok = org.lupz.doomsdayessentials.prison.PrisonManager.get().releasePlayer(alvo);
+        if (ok) {
+            ctx.getSource().sendSuccess(() -> Component.literal("§a§l[PRISÃO] §e" + alvo.getName().getString() + " foi solto."), true);
+            return 1;
+        }
+        ctx.getSource().sendFailure(Component.literal("Jogador não está preso.").withStyle(ChatFormatting.RED));
+        return 0;
     }
 
     private static int listAreas(CommandContext<CommandSourceStack> ctx) {

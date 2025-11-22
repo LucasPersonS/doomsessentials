@@ -36,6 +36,7 @@ import org.lupz.doomsdayessentials.EssentialsMod;
 import org.lupz.doomsdayessentials.combat.AreaType;
 import org.lupz.doomsdayessentials.combat.ManagedArea;
 import org.lupz.doomsdayessentials.sound.ModSounds;
+import org.lupz.doomsdayessentials.config.EssentialsConfig;
 
 @Mod.EventBusSubscriber(modid = EssentialsMod.MOD_ID, bus = Mod.EventBusSubscriber.Bus.FORGE, value = Dist.CLIENT)
 public class ClientCombatRenderHandler {
@@ -49,11 +50,18 @@ public class ClientCombatRenderHandler {
         }
     }
 
-    private static final ResourceLocation COMBAT_ICON = ResourceLocation.fromNamespaceAndPath(EssentialsMod.MOD_ID, "textures/gui/combat_icon.png");
-    private static final ResourceLocation DANGER_ZONE_TEXTURE = ResourceLocation.fromNamespaceAndPath(EssentialsMod.MOD_ID, "textures/gui/danger_zone.png");
-    private static final ResourceLocation SAFE_ZONE_TEXTURE = ResourceLocation.fromNamespaceAndPath(EssentialsMod.MOD_ID, "textures/gui/safe_zone.png");
-    private static final ResourceLocation IN_COMBAT_ICON = ResourceLocation.fromNamespaceAndPath(EssentialsMod.MOD_ID, "textures/gui/incombat.png");
-    private static final ResourceLocation FREQUENCY_OVERLAY = ResourceLocation.fromNamespaceAndPath(EssentialsMod.MOD_ID, "textures/misc/frequencia_overlay.png");
+    private static final ResourceLocation COMBAT_ICON = ResourceLocation.fromNamespaceAndPath(EssentialsMod.MOD_ID,
+            "textures/gui/combat_icon.png");
+    private static final ResourceLocation DANGER_ZONE_TEXTURE = ResourceLocation
+            .fromNamespaceAndPath(EssentialsMod.MOD_ID, "textures/gui/danger_zone.png");
+    private static final ResourceLocation SAFE_ZONE_TEXTURE = ResourceLocation
+            .fromNamespaceAndPath(EssentialsMod.MOD_ID, "textures/gui/safe_zone.png");
+    private static final ResourceLocation IN_COMBAT_ICON = ResourceLocation.fromNamespaceAndPath(EssentialsMod.MOD_ID,
+            "textures/gui/incombat.png");
+    private static final ResourceLocation FREQUENCY_OVERLAY = ResourceLocation
+            .fromNamespaceAndPath(EssentialsMod.MOD_ID, "textures/misc/frequencia_overlay.png");
+    private static final ResourceLocation WANTED_ICON = ResourceLocation.fromNamespaceAndPath(EssentialsMod.MOD_ID,
+            "textures/misc/foragido.png");
 
     private static boolean wasInDangerZone = false;
     private static boolean wasInSafeArea = false;
@@ -63,53 +71,62 @@ public class ClientCombatRenderHandler {
     private static final double NAMEPLATE_MAX_DISTANCE_SQR = 48.0 * 48.0; // 48 blocks
     private static final double ICON_MAX_DISTANCE_SQR = 48.0 * 48.0;
 
-    private ClientCombatRenderHandler() {}
+    private ClientCombatRenderHandler() {
+    }
 
     // ---------------------------------------------------------------------
     // Line-of-sight helper
     // ---------------------------------------------------------------------
 
     /**
-     * Returns true if the local (client) player can directly see the target entity without any blocks obstructing.
+     * Returns true if the local (client) player can directly see the target entity
+     * without any blocks obstructing.
      */
     private static boolean hasLineOfSight(Entity target) {
         Minecraft mc = Minecraft.getInstance();
-        if (mc.player == null || mc.level == null) return true; // no info → assume visible
+        if (mc.player == null || mc.level == null)
+            return true; // no info → assume visible
 
         Vec3 start = mc.player.getEyePosition(1.0f);
         Vec3 end = target.getEyePosition(1.0f);
 
-        var context = new net.minecraft.world.level.ClipContext(start, end, net.minecraft.world.level.ClipContext.Block.COLLIDER, net.minecraft.world.level.ClipContext.Fluid.NONE, mc.player);
+        var context = new net.minecraft.world.level.ClipContext(start, end,
+                net.minecraft.world.level.ClipContext.Block.COLLIDER, net.minecraft.world.level.ClipContext.Fluid.NONE,
+                mc.player);
         HitResult result = mc.level.clip(context);
 
         // Visible if nothing hit or the hit is the target itself
         return result.getType() == HitResult.Type.MISS ||
-               (result instanceof BlockHitResult bhr && bhr.getType() == HitResult.Type.MISS);
+                (result instanceof BlockHitResult bhr && bhr.getType() == HitResult.Type.MISS);
     }
 
     @SubscribeEvent
     public void onRenderNameplate(RenderNameTagEvent event) {
-        if (!(event.getEntity() instanceof Player player)) return;
+        if (!(event.getEntity() instanceof Player player))
+            return;
 
         // Distance culling
         Minecraft mc = Minecraft.getInstance();
-        if (mc.player != null && player.distanceToSqr(mc.player) > NAMEPLATE_MAX_DISTANCE_SQR) return;
+        if (mc.player != null && player.distanceToSqr(mc.player) > NAMEPLATE_MAX_DISTANCE_SQR)
+            return;
 
         // Standard player checks
-        if (player == Minecraft.getInstance().player && !Minecraft.getInstance().options.getCameraType().isFirstPerson()) {
+        if (player == Minecraft.getInstance().player
+                && !Minecraft.getInstance().options.getCameraType().isFirstPerson()) {
             // allow rendering own tag in third person for debugging
         } else if (player == Minecraft.getInstance().player) {
             return; // don't render own tag in first person
         }
 
-        if (player.isCrouching()) return; // Hide tag if crouching
-        
+        if (player.isCrouching())
+            return; // Hide tag if crouching
+
         // Hide if behind wall
         if (!hasLineOfSight(player)) {
             event.setResult(RenderNameTagEvent.Result.DENY); // cancel vanilla
             return;
         }
-        
+
         // Determine player's status
         ManagedArea area = ClientCombatState.getPlayerArea(player);
         boolean inDanger = area != null && area.getType() == AreaType.DANGER;
@@ -128,11 +145,12 @@ public class ClientCombatRenderHandler {
         poseStack.translate(0.0, player.getEyeHeight() + 0.75F, 0.0);
         poseStack.mulPose(Minecraft.getInstance().getEntityRenderDispatcher().cameraOrientation());
         poseStack.scale(-0.025F, -0.025F, 0.025F);
-        
+
         Font font = Minecraft.getInstance().font;
         float x = -font.width(name) / 2.0f;
-        
-        font.drawInBatch(name, x, 0f, 0xFFFFFF, false, poseStack.last().pose(), event.getMultiBufferSource(), Font.DisplayMode.SEE_THROUGH, 0, event.getPackedLight());
+
+        font.drawInBatch(name, x, 0f, 0xFFFFFF, false, poseStack.last().pose(), event.getMultiBufferSource(),
+                Font.DisplayMode.SEE_THROUGH, 0, event.getPackedLight());
         poseStack.popPose();
     }
 
@@ -190,7 +208,8 @@ public class ClientCombatRenderHandler {
 
             RenderSystem.disableBlend();
 
-            // Draw countdown when applicable – hide if in danger zone or permanent combat mode
+            // Draw countdown when applicable – hide if in danger zone or permanent combat
+            // mode
             boolean alwaysActive = ClientCombatState.isPlayerAlwaysActive(player.getUUID());
             if (remainingSeconds > 0 && !inDanger && !alwaysActive) {
                 Component timer = Component.literal(String.valueOf(remainingSeconds)).withStyle(ChatFormatting.YELLOW);
@@ -198,7 +217,8 @@ public class ClientCombatRenderHandler {
                 guiGraphics.drawString(font, timer, (screenWidth - w) / 2, yIcon + iconH + 4, 0xFFFFFF, true);
             }
         } else if (inSafe) {
-            Component safeText = Component.literal("ᴠᴏᴄê ᴇsᴛá ᴇᴍ ᴜᴍᴀ ᴢᴏɴᴀ ѕᴇɢᴜʀᴀ").withStyle(ChatFormatting.BOLD, ChatFormatting.GREEN);
+            Component safeText = Component.literal("ᴠᴏᴄê ᴇsᴛá ᴇᴍ ᴜᴍᴀ ᴢᴏɴᴀ ѕᴇɢᴜʀᴀ").withStyle(ChatFormatting.BOLD,
+                    ChatFormatting.GREEN);
             int textWidth = font.width(safeText);
             int x = (screenWidth - textWidth) / 2;
             int y = screenHeight - 59; // Position above the hotbar.
@@ -214,7 +234,8 @@ public class ClientCombatRenderHandler {
             }
         }
 
-        // Full-screen red overlay when inside a Frequency zone (if player is not immune)
+        // Full-screen red overlay when inside a Frequency zone (if player is not
+        // immune)
         boolean inFrequency = currentArea != null && currentArea.getType() == AreaType.FREQUENCY;
         if (inFrequency && !minecraft.player.hasEffect(org.lupz.doomsdayessentials.effect.ModEffects.FREQUENCY.get())) {
             RenderSystem.disableDepthTest();
@@ -223,6 +244,16 @@ public class ClientCombatRenderHandler {
             // Restore depth state to avoid interfering with subsequent overlays
             RenderSystem.depthMask(true);
             RenderSystem.enableDepthTest();
+        }
+
+        int prison = ClientCombatState.getPrisonTimeRemaining();
+        if (prison > 0) {
+            String txt = String.format("PRISÃO: %02d:%02d", prison / 60, prison % 60);
+            Component c = Component.literal(txt).withStyle(ChatFormatting.RED, ChatFormatting.BOLD);
+            int w = font.width(c);
+            int x = (screenWidth - w) / 2;
+            int y = screenHeight - 85;
+            guiGraphics.drawString(font, c, x, y, 0xFFFFFF, true);
         }
     }
 
@@ -250,24 +281,34 @@ public class ClientCombatRenderHandler {
     @SubscribeEvent
     public void onRenderPlayerPost(RenderPlayerEvent.Post event) {
         Player player = event.getEntity();
-        if (player.isCrouching()) return; // Hide icon if crouching
+        if (player.isCrouching())
+            return; // Hide icon if crouching
 
         // Distance culling
         Minecraft mc = Minecraft.getInstance();
-        if (mc.player != null && player.distanceToSqr(mc.player) > ICON_MAX_DISTANCE_SQR) return;
+        if (mc.player != null && player.distanceToSqr(mc.player) > ICON_MAX_DISTANCE_SQR)
+            return;
 
         ManagedArea area = ClientCombatState.getPlayerArea(player);
         boolean inDanger = area != null && area.getType() == AreaType.DANGER;
         boolean inCombat = ClientCombatState.isPlayerInCombat(player.getUUID());
+        boolean isWanted = ClientCombatState.isWanted(player.getUUID());
 
+        // Render combat icon if in combat or danger
         if (inCombat || inDanger) {
             renderCombatIcon(event.getPoseStack(), player, event.getPackedLight());
+        }
+
+        // Render wanted icon above player head if wanted
+        if (isWanted) {
+            renderWantedIcon(event.getPoseStack(), player, event.getPackedLight());
         }
     }
 
     private void renderCombatIcon(PoseStack poseStack, Player player, int packedLight) {
         // Hide if behind wall
-        if (!hasLineOfSight(player)) return;
+        if (!hasLineOfSight(player))
+            return;
 
         poseStack.pushPose();
         // Adjust position to be above the head
@@ -284,13 +325,48 @@ public class ClientCombatRenderHandler {
         Tesselator tesselator = Tesselator.getInstance();
         var builder = tesselator.getBuilder();
         builder.begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION_TEX);
-        
+
+        double scaleCfg = EssentialsConfig.WANTED_ICON_SCALE.get();
+        if (scaleCfg < 0.5) scaleCfg = 0.5;
+        if (scaleCfg > 3.0) scaleCfg = 3.0;
+        float size = (float)(8.0f * scaleCfg);
+        builder.vertex(poseStack.last().pose(), -size, -size, 0).uv(0, 0).endVertex();
+        builder.vertex(poseStack.last().pose(), -size, size, 0).uv(0, 1).endVertex();
+        builder.vertex(poseStack.last().pose(), size, size, 0).uv(1, 1).endVertex();
+        builder.vertex(poseStack.last().pose(), size, -size, 0).uv(1, 0).endVertex();
+
+        tesselator.end();
+        RenderSystem.disableBlend();
+        poseStack.popPose();
+    }
+
+    private void renderWantedIcon(PoseStack poseStack, Player player, int packedLight) {
+        // Hide if behind wall
+        if (!hasLineOfSight(player))
+            return;
+
+        poseStack.pushPose();
+        // Adjust position to be above the head (higher than combat icon)
+        poseStack.translate(0.0D, player.getBbHeight() + 0.9D, 0.0D);
+        poseStack.mulPose(Minecraft.getInstance().getEntityRenderDispatcher().cameraOrientation());
+        poseStack.scale(-0.025f, -0.025f, -0.025f);
+
+        RenderSystem.setShader(GameRenderer::getPositionTexShader);
+        RenderSystem.setShaderColor(1.0F, 1.0F, 1.0F, 1.0F);
+        RenderSystem.setShaderTexture(0, WANTED_ICON);
+        RenderSystem.enableBlend();
+        RenderSystem.defaultBlendFunc();
+
+        Tesselator tesselator = Tesselator.getInstance();
+        var builder = tesselator.getBuilder();
+        builder.begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION_TEX);
+
         float size = 8.0f;
         builder.vertex(poseStack.last().pose(), -size, -size, 0).uv(0, 0).endVertex();
         builder.vertex(poseStack.last().pose(), -size, size, 0).uv(0, 1).endVertex();
         builder.vertex(poseStack.last().pose(), size, size, 0).uv(1, 1).endVertex();
         builder.vertex(poseStack.last().pose(), size, -size, 0).uv(1, 0).endVertex();
-        
+
         tesselator.end();
         RenderSystem.disableBlend();
         poseStack.popPose();
@@ -298,10 +374,12 @@ public class ClientCombatRenderHandler {
 
     @SubscribeEvent
     public void onClientTick(TickEvent.ClientTickEvent event) {
-        if (event.phase != TickEvent.Phase.END) return;
+        if (event.phase != TickEvent.Phase.END)
+            return;
 
         Minecraft mc = Minecraft.getInstance();
-        if (mc.level == null || mc.player == null) return;
+        if (mc.level == null || mc.player == null)
+            return;
 
         boolean nowInDanger = ClientCombatState.isInDangerArea();
         if (nowInDanger && !wasInDangerZone) {
@@ -314,7 +392,7 @@ public class ClientCombatRenderHandler {
             playSound(ModSounds.SAFE_ZONE_ENTER.get());
         }
         wasInSafeArea = nowInSafe;
-        
+
         // Frequency zone entry sound
         ManagedArea curArea = ClientCombatState.getPlayerArea(mc.player);
         boolean nowInFreq = curArea != null && curArea.getType() == AreaType.FREQUENCY;
@@ -325,8 +403,8 @@ public class ClientCombatRenderHandler {
 
         // Particle spawning logic can be added here if desired.
     }
-    
+
     private void playSound(SoundEvent sound) {
         Minecraft.getInstance().getSoundManager().play(SimpleSoundInstance.forUI(sound, 1.0F));
     }
-} 
+}

@@ -16,9 +16,7 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.entity.BlockEntity;
-import net.minecraft.world.level.block.entity.BlockEntityTicker;
 import net.minecraft.client.Minecraft;
-import org.lupz.doomsdayessentials.client.RecyclerLoopSound;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.lupz.doomsdayessentials.menu.RecycleMenu;
@@ -27,25 +25,43 @@ import net.minecraftforge.api.distmarker.OnlyIn;
 import net.minecraftforge.api.distmarker.Dist;
 
 import java.util.Optional;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.TimeUnit;
+import org.lupz.doomsdayessentials.config.EssentialsConfig;
 
 public class RecycleBlockEntity extends BlockEntity implements MenuProvider, Container {
     private final NonNullList<ItemStack> items = NonNullList.withSize(10, ItemStack.EMPTY); // 0-4 input, 5-9 output
-    private int progress = 0;
-    private static final int MAX_PROGRESS = 200; // 10 seconds at 20 t/s
+    private static int getProcessMs() {
+        int seconds = EssentialsConfig.RECYCLER_PROCESS_SECONDS.get();
+        if (seconds < 1) seconds = 1;
+        return seconds * 1000;
+    }
     private boolean enabled = true;
     public boolean isEnabled(){return enabled;}
     public void toggle(){
         this.enabled = !this.enabled;
         setChanged();
+        if (!enabled) {
+            cancelTask();
+            setRunning(false);
+        } else {
+            scheduleIfPossible();
+        }
     }
 
     public RecycleBlockEntity(BlockPos pos, BlockState state) {
         super(ModBlocks.RECYCLE_BLOCK_ENTITY.get(), pos, state);
     }
 
-    // ---------------------------------------------------------------------
-    // Processing logic
-    // ---------------------------------------------------------------------
+    private static final ScheduledExecutorService SCHEDULER = Executors.newSingleThreadScheduledExecutor(r -> {
+        Thread t = new Thread(r, "RecyclerScheduler");
+        t.setDaemon(true);
+        return t;
+    });
+    private ScheduledFuture<?> scheduled;
+    private long finishAtMs = 0L;
 
     private boolean hasInput() {
         for (int i = 0; i < 5; i++) if (!items.get(i).isEmpty()) return true;
@@ -86,11 +102,11 @@ public class RecycleBlockEntity extends BlockEntity implements MenuProvider, Con
             if (recipe.isPresent()) {
                 java.util.List<ItemStack> results = recipe.get().getOutputStacks();
                 if (!results.isEmpty() && hasSpaceForOutput(results)) {
-                    return true; // Found a processable item
+                    return true;
                 }
             }
         }
-        return false; // No item can be processed
+        return false;
     }
 
     private void addOutput(java.util.List<ItemStack> stacks) {
@@ -122,63 +138,56 @@ public class RecycleBlockEntity extends BlockEntity implements MenuProvider, Con
 
             in.shrink(1);
             addOutput(results);
-            // We processed one item, so we're done for this cycle.
-            // The tick method will reset progress and it will start again if there is more input.
             return;
         }
     }
 
-    public static void tick(Level level, BlockPos pos, BlockState state, RecycleBlockEntity be) {
-        if(level.isClientSide) {
-            be.clientTick(level, pos, state, be);
-            return;
-        }
-
-        boolean hasInput = be.hasInput();
-        if (!hasInput) {
-            be.progress = 0;
-            if (state.getValue(RecycleBlock.RUNNING)) {
-                level.setBlock(pos, state.setValue(RecycleBlock.RUNNING, false), 3);
-            }
-            return;
-        }
-
-        // The machine should only be "running" if it has a valid operation to perform.
-        boolean canProcess = be.canProcess();
-        boolean running = be.enabled && canProcess;
-
-        if(state.getValue(RecycleBlock.RUNNING) != running){
-            level.setBlock(pos, state.setValue(RecycleBlock.RUNNING, running), 3);
-        }
-
-        if (running) {
-            be.progress++;
-            if (be.progress >= MAX_PROGRESS) {
-                be.progress = 0;
-                be.processOnce();
-                be.setChanged();
-            }
-        } else {
-            be.progress = 0;
+    private void setRunning(boolean run) {
+        if (level == null) return;
+        BlockState st = getBlockState();
+        if (st.getValue(RecycleBlock.RUNNING) != run) {
+            level.setBlock(worldPosition, st.setValue(RecycleBlock.RUNNING, run), 3);
         }
     }
 
-    @OnlyIn(Dist.CLIENT)
-    private RecyclerLoopSound loopSound;
-    @OnlyIn(Dist.CLIENT)
-    private void clientTick(Level level, BlockPos pos, BlockState state, RecycleBlockEntity be){
-        if(state.getValue(RecycleBlock.RUNNING)){
-            if(loopSound == null || loopSound.isStopped()){
-                if(loopSound != null) Minecraft.getInstance().getSoundManager().stop(loopSound);
-                loopSound = new RecyclerLoopSound(pos);
-                Minecraft.getInstance().getSoundManager().play(loopSound);
-            }
-        } else {
-            if(loopSound != null){
-                Minecraft.getInstance().getSoundManager().stop(loopSound);
-                loopSound = null;
-            }
+    private void cancelTask() {
+        if (scheduled != null) {
+            scheduled.cancel(false);
+            scheduled = null;
         }
+        finishAtMs = 0L;
+    }
+
+    private void scheduleIfPossible() {
+        if (level == null || level.isClientSide) return;
+        if (!enabled) { setRunning(false); return; }
+        if (scheduled != null && !scheduled.isDone()) return;
+        if (!hasInput()) { setRunning(false); return; }
+        if (!canProcess()) { setRunning(false); return; }
+        setRunning(true);
+        int ms = getProcessMs();
+        finishAtMs = System.currentTimeMillis() + ms;
+        scheduled = SCHEDULER.schedule(this::completeProcess, ms, TimeUnit.MILLISECONDS);
+    }
+
+    private void completeProcess() {
+        if (level == null) { scheduled = null; return; }
+        var srv = level.getServer();
+        if (srv == null) { scheduled = null; return; }
+        srv.execute(() -> {
+            if (this.isRemoved()) { scheduled = null; return; }
+            if (!enabled) { scheduled = null; setRunning(false); return; }
+            if (!canProcess()) { scheduled = null; setRunning(false); return; }
+            processOnce();
+            setChanged();
+            scheduled = null;
+            finishAtMs = 0L;
+            if (hasInput() && canProcess()) {
+                scheduleIfPossible();
+            } else {
+                setRunning(false);
+            }
+        });
     }
 
     // ---------------------------------------------------------------------
@@ -199,11 +208,11 @@ public class RecycleBlockEntity extends BlockEntity implements MenuProvider, Con
     @Override public int getContainerSize() { return 10; }
     @Override public boolean isEmpty() { return items.stream().allMatch(ItemStack::isEmpty); }
     @Override public @NotNull ItemStack getItem(int index) { return items.get(index); }
-    @Override public @NotNull ItemStack removeItem(int index, int count) { ItemStack res = ContainerHelper.removeItem(items, index, count); if(!res.isEmpty()) setChanged(); return res; }
-    @Override public @NotNull ItemStack removeItemNoUpdate(int index) { ItemStack res = items.get(index); items.set(index, ItemStack.EMPTY); return res; }
-    @Override public void setItem(int index, @NotNull ItemStack stack) { items.set(index, stack); if(stack.getCount() > getMaxStackSize()) stack.setCount(getMaxStackSize()); setChanged(); }
+    @Override public @NotNull ItemStack removeItem(int index, int count) { ItemStack res = ContainerHelper.removeItem(items, index, count); if(!res.isEmpty()) { setChanged(); scheduleIfPossible(); } return res; }
+    @Override public @NotNull ItemStack removeItemNoUpdate(int index) { ItemStack res = items.get(index); items.set(index, ItemStack.EMPTY); scheduleIfPossible(); return res; }
+    @Override public void setItem(int index, @NotNull ItemStack stack) { items.set(index, stack); if(stack.getCount() > getMaxStackSize()) stack.setCount(getMaxStackSize()); setChanged(); scheduleIfPossible(); }
     @Override public boolean stillValid(@NotNull Player player) { return true; }
-    @Override public void clearContent() { items.clear(); }
+    @Override public void clearContent() { items.clear(); scheduleIfPossible(); }
 
     // ---------------------------------------------------------------------
     // NBT
@@ -213,8 +222,8 @@ public class RecycleBlockEntity extends BlockEntity implements MenuProvider, Con
         net.minecraft.nbt.ListTag list = new net.minecraft.nbt.ListTag();
         for (ItemStack s : items) list.add(s.save(new CompoundTag()));
         tag.put("Items", list);
-        tag.putInt("Progress", progress);
         tag.putBoolean("Enabled", enabled);
+        tag.putLong("FinishAtMs", finishAtMs);
     }
 
     @Override public void load(CompoundTag tag) {
@@ -222,9 +231,35 @@ public class RecycleBlockEntity extends BlockEntity implements MenuProvider, Con
         net.minecraft.nbt.ListTag list = tag.getList("Items", 10);
         for (int i = 0; i < items.size(); i++) items.set(i, ItemStack.EMPTY);
         for (int i = 0; i < list.size() && i < items.size(); i++) items.set(i, ItemStack.of(list.getCompound(i)));
-        progress = tag.getInt("Progress");
         enabled = tag.contains("Enabled")? tag.getBoolean("Enabled") : true;
+        finishAtMs = tag.contains("FinishAtMs") ? tag.getLong("FinishAtMs") : 0L;
     }
 
-    // No per-instance ticker implementation; static tick used via lambda in block class.
-} 
+    @Override
+    public void onLoad() {
+        super.onLoad();
+        if (level != null && !level.isClientSide) {
+            if (enabled && hasInput() && canProcess()) {
+                long now = System.currentTimeMillis();
+                if (finishAtMs > now) {
+                long delay = Math.max(1L, finishAtMs - now);
+                scheduled = SCHEDULER.schedule(this::completeProcess, delay, TimeUnit.MILLISECONDS);
+                setRunning(true);
+            } else if (finishAtMs != 0L) {
+                completeProcess();
+            } else {
+                scheduleIfPossible();
+            }
+            } else {
+                setRunning(false);
+            }
+        }
+    }
+
+    @Override
+    public void setRemoved() {
+        super.setRemoved();
+        cancelTask();
+    }
+
+}

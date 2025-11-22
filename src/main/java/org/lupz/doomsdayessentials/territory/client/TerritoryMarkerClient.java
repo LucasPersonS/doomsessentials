@@ -3,6 +3,7 @@ package org.lupz.doomsdayessentials.territory.client;
 import com.mojang.blaze3d.vertex.VertexConsumer;
 import com.mojang.blaze3d.vertex.PoseStack;
 import net.minecraft.client.Minecraft;
+import com.mojang.blaze3d.platform.NativeImage;
 import net.minecraft.client.renderer.RenderType;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.resources.ResourceLocation;
@@ -27,6 +28,7 @@ public class TerritoryMarkerClient {
     private static final ResourceLocation CLOSED_TEX  = ResourceLocation.fromNamespaceAndPath(EssentialsMod.MOD_ID, "textures/gui/closed_zone.png");
 
     private static final Map<String, Marker> MARKERS = new HashMap<>();
+    private static final java.util.concurrent.ConcurrentHashMap<ResourceLocation, int[]> DIM_CACHE = new java.util.concurrent.ConcurrentHashMap<>();
 
     public record Marker(double x, double y, double z, byte status) {}
 
@@ -72,8 +74,10 @@ public class TerritoryMarkerClient {
         RenderType rt = RenderType.entityCutoutNoCull(tex);
         VertexConsumer vc = buf.getBuffer(rt);
 
-        float halfWidth = 1f; // width: 1.0
-        float halfHeight = 0.5f; // height: 0.25 (for 4:1 aspect ratio)
+        int[] wh = getDims(tex);
+        float aspect = (wh[0] > 0) ? (float) wh[1] / (float) wh[0] : 1f;
+        float halfWidth = 0.5f; // total width ≈ 1 bloco
+        float halfHeight = halfWidth * aspect; // preserva proporção do PNG
         int light = 0x00F000F0; // full bright
         // Fix orientation: swap both U and V for each vertex
         vc.vertex(stack.last().pose(), -halfWidth, -halfHeight, 0)
@@ -108,4 +112,24 @@ public class TerritoryMarkerClient {
 
         // Removed floating text rendering to keep only PNG billboard
     }
-} 
+
+    private static int[] getDims(ResourceLocation tex) {
+        int[] cached = DIM_CACHE.get(tex);
+        if (cached != null) return cached;
+        int[] wh = new int[]{64,64};
+        try {
+            var rm = Minecraft.getInstance().getResourceManager();
+            var opt = rm.getResource(tex);
+            if (opt.isPresent()) {
+                try (var is = opt.get().open()) {
+                    NativeImage img = NativeImage.read(is);
+                    wh[0] = img.getWidth();
+                    wh[1] = img.getHeight();
+                    img.close();
+                }
+            }
+        } catch (Exception ignored) {}
+        DIM_CACHE.put(tex, wh);
+        return wh;
+    }
+}

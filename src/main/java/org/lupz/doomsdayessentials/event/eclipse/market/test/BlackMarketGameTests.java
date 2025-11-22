@@ -20,8 +20,8 @@ public class BlackMarketGameTests {
     @GameTest(template = "empty")
     public void bundleUnpacksIntoInventory(GameTestHelper helper){
         Player p = helper.makeMockPlayer();
-        var items = List.of(new ItemStackSpec(new ResourceLocation("minecraft", "carrot"), 2, null),
-                new ItemStackSpec(new ResourceLocation("minecraft", "bread"), 1, null));
+        var items = List.of(new ItemStackSpec(ResourceLocation.fromNamespaceAndPath("minecraft", "carrot"), 2, null),
+                new ItemStackSpec(ResourceLocation.fromNamespaceAndPath("minecraft", "bread"), 1, null));
         ItemStack bundle = BlackMarketBundleItem.createBundle("test_bundle", items);
         p.setItemInHand(InteractionHand.MAIN_HAND, bundle.copy());
         bundle.getItem().use(helper.getLevel(), p, InteractionHand.MAIN_HAND);

@@ -15,7 +15,6 @@ public class EventCommand {
 
     @SubscribeEvent
     public static void onRegisterCommands(RegisterCommandsEvent e) {
-        register(e.getDispatcher());
     }
 
     public static void register(CommandDispatcher<CommandSourceStack> dispatcher) {

@@ -26,6 +26,9 @@ public class ChatEvents {
             if (org.lupz.doomsdayessentials.professions.bounty.BountyConversationManager.isInConversation(sender)) {
                 return; // do not cancel; BountyConversationManager will cancel and handle
             }
+            if (org.lupz.doomsdayessentials.guild.ResourceWithdrawConversationManager.isInConversation(sender)) {
+                return; // conversation manager handles cancellation
+            }
         } catch (Throwable ignored) {}
 
         event.setCanceled(true);

@@ -16,7 +16,7 @@ public final class NightMarketMenus {
 
     public static final RegistryObject<MenuType<NightMarketMenu>> NIGHT_MARKET_MENU = MENUS.register(
             "night_market",
-            () -> IForgeMenuType.create((windowId, inv, data) -> new NightMarketMenu(windowId, inv)));
+            () -> IForgeMenuType.create((windowId, inv, data) -> new NightMarketMenu(windowId, inv, data)));
 
     public static void register(IEventBus bus){ MENUS.register(bus); }
 

@@ -198,6 +198,8 @@
   "ui.professions.title": "Profissões",
   "ui.professions.abandon.name": "Abandonar Profissão",
   "ui.professions.abandon.lore": "Abandone sua profissão clicando aqui.",
+  "hud.doomsdayessentials.zone_close_minutes": "Essa zona fechará em: %s minutos",
+  "hud.doomsdayessentials.zone_closed": "Zona fechada",
   "profession.limit_reached": "O limite de %s foi atingido. Não é possível se tornar um agora.",
   "profession.already_in": "Você já é um %s.",
   "profession.become.generic": "Você se tornou um %s.",

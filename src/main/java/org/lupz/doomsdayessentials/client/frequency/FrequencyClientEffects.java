@@ -26,17 +26,8 @@ public final class FrequencyClientEffects {
         SYMBOLS_LOADED = true;
         try {
             ResourceManager rm = mc.getResourceManager();
-            // list all PNGs under textures/misc for our namespace
-            Map<ResourceLocation, net.minecraft.server.packs.resources.Resource> found = rm.listResources("textures/misc", rl -> rl.getNamespace().equals(EssentialsMod.MOD_ID) && rl.getPath().endsWith(".png"));
-            Set<String> excludeNames = Set.of(
-                    "area_contested", "area_dominating", "area_dominated",
-                    "frequencia_overlay"
-            );
+            Map<ResourceLocation, net.minecraft.server.packs.resources.Resource> found = rm.listResources("textures/frequencia", rl -> rl.getNamespace().equals(EssentialsMod.MOD_ID) && rl.getPath().endsWith(".png"));
             for (ResourceLocation rl : found.keySet()) {
-                String path = rl.getPath(); // e.g., textures/misc/xyz.png
-                String base = path.substring(path.lastIndexOf('/') + 1).toLowerCase(Locale.ROOT); // xyz.png
-                String name = base.endsWith(".png") ? base.substring(0, base.length() - 4) : base;
-                if (excludeNames.contains(name)) continue;
                 SYMBOLS.add(rl);
             }
         } catch (Exception ignored) {}

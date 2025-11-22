@@ -111,9 +111,14 @@ public final class KofhEventManager {
                 }
             }
         }
-        // Clear marker
         if (currentArea != null && server != null) {
-            sendMarkerToAll(server, (byte)0);
+            AreaManager am = AreaManager.get();
+            am.deleteArea(currentArea.getName());
+            ManagedArea safeArea = new ManagedArea(currentArea.getName(), org.lupz.doomsdayessentials.combat.AreaType.SAFE,
+                    currentArea.getDimension(), currentArea.getPos1(), currentArea.getPos2());
+            am.addArea(safeArea);
+            if (winner != null) org.lupz.doomsdayessentials.territory.ResourceGeneratorManager.get().claimArea(currentArea.getName(), winner);
+            sendMarkerToAll(server, (byte)3);
         }
 
         currentArea = null;
