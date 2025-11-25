@@ -205,12 +205,14 @@ public final class OrganizacaoMenuCommand {
             // Info by tag
             .then(Commands.literal("info")
                 .then(Commands.argument("tag", com.mojang.brigadier.arguments.StringArgumentType.word())
+                    .suggests(org.lupz.doomsdayessentials.guild.command.OrganizacaoMenuCommand::suggestGuildTags)
                     .executes(ctx -> infoByTag(
                         ctx.getSource(),
                         com.mojang.brigadier.arguments.StringArgumentType.getString(ctx, "tag")
                     ))
                 )
             )
+            .then(Commands.literal("comandos").executes(ctx -> showOrgHelp(ctx.getSource())))
             // Admin: toggle guild storage debug logging
             .then(Commands.literal("debugstorage")
                 .requires(src -> src.hasPermission(3))
@@ -400,7 +402,10 @@ public final class OrganizacaoMenuCommand {
                 int leaders = (int) g.getMembers().stream().filter(m -> m.getRank() == org.lupz.doomsdayessentials.guild.GuildMember.Rank.LEADER).count();
                 int officers = (int) g.getMembers().stream().filter(m -> m.getRank() == org.lupz.doomsdayessentials.guild.GuildMember.Rank.OFFICER).count();
                 int members = (int) g.getMembers().stream().filter(m -> m.getRank() == org.lupz.doomsdayessentials.guild.GuildMember.Rank.MEMBER).count();
-                lines.add("§6" + g.getName() + " §7[" + g.getTag() + "] §fL:" + leaders + " O:" + officers + " M:" + members + " §eAllies:" + g.getAllies().size());
+                int total = g.getMembers().size();
+                String line = "§6" + g.getName() + " §7[" + g.getTag() + "] §7| §f👥 " + total
+                    + " §7(§6♛ " + leaders + " §b⚔ " + officers + " §f• " + members + ") §7| §eAlianças: " + g.getAllies().size();
+                lines.add(line);
             }
             if (lines.isEmpty()) { source.sendFailure(net.minecraft.network.chat.Component.literal("§eNenhuma organização encontrada.")); return 0; }
             for (String s : lines) source.sendSuccess(() -> net.minecraft.network.chat.Component.literal(s), false);
@@ -417,18 +422,65 @@ public final class OrganizacaoMenuCommand {
             if (found == null) { source.sendFailure(net.minecraft.network.chat.Component.literal("§cOrganização não encontrada com a tag " + tag)); return 0; }
             final String fName = found.getName();
             final String fTag = found.getTag();
-            source.sendSuccess(() -> net.minecraft.network.chat.Component.literal("§6" + fName + " §7[" + fTag + "]"), false);
+            int leaders = (int) found.getMembers().stream().filter(m -> m.getRank() == org.lupz.doomsdayessentials.guild.GuildMember.Rank.LEADER).count();
+            int officers = (int) found.getMembers().stream().filter(m -> m.getRank() == org.lupz.doomsdayessentials.guild.GuildMember.Rank.OFFICER).count();
+            int members = (int) found.getMembers().stream().filter(m -> m.getRank() == org.lupz.doomsdayessentials.guild.GuildMember.Rank.MEMBER).count();
+            int total = found.getMembers().size();
+            int online = 0;
             for (org.lupz.doomsdayessentials.guild.GuildMember m : found.getMembers()) {
-                String name = java.util.Optional.ofNullable(level.getServer().getPlayerList().getPlayer(m.getPlayerUUID())).map(p -> p.getName().getString()).orElse(m.getPlayerUUID().toString());
-                source.sendSuccess(() -> net.minecraft.network.chat.Component.literal("§f- " + name + " §7(" + m.getRank().name() + ")"), false);
+                if (level.getServer().getPlayerList().getPlayer(m.getPlayerUUID()) != null) online++;
+            }
+            int offline = total - online;
+            String header = "§6" + fName + " §7[" + fTag + "] §7| §f👥 " + total
+                + " §7(§6♛ " + leaders + " §b⚔ " + officers + " §f• " + members + ") §7| §aOnline: " + online + " §7/ §cOffline: " + offline;
+            source.sendSuccess(() -> net.minecraft.network.chat.Component.literal(header), false);
+            for (org.lupz.doomsdayessentials.guild.GuildMember m : found.getMembers()) {
+                net.minecraft.server.level.ServerPlayer sp = level.getServer().getPlayerList().getPlayer(m.getPlayerUUID());
+                String color = sp != null ? "§a" : "§c";
+                String name = sp != null ? sp.getName().getString() : m.getPlayerUUID().toString();
+                String icon = m.getRank() == org.lupz.doomsdayessentials.guild.GuildMember.Rank.LEADER ? "♛"
+                             : m.getRank() == org.lupz.doomsdayessentials.guild.GuildMember.Rank.OFFICER ? "⚔" : "•";
+                String line = color + icon + " " + name + " §7(" + m.getRank().name() + ")";
+                source.sendSuccess(() -> net.minecraft.network.chat.Component.literal(line), false);
             }
             if (!found.getAllies().isEmpty()) {
                 final String allies = String.join(", ", found.getAllies());
-                source.sendSuccess(() -> net.minecraft.network.chat.Component.literal("§eAlianças: " + allies), false);
+                source.sendSuccess(() -> net.minecraft.network.chat.Component.literal("§eAlianças: §6" + allies), false);
             }
             return 1;
         } catch (Exception e) { return 0; }
     }
-}
 
+    private static java.util.concurrent.CompletableFuture<com.mojang.brigadier.suggestion.Suggestions> suggestGuildTags(com.mojang.brigadier.context.CommandContext<CommandSourceStack> ctx, com.mojang.brigadier.suggestion.SuggestionsBuilder builder) {
+        net.minecraft.server.level.ServerLevel level = ctx.getSource().getLevel();
+        org.lupz.doomsdayessentials.guild.GuildsManager gm = org.lupz.doomsdayessentials.guild.GuildsManager.get(level);
+        java.util.List<String> tags = new java.util.ArrayList<>();
+        for (org.lupz.doomsdayessentials.guild.Guild g : gm.getAllGuilds()) {
+            String t = g.getTag();
+            if (t != null && !t.isEmpty() && !tags.contains(t)) tags.add(t);
+        }
+        return net.minecraft.commands.SharedSuggestionProvider.suggest(tags, builder);
+    }
+
+    private static int showOrgHelp(CommandSourceStack source) {
+        try {
+            java.util.List<String> lines = new java.util.ArrayList<>();
+            lines.add("§6Comandos da Organização");
+            lines.add("§e/organizacao menu §7– abre o menu principal");
+            lines.add("§e/organizacao criar §b<nome> <tag> §7– cria uma organização");
+            lines.add("§e/organizacao deletar §7– apaga sua organização (requer líder)");
+            lines.add("§e/organizacao upgrade §7– abre upgrades");
+            lines.add("§e/organizacao correio §7– abre correio");
+            lines.add("§e/organizacao sacar §b<item_id> <qtd> §7– saca itens do cofre");
+            lines.add("§e/organizacao sacarrecursos §b<item_id> <qtd> §7– saca do banco de recursos");
+            lines.add("§e/organizacao alianca §b<nome> §7– convida aliança");
+            lines.add("§e/organizacao aceitar §b<nome> §7– aceita aliança");
+            lines.add("§e/organizacao quebraralianca §b<nome> §7– encerra aliança");
+            lines.add("§e/organizacao grupos §7– lista organizações e composição");
+            lines.add("§e/organizacao info §b<tag> §7– mostra detalhes por tag");
+            for (String s : lines) source.sendSuccess(() -> net.minecraft.network.chat.Component.literal(s), false);
+            return 1;
+        } catch (Exception e) { return 0; }
+    }
+}
 

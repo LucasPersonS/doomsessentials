@@ -1,0 +1,72 @@
+{
+  "pools": [
+    {
+      "rolls": { "min": 2, "max": 4 },
+      "entries": [
+        {
+          "type": "minecraft:item",
+          "name": "tacz:ammo",
+          "weight": 90,
+          "functions": [
+            { "function": "minecraft:set_nbt", "tag": "{AmmoId:\"tacz:9mm\"}" },
+            { "function": "minecraft:set_count", "count": { "min": 8, "max": 16 } }
+          ]
+        },
+        {
+          "type": "minecraft:item",
+          "name": "tacz:ammo",
+          "weight": 45,
+          "functions": [
+            { "function": "minecraft:set_nbt", "tag": "{AmmoId:\"tacz:12g\"}" },
+            { "function": "minecraft:set_count", "count": { "min": 8, "max": 16 } }
+          ]
+        },
+        {
+          "type": "minecraft:item",
+          "name": "tacz:ammo",
+          "weight": 90,
+          "functions": [
+            { "function": "minecraft:set_nbt", "tag": "{AmmoId:\"ea:223remington\"}" },
+            { "function": "minecraft:set_count", "count": { "min": 8, "max": 16 } }
+          ]
+        },
+        {
+          "type": "minecraft:item",
+          "name": "tacz:ammo",
+          "weight": 90,
+          "functions": [
+            { "function": "minecraft:set_nbt", "tag": "{AmmoId:\"tacz:762x39\"}" },
+            { "function": "minecraft:set_count", "count": { "min": 8, "max": 16 } }
+          ]
+        },
+        {
+          "type": "minecraft:item",
+          "name": "tacz:ammo",
+          "weight": 7,
+          "functions": [
+            { "function": "minecraft:set_nbt", "tag": "{AmmoId:\"tacz:338\"}" },
+            { "function": "minecraft:set_count", "count": { "min": 6, "max": 12 } }
+          ]
+        },
+        {
+          "type": "minecraft:item",
+          "name": "tacz:ammo",
+          "weight": 7,
+          "functions": [
+            { "function": "minecraft:set_nbt", "tag": "{AmmoId:\"ea:300winmag\"}" },
+            { "function": "minecraft:set_count", "count": { "min": 6, "max": 12 } }
+          ]
+        },
+        {
+          "type": "minecraft:item",
+          "name": "tacz:ammo",
+          "weight": 3,
+          "functions": [
+            { "function": "minecraft:set_nbt", "tag": "{AmmoId:\"tacz:50bmg\"}" },
+            { "function": "minecraft:set_count", "count": { "min": 4, "max": 8 } }
+          ]
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,20 @@
+{
+  "pools": [
+    {
+      "rolls": { "min": 2, "max": 4 },
+      "entries": [
+        { "type": "minecraft:item", "name": "apocalypsenow:canned_beetroot", "weight": 90 },
+        { "type": "minecraft:item", "name": "apocalypsenow:canned_beans", "weight": 90 },
+        { "type": "minecraft:item", "name": "apocalypsenow:canned_tomatos", "weight": 90 },
+        { "type": "minecraft:item", "name": "apocalypsenow:canned_corn", "weight": 90 },
+        { "type": "minecraft:item", "name": "apocalypsenow:canned_food", "weight": 90 },
+        { "type": "minecraft:item", "name": "apocalypsenow:canned_carrot", "weight": 90 },
+        { "type": "minecraft:item", "name": "apocalypsenow:dogs_food", "weight": 45 },
+
+        { "type": "minecraft:item", "name": "survival_instinct:blue_soda", "weight": 90 },
+        { "type": "minecraft:item", "name": "survival_instinct:red_soda", "weight": 90 },
+        { "type": "minecraft:item", "name": "survival_instinct:cheese_chips", "weight": 90 }
+      ]
+    }
+  ]
+}

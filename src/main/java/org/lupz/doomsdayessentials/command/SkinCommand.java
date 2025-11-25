@@ -18,6 +18,8 @@ import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.registries.ForgeRegistries;
 import org.lupz.doomsdayessentials.EssentialsMod;
+import org.lupz.doomsdayessentials.config.EssentialsConfig;
+import org.lupz.doomsdayessentials.command.VipCommand;
 
 import java.util.*;
 
@@ -32,6 +34,7 @@ public class SkinCommand {
 	private static final Map<String, List<String>> SKIN_BASE_TO_VARIANTS = new HashMap<>();
 	// Namespace per skin base (to build full RL)
 	private static final Map<String, String> SKIN_BASE_TO_NAMESPACE = new HashMap<>();
+	private static final java.util.Set<String> DISSOLUTO_ONLY_SKIN_BASES = new java.util.HashSet<>();
 
 	static {
 		// ak47 supports skin base "kuronami" with variants
@@ -50,6 +53,8 @@ public class SkinCommand {
 		PREFIX_TO_BASE_WEAPON.put("deagle_prometheus", "deagle");
 		// Alias: some items may carry GunId path 'cfdz' for this deagle skin series
 		PREFIX_TO_BASE_WEAPON.put("cfdz", "deagle");
+
+		DISSOLUTO_ONLY_SKIN_BASES.add("kuronami");
 	}
 
 	@SubscribeEvent
@@ -151,16 +156,23 @@ public class SkinCommand {
 		return setSkinInternal(ctx, skinBase, variant);
 	}
 
-	private static int setSkinInternal(CommandContext<CommandSourceStack> ctx, String skinBase, String variant) {
-		if (!(ctx.getSource().getEntity() instanceof ServerPlayer player)) {
-			ctx.getSource().sendFailure(Component.literal("Somente jogadores podem usar este comando."));
-			return 0;
-		}
-		ItemStack held = player.getMainHandItem();
-		if (held.isEmpty()) {
-			ctx.getSource().sendFailure(Component.literal("Você não está segurando nenhuma arma."));
-			return 0;
-		}
+    private static int setSkinInternal(CommandContext<CommandSourceStack> ctx, String skinBase, String variant) {
+        if (!(ctx.getSource().getEntity() instanceof ServerPlayer player)) {
+            ctx.getSource().sendFailure(Component.literal("Somente jogadores podem usar este comando."));
+            return 0;
+        }
+        java.util.List<? extends String> vips = EssentialsConfig.VIP_PLAYERS.get();
+        String vipTier = VipCommand.getTier(player);
+        boolean isVip = player.hasPermissions(2) || vipTier != null || vips.contains(player.getUUID().toString());
+        if (!isVip) {
+            ctx.getSource().sendFailure(Component.literal("Apenas VIP pode usar /skin set."));
+            return 0;
+        }
+        ItemStack held = player.getMainHandItem();
+        if (held.isEmpty()) {
+            ctx.getSource().sendFailure(Component.literal("Você não está segurando nenhuma arma."));
+            return 0;
+        }
 
 		String baseWeapon = resolveBaseWeaponFromHeld(player);
 		if (baseWeapon == null) {
@@ -175,6 +187,14 @@ public class SkinCommand {
 			return 0;
 		}
 		String matchedBase = matchedBaseOpt.get();
+
+		if (DISSOLUTO_ONLY_SKIN_BASES.contains(matchedBase)) {
+			String tier = vipTier;
+			if (tier == null || !"dissoluto".equals(tier)) {
+				ctx.getSource().sendFailure(Component.literal("A skin " + matchedBase + " é exclusiva para VIP Dissoluto."));
+				return 0;
+			}
+		}
 		// Validate variant
 		List<String> allowedVariants = SKIN_BASE_TO_VARIANTS.getOrDefault(matchedBase, List.of());
 		Optional<String> matchedVariantOpt = allowedVariants.stream().filter(v -> v.equalsIgnoreCase(variant)).findFirst();

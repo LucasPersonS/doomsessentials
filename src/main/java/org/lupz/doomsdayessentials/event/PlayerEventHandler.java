@@ -3,6 +3,7 @@ package org.lupz.doomsdayessentials.event;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraftforge.event.CommandEvent;
+import net.minecraft.world.item.ItemStack;
 import net.minecraftforge.event.entity.player.PlayerEvent;
 import net.minecraftforge.event.TickEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
@@ -105,6 +106,23 @@ public class PlayerEventHandler {
             // Tick sliding
             if (event.player instanceof net.minecraft.server.level.ServerPlayer sp) {
                 org.lupz.doomsdayessentials.movement.SlideHandler.tick(sp);
+                ItemStack mh = sp.getMainHandItem();
+                if (!mh.isEmpty()) {
+                    String tier = org.lupz.doomsdayessentials.command.VipCommand.getTier(sp);
+                    if (tier == null || !"dissoluto".equals(tier)) {
+                        var key = net.minecraftforge.registries.ForgeRegistries.ITEMS.getKey(mh.getItem());
+                        if (key != null && "tacz".equals(key.getNamespace())) {
+                            var tag = mh.getTag();
+                            if (tag != null && tag.contains("GunId", net.minecraft.nbt.Tag.TAG_STRING)) {
+                                String gid = tag.getString("GunId");
+                                if (gid != null && gid.toLowerCase(java.util.Locale.ROOT).startsWith("doomsday:kuronami")) {
+                                    tag.putString("GunId", "tacz:ak47");
+                                    mh.setTag(tag);
+                                }
+                            }
+                        }
+                    }
+                }
             }
         }
     }

@@ -27,7 +27,7 @@ public abstract class PlayerRendererMixin extends LivingEntityRenderer<AbstractC
 		PlayerModelRotator rotator = new PlayerModelRotator(stack, player, Minecraft.getInstance().getFrameTime());
 		boolean cancel = animator.rotatePre(player, rotator);
 		if (cancel) {
-			EssentialsMod.LOGGER.debug("[Mixin] Canceling vanilla rotations for {}", player.getGameProfile().getName());
+            org.lupz.doomsdayessentials.util.ModLog.debug("[Mixin] Canceling vanilla rotations for {}", player.getGameProfile().getName());
 			ci.cancel();
 		}
 	}

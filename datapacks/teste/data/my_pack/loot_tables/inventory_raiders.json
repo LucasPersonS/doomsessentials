@@ -1,0 +1,38 @@
+{
+  "type": "minecraft:empty",
+  "pools": [
+    {
+      "rolls": 1,
+      "entries": [
+        { "type": "item", "name": "tacz:modern_kinetic_gun", "functions": [ { "function": "minecraft:set_nbt", "tag": "{GunId:\"tacz:glock_17\"}" } ], "weight": 6 },
+        { "type": "item", "name": "tacz:modern_kinetic_gun", "functions": [ { "function": "minecraft:set_nbt", "tag": "{GunId:\"tacz:m1911\"}" } ], "weight": 5 },
+        { "type": "item", "name": "tacz:modern_kinetic_gun", "functions": [ { "function": "minecraft:set_nbt", "tag": "{GunId:\"tacz:cz75\"}" } ], "weight": 5 },
+        { "type": "item", "name": "tacz:modern_kinetic_gun", "functions": [ { "function": "minecraft:set_nbt", "tag": "{GunId:\"tacz:b93r\"}" } ], "weight": 4 },
+        { "type": "item", "name": "tacz:modern_kinetic_gun", "functions": [ { "function": "minecraft:set_nbt", "tag": "{GunId:\"tacz:deagle\"}" } ], "weight": 2 },
+
+        { "type": "item", "name": "tacz:modern_kinetic_gun", "functions": [ { "function": "minecraft:set_nbt", "tag": "{GunId:\"tacz:hk_mp5a5\"}" } ], "weight": 5 },
+        { "type": "item", "name": "tacz:modern_kinetic_gun", "functions": [ { "function": "minecraft:set_nbt", "tag": "{GunId:\"tacz:uzi\"}" } ], "weight": 4 },
+        { "type": "item", "name": "tacz:modern_kinetic_gun", "functions": [ { "function": "minecraft:set_nbt", "tag": "{GunId:\"tacz:vector45\"}" } ], "weight": 3 },
+        { "type": "item", "name": "tacz:modern_kinetic_gun", "functions": [ { "function": "minecraft:set_nbt", "tag": "{GunId:\"tacz:ump45\"}" } ], "weight": 3 },
+        { "type": "item", "name": "tacz:modern_kinetic_gun", "functions": [ { "function": "minecraft:set_nbt", "tag": "{GunId:\"tacz:p90\"}" } ], "weight": 2 },
+
+        { "type": "item", "name": "tacz:modern_kinetic_gun", "functions": [ { "function": "minecraft:set_nbt", "tag": "{GunId:\"tacz:m870\"}" } ], "weight": 2 },
+        { "type": "item", "name": "tacz:modern_kinetic_gun", "functions": [ { "function": "minecraft:set_nbt", "tag": "{GunId:\"tacz:db_short\"}" } ], "weight": 1 },
+        { "type": "item", "name": "tacz:modern_kinetic_gun", "functions": [ { "function": "minecraft:set_nbt", "tag": "{GunId:\"tacz:db_long\"}" } ], "weight": 1 },
+        { "type": "item", "name": "tacz:modern_kinetic_gun", "functions": [ { "function": "minecraft:set_nbt", "tag": "{GunId:\"tacz:aa12\"}" } ], "weight": 1 },
+
+        { "type": "item", "name": "tacz:modern_kinetic_gun", "functions": [ { "function": "minecraft:set_nbt", "tag": "{GunId:\"tacz:scar_h\"}" } ], "weight": 1 },
+        { "type": "item", "name": "tacz:modern_kinetic_gun", "functions": [ { "function": "minecraft:set_nbt", "tag": "{GunId:\"tacz:m16a1\"}" } ], "weight": 1 },
+        { "type": "item", "name": "tacz:modern_kinetic_gun", "functions": [ { "function": "minecraft:set_nbt", "tag": "{GunId:\"tacz:m16a4\"}" } ], "weight": 1 },
+        { "type": "item", "name": "tacz:modern_kinetic_gun", "functions": [ { "function": "minecraft:set_nbt", "tag": "{GunId:\"tacz:sks_tactical\"}" } ], "weight": 1 },
+        { "type": "item", "name": "tacz:modern_kinetic_gun", "functions": [ { "function": "minecraft:set_nbt", "tag": "{GunId:\"tacz:aug\"}" } ], "weight": 1 },
+
+        { "type": "item", "name": "tacz:modern_kinetic_gun", "functions": [ { "function": "minecraft:set_nbt", "tag": "{GunId:\"tacz:m1707\"}" } ], "weight": 1 },
+        { "type": "item", "name": "tacz:modern_kinetic_gun", "functions": [ { "function": "minecraft:set_nbt", "tag": "{GunId:\"tacz:m700\"}" } ], "weight": 1 },
+        { "type": "item", "name": "tacz:modern_kinetic_gun", "functions": [ { "function": "minecraft:set_nbt", "tag": "{GunId:\"tacz:ai_awp\"}" } ], "weight": 1 },
+        { "type": "item", "name": "tacz:modern_kinetic_gun", "functions": [ { "function": "minecraft:set_nbt", "tag": "{GunId:\"tacz:m95\"}" } ], "weight": 1 },
+        { "type": "item", "name": "tacz:modern_kinetic_gun", "functions": [ { "function": "minecraft:set_nbt", "tag": "{GunId:\"tacz:m107\"}" } ], "weight": 1 }
+      ]
+    }
+  ]
+}

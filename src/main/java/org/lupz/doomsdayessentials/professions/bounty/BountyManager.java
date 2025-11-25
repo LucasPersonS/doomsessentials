@@ -28,10 +28,10 @@ public final class BountyManager {
 
 	private record AcceptedHunt(UUID hunter, UUID target, long acceptedAtMs, long expiresAtMs) {}
 
-	private static long nowMs() {
-		// Real-world wall clock
-		return java.time.Instant.now().toEpochMilli();
-	}
+    private static long nowMs() {
+        // Real-world wall clock
+        return java.time.Instant.now().toEpochMilli();
+    }
 
 	private static boolean isBountyExpired(Bounty b) {
 		long ageMs = nowMs() - b.createdAtMs;
@@ -112,8 +112,14 @@ public final class BountyManager {
 		// Remove any other hunters' acceptance for this target as the bounty is fulfilled
 		acceptedByHunter.entrySet().removeIf(en -> en.getValue().target().equals(victim.getUUID()));
 		// Notify victim client to clear hunted HUD (optional; client also auto-expires)
-		notifyTargetCleared(victim.getUUID());
-	}
+        notifyTargetCleared(victim.getUUID());
+    }
+
+    public static synchronized boolean isAcceptedHunt(java.util.UUID hunter, java.util.UUID target) {
+        var acceptance = acceptedByHunter.get(hunter);
+        long now = nowMs();
+        return acceptance != null && acceptance.target.equals(target) && now <= acceptance.expiresAtMs;
+    }
 
 	public static List<Bounty> listAll() {
 		List<Bounty> out = new ArrayList<>();

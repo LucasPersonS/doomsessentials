@@ -1,0 +1,130 @@
+{
+  "pools": [
+    {
+      "rolls": { "min": 2, "max": 4 },
+      "entries": [
+        { "type": "minecraft:item", "name": "tacz:ammo_mod_i", "weight": 45 },
+        { "type": "minecraft:item", "name": "tacz:ammo_mod_fmj", "weight": 45 },
+        { "type": "minecraft:item", "name": "tacz:light_extended_mag_3", "weight": 18 },
+        { "type": "minecraft:item", "name": "tacz:extended_mag_3", "weight": 18 },
+        { "type": "minecraft:item", "name": "tacz:bayonet_6h3", "weight": 18 },
+        { "type": "minecraft:item", "name": "tacz:ammo_mod_hp", "weight": 45 },
+        { "type": "minecraft:item", "name": "tacz:bayonet_m9", "weight": 18 },
+        { "type": "minecraft:item", "name": "tacz:ammo_mod_he", "weight": 7 },
+        { "type": "minecraft:item", "name": "tacz:sniper_extended_mag_3", "weight": 7 }
+      ]
+    },
+    {
+      "rolls": { "min": 0, "max": 1 },
+      "entries": [
+        { "type": "minecraft:item", "name": "lradd:m202", "weight": 3 },
+        { "type": "minecraft:item", "name": "tacz:spr15hb", "weight": 7 },
+        { "type": "minecraft:item", "name": "tacz:ai_awp", "weight": 7 },
+        { "type": "minecraft:item", "name": "maxstuff:gm6_lynx", "weight": 3 },
+        { "type": "minecraft:item", "name": "lradd:qbz191_em", "weight": 7 },
+        { "type": "minecraft:item", "name": "tacz:m1707", "weight": 3 },
+        { "type": "minecraft:item", "name": "lradd:bam4", "weight": 7 },
+        { "type": "minecraft:item", "name": "tacz:m95", "weight": 3 },
+        { "type": "minecraft:item", "name": "lradd:gauss_rifle", "weight": 3 },
+        { "type": "minecraft:item", "name": "lradd:txc", "weight": 3 },
+        { "type": "minecraft:item", "name": "lradd:ultimax100", "weight": 7 },
+        { "type": "minecraft:item", "name": "maxstuff:dp28", "weight": 7 },
+        { "type": "minecraft:item", "name": "maxstuff:mk18_burst", "weight": 7 },
+        { "type": "minecraft:item", "name": "tacz:m870", "weight": 7 },
+        { "type": "minecraft:item", "name": "maxstuff:m870t", "weight": 7 },
+        { "type": "minecraft:item", "name": "maxstuff:genesis12", "weight": 7 },
+        { "type": "minecraft:item", "name": "maxstuff:saiga12", "weight": 7 },
+        { "type": "minecraft:item", "name": "tacz:db_short", "weight": 3 },
+        { "type": "minecraft:item", "name": "tacz:db_long", "weight": 3 },
+        { "type": "minecraft:item", "name": "tacz:aa12", "weight": 3 },
+        { "type": "minecraft:item", "name": "maxstuff:db_short_d", "weight": 3 },
+        { "type": "minecraft:item", "name": "maxstuff:db_long_d", "weight": 3 },
+        { "type": "minecraft:item", "name": "maxstuff:db_short_tactical", "weight": 3 },
+        { "type": "minecraft:item", "name": "maxstuff:genesis12_fl", "weight": 3 },
+        { "type": "minecraft:item", "name": "maxstuff:db_50", "weight": 3 },
+        { "type": "minecraft:item", "name": "tacz:springfield1873", "weight": 7 },
+        { "type": "minecraft:item", "name": "tacz:m700", "weight": 7 },
+        { "type": "minecraft:item", "name": "maxstuff:ai_aws", "weight": 7 },
+        { "type": "minecraft:item", "name": "tacz:m107", "weight": 3 },
+        { "type": "minecraft:item", "name": "maxstuff:m82a2", "weight": 3 },
+        { "type": "minecraft:item", "name": "maxstuff:mrad", "weight": 3 },
+        { "type": "minecraft:item", "name": "tacz:m95", "weight": 3 },
+        { "type": "minecraft:item", "name": "lradd:famas", "weight": 7 },
+        { "type": "minecraft:item", "name": "lradd:mk47", "weight": 7 },
+        { "type": "minecraft:item", "name": "tacz:scar_h", "weight": 7 },
+        { "type": "minecraft:item", "name": "tacz:m16a1", "weight": 7 },
+        { "type": "minecraft:item", "name": "tacz:m16a4", "weight": 7 },
+        { "type": "minecraft:item", "name": "maxstuff:sr15", "weight": 7 },
+        { "type": "minecraft:item", "name": "maxstuff:mk47", "weight": 7 },
+        { "type": "minecraft:item", "name": "maxstuff:qbz_97", "weight": 7 },
+        { "type": "minecraft:item", "name": "maxstuff:adar2", "weight": 7 },
+        { "type": "minecraft:item", "name": "tacz:qbz_95", "weight": 7 },
+        { "type": "minecraft:item", "name": "maxstuff:aug_a2", "weight": 7 },
+        { "type": "minecraft:item", "name": "maxstuff:ak74", "weight": 7 },
+        { "type": "minecraft:item", "name": "maxstuff:z15", "weight": 7 },
+        { "type": "minecraft:item", "name": "maxstuff:aks74u", "weight": 7 },
+        { "type": "minecraft:item", "name": "maxstuff:scar_15p", "weight": 7 },
+        { "type": "minecraft:item", "name": "tacz:scar_l", "weight": 7 },
+        { "type": "minecraft:item", "name": "maxstuff:brn10", "weight": 7 },
+        { "type": "minecraft:item", "name": "maxstuff:ak_alpha", "weight": 7 },
+        { "type": "minecraft:item", "name": "maxstuff:scar_pdw", "weight": 7 },
+        { "type": "minecraft:item", "name": "maxstuff:aug_a3", "weight": 7 },
+        { "type": "minecraft:item", "name": "maxstuff:beowulf_tcr", "weight": 3 },
+        { "type": "minecraft:item", "name": "maxstuff:honey_badger", "weight": 3 },
+        { "type": "minecraft:item", "name": "maxstuff:z15_a", "weight": 3 },
+        { "type": "minecraft:item", "name": "tacz:sks_tactical", "weight": 7 },
+        { "type": "minecraft:item", "name": "tacz:aug", "weight": 7 },
+        { "type": "minecraft:item", "name": "lradd:mdr_223", "weight": 7 },
+        { "type": "minecraft:item", "name": "maxstuff:aug_a5", "weight": 7 },
+        { "type": "minecraft:item", "name": "maxstuff:scar_sbr", "weight": 7 },
+        { "type": "minecraft:item", "name": "maxstuff:cursed15", "weight": 3 },
+        { "type": "minecraft:item", "name": "maxstuff:ak9", "weight": 3 },
+        { "type": "minecraft:item", "name": "maxstuff:ak_delta", "weight": 3 },
+        { "type": "minecraft:item", "name": "maxstuff:sks_golden", "weight": 3 }
+      ]
+    },
+    {
+      "rolls": { "min": 1, "max": 2 },
+      "entries": [
+        { "type": "minecraft:item", "name": "apocalypsenow:juggernaut_helmet", "weight": 7 },
+        { "type": "minecraft:item", "name": "apocalypsenow:juggernaut_chestplate", "weight": 7 },
+        { "type": "minecraft:item", "name": "apocalypsenow:juggernaut_leggings", "weight": 7 },
+        { "type": "minecraft:item", "name": "apocalypsenow:juggernaut_boots", "weight": 7 },
+        { "type": "minecraft:item", "name": "survival_instinct:desert_juggernaut_helmet", "weight": 7 },
+        { "type": "minecraft:item", "name": "survival_instinct:desert_juggernaut_chestplate", "weight": 7 },
+        { "type": "minecraft:item", "name": "survival_instinct:desert_juggernaut_leggings", "weight": 7 },
+        { "type": "minecraft:item", "name": "survival_instinct:desert_juggernaut_boots", "weight": 7 },
+        { "type": "minecraft:item", "name": "apocalypsenow:military_riot_armor_helmet", "weight": 7 },
+        { "type": "minecraft:item", "name": "apocalypsenow:military_riot_armor_chestplate", "weight": 7 },
+        { "type": "minecraft:item", "name": "apocalypsenow:military_riot_armor_leggings", "weight": 7 },
+        { "type": "minecraft:item", "name": "apocalypsenow:military_riot_armor_boots", "weight": 7 },
+        { "type": "minecraft:item", "name": "warborn:nato_sqad_leader_helmet_woodland", "weight": 7 },
+        { "type": "minecraft:item", "name": "warborn:nato_helmet", "weight": 7 },
+        { "type": "minecraft:item", "name": "warborn:ru_shoulderpads", "weight": 7 }
+      ]
+    },
+    {
+      "rolls": 1,
+      "entries": [
+        { "type": "minecraft:item", "name": "lrtactical:m67", "weight": 7 },
+        { "type": "minecraft:item", "name": "lrtactical:smoke_grenade", "weight": 7 },
+        { "type": "minecraft:item", "name": "lrtactical:flash_grenade", "weight": 7 },
+        { "type": "minecraft:item", "name": "apocalypsenow:pipebomb", "weight": 7 },
+        { "type": "minecraft:item", "name": "zombiekit:medical_kit", "weight": 18 },
+        { "type": "minecraft:item", "name": "apocalypsenow:cocktelmolotov_3", "weight": 18 },
+        { "type": "minecraft:item", "name": "zombiekit:bandage", "weight": 90 }
+      ]
+    },
+    {
+      "rolls": 1,
+      "entries": [
+        { "type": "minecraft:item", "name": "zombiekit:canned_beef_hotpot", "weight": 90 },
+        { "type": "minecraft:item", "name": "apocalypsenow:canned_pork", "weight": 90 },
+        { "type": "minecraft:item", "name": "apocalypsenow:canned_soup", "weight": 90 },
+        { "type": "minecraft:item", "name": "survival_instinct:meat_can", "weight": 90 },
+        { "type": "minecraft:item", "name": "survival_instinct:military_can", "weight": 90 }
+      ]
+    }
+    
+  ]
+}

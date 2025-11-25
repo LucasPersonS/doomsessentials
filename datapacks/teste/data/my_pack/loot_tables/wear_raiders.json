@@ -1,0 +1,41 @@
+{
+  "type": "minecraft:empty",
+  "pools": [
+    {
+      "rolls": 1,
+      "entries": [
+        { "type": "item", "name": "apocalypsenow:juggernaut_helmet", "weight": 3 },
+        { "type": "item", "name": "survival_instinct:green_juggernaut_helmet", "weight": 3 },
+        { "type": "item", "name": "survival_instinct:desert_juggernaut_helmet", "weight": 3 },
+        { "type": "item", "name": "survival_instinct:black_juggernaut_helmet", "weight": 3 }
+      ]
+    },
+    {
+      "rolls": 1,
+      "entries": [
+        { "type": "item", "name": "apocalypsenow:juggernaut_chestplate", "weight": 3 },
+        { "type": "item", "name": "survival_instinct:green_juggernaut_chestplate", "weight": 3 },
+        { "type": "item", "name": "survival_instinct:desert_juggernaut_chestplate", "weight": 3 },
+        { "type": "item", "name": "survival_instinct:black_juggernaut_chestplate", "weight": 3 }
+      ]
+    },
+    {
+      "rolls": 1,
+      "entries": [
+        { "type": "item", "name": "apocalypsenow:juggernaut_leggings", "weight": 3 },
+        { "type": "item", "name": "survival_instinct:green_juggernaut_leggings", "weight": 3 },
+        { "type": "item", "name": "survival_instinct:desert_juggernaut_leggings", "weight": 3 },
+        { "type": "item", "name": "survival_instinct:black_juggernaut_leggings", "weight": 3 }
+      ]
+    },
+    {
+      "rolls": 1,
+      "entries": [
+        { "type": "item", "name": "apocalypsenow:juggernaut_boots", "weight": 3 },
+        { "type": "item", "name": "survival_instinct:green_juggernaut_boots", "weight": 3 },
+        { "type": "item", "name": "survival_instinct:desert_juggernaut_boots", "weight": 3 },
+        { "type": "item", "name": "survival_instinct:black_juggernaut_boots", "weight": 3 }
+      ]
+    }
+  ]
+}

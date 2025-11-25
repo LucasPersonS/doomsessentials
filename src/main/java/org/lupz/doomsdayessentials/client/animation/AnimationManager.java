@@ -51,13 +51,13 @@ public class AnimationManager {
 	public static void setAnimator(Player player, Animator animator) {
 		if (player == null) return;
 		CURRENT.put(player.getUUID(), animator);
-		EssentialsMod.LOGGER.debug("[AnimMgr] setAnimator {} -> {}", player.getGameProfile().getName(), animator.getClass().getSimpleName());
+        org.lupz.doomsdayessentials.util.ModLog.debug("[AnimMgr] setAnimator {} -> {}", player.getGameProfile().getName(), animator.getClass().getSimpleName());
 	}
 
 	public static void clearAnimator(Player player) {
 		if (player == null) return;
 		CURRENT.remove(player.getUUID());
-		EssentialsMod.LOGGER.debug("[AnimMgr] clearAnimator {}", player.getGameProfile().getName());
+        org.lupz.doomsdayessentials.util.ModLog.debug("[AnimMgr] clearAnimator {}", player.getGameProfile().getName());
 	}
 
 	public static Animator getAnimator(Player player) {

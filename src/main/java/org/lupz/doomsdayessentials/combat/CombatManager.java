@@ -345,6 +345,13 @@ public class CombatManager {
                 && area.getType() != org.lupz.doomsdayessentials.combat.AreaType.RESOURCE
                 && area.getType() != org.lupz.doomsdayessentials.combat.AreaType.PRISON);
 
+        boolean victimWanted = isWanted(victim.getUUID());
+        boolean acceptedHunt = org.lupz.doomsdayessentials.professions.bounty.BountyManager.isAcceptedHunt(killer.getUUID(), victim.getUUID());
+        if (victimWanted || acceptedHunt) {
+            unjustByVictim.remove(victim.getUUID());
+            return;
+        }
+
         UnjustCandidate c = unjustByVictim.get(victim.getUUID());
         if (c != null && c.attacker.equals(killer.getUUID()) && !c.retaliated) {
             addWanted(killer.getUUID());

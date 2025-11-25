@@ -1,0 +1,17 @@
+{
+  "pools": [
+    {
+      "rolls": { "min": 1, "max": 2 },
+      "entries": [
+        { "type": "minecraft:item", "name": "zombiekit:bandage", "weight": 90 },
+        { "type": "minecraft:item", "name": "apocalypsenow:facemask", "weight": 45 },
+        { "type": "minecraft:item", "name": "lrarmor:medical_boots", "weight": 45 },
+        { "type": "minecraft:item", "name": "lrarmor:medical_chestplate", "weight": 45 },
+        { "type": "minecraft:item", "name": "lrarmor:medical_helmet", "weight": 45 },
+        { "type": "minecraft:item", "name": "lrarmor:medical_leggings", "weight": 45 },
+        { "type": "minecraft:item", "name": "zombiekit:medical_kit", "weight": 18 },
+        { "type": "minecraft:item", "name": "apocalypsenow:cocktelmolotov_3", "weight": 18 }
+      ]
+    }
+  ]
+}

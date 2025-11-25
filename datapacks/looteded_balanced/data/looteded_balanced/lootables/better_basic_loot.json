@@ -1,0 +1,90 @@
+{
+  "pools": [
+    {
+      "rolls": { "min": 0, "max": 1 },
+      "entries": [
+        { "type": "minecraft:item", "name": "tacz:deagle", "weight": 7 },
+        { "type": "minecraft:item", "name": "tacz:cz75", "weight": 18 },
+        { "type": "minecraft:item", "name": "tacz:m1911", "weight": 18 },
+        { "type": "minecraft:item", "name": "tacz:glock_17", "weight": 18 },
+        { "type": "minecraft:item", "name": "lradd:p250", "weight": 18 },
+        { "type": "minecraft:item", "name": "maxstuff:glock_18", "weight": 18 },
+        { "type": "minecraft:item", "name": "maxstuff:glock_54", "weight": 18 },
+        { "type": "minecraft:item", "name": "maxstuff:c96", "weight": 18 },
+        { "type": "minecraft:item", "name": "maxstuff:glock_bulpup", "weight": 18 },
+        { "type": "minecraft:item", "name": "tacz:hk_mp5a5", "weight": 18 },
+        { "type": "minecraft:item", "name": "tacz:uzi", "weight": 18 },
+        { "type": "minecraft:item", "name": "lradd:smg45", "weight": 18 },
+        { "type": "minecraft:item", "name": "maxstuff:hk_mp5sd", "weight": 18 },
+        { "type": "minecraft:item", "name": "maxstuff:hk_mp5k", "weight": 18 },
+        { "type": "minecraft:item", "name": "lradd:p90", "weight": 7 },
+        { "type": "minecraft:item", "name": "tacz:p90", "weight": 7 },
+        { "type": "minecraft:item", "name": "tacz:vector45", "weight": 7 },
+        { "type": "minecraft:item", "name": "lradd:pp19", "weight": 18 },
+        { "type": "minecraft:item", "name": "maxstuff:vityas", "weight": 7 },
+        { "type": "minecraft:item", "name": "maxstuff:colt_mars", "weight": 7 },
+        { "type": "minecraft:item", "name": "maxstuff:vector9", "weight": 18 },
+        { "type": "minecraft:item", "name": "maxstuff:ump9", "weight": 18 },
+        { "type": "minecraft:item", "name": "maxstuff:saiga9", "weight": 18 },
+        { "type": "minecraft:item", "name": "tacz:ump45", "weight": 18 },
+        { "type": "minecraft:item", "name": "maxstuff:ro635", "weight": 7 },
+        { "type": "minecraft:item", "name": "maxstuff:mp7", "weight": 7 },
+        { "type": "minecraft:item", "name": "maxstuff:ar57", "weight": 7 },
+        { "type": "minecraft:item", "name": "maxstuff:z80", "weight": 3 },
+        { "type": "minecraft:item", "name": "maxstuff:udp9", "weight": 3 }
+      ]
+    },
+    {
+      "rolls": 1,
+      "entries": [
+        { "type": "minecraft:item", "name": "tacz:45acp", "weight": 45 },
+        { "type": "minecraft:item", "name": "tacz:9mm", "weight": 45 },
+        { "type": "minecraft:item", "name": "ea:75fk", "weight": 18 },
+        { "type": "minecraft:item", "name": "tacz:50ae", "weight": 7 }
+      ]
+    },
+    {
+      "rolls": 1,
+      "entries": [
+        { "type": "minecraft:item", "name": "sophisticatedstorage:stack_upgrade_tier_4", "weight": 7 }
+      ]
+    },
+    {
+      "rolls": 1,
+      "entries": [
+        { "type": "minecraft:item", "name": "survival_instinct:blue_soda", "weight": 90 },
+        { "type": "minecraft:item", "name": "apocalypsenow:canned_fish", "weight": 90 },
+        { "type": "minecraft:item", "name": "apocalypsenow:canned_strawberry", "weight": 90 },
+        { "type": "minecraft:item", "name": "survival_instinct:cheese_chips", "weight": 90 },
+        { "type": "minecraft:item", "name": "survival_instinct:red_soda", "weight": 90 },
+        { "type": "minecraft:item", "name": "zombiekit:canned_fish_in_black_bean_sauce", "weight": 90 },
+        { "type": "minecraft:item", "name": "apocalypsenow:canned_chili", "weight": 90 },
+        { "type": "minecraft:item", "name": "apocalypsenow:canned_beans", "weight": 90 }
+      ]
+    },
+    {
+      "rolls": { "min": 1, "max": 2 },
+      "entries": [
+        { "type": "minecraft:item", "name": "apocalypsenow:deodorant", "weight": 90 },
+        { "type": "minecraft:item", "name": "apocalypsenow:ducttape", "weight": 90 },
+        { "type": "minecraft:item", "name": "apocalypsenow:glue", "weight": 90 },
+        { "type": "minecraft:item", "name": "apocalypsenow:rope", "weight": 90 },
+        { "type": "minecraft:item", "name": "zombiekit:pocket_radio", "weight": 18 },
+        { "type": "minecraft:item", "name": "apocalypsenow:aabattery", "weight": 90 },
+        { "type": "minecraft:item", "name": "apocalypsenow:broken_plasma_tv", "weight": 45 },
+        { "type": "minecraft:item", "name": "apocalypsenow:sawi", "weight": 45 },
+        { "type": "minecraft:item", "name": "apocalypsenow:small_can", "weight": 90 },
+        { "type": "minecraft:item", "name": "apocalypsenow:thincan", "weight": 90 },
+        { "type": "minecraft:item", "name": "apocalypsenow:nailbox", "weight": 90 },
+        { "type": "minecraft:item", "name": "apocalypsenow:bottle", "weight": 90 },
+        { "type": "minecraft:item", "name": "apocalypsenow:engineering_parts", "weight": 45 },
+        { "type": "minecraft:item", "name": "apocalypsenow:hairdryer", "weight": 45 },
+        { "type": "minecraft:item", "name": "apocalypsenow:cellphone", "weight": 45 },
+        { "type": "minecraft:item", "name": "apocalypsenow:cloth", "weight": 90 },
+        { "type": "minecraft:item", "name": "apocalypsenow:copperwire", "weight": 90 },
+        { "type": "minecraft:item", "name": "apocalypsenow:can", "weight": 90 },
+        { "type": "minecraft:item", "name": "apocalypsenow:watch", "weight": 45 }
+      ]
+    }
+  ]
+}

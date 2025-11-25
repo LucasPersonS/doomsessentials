@@ -32,9 +32,8 @@ public class SlideClientHandler {
 		// Cancel slide on jump if either heuristic or animator is active
 		if ((maybeSliding || animatorActive)) {
 			if (jumpDown && !jumpCancelConsumed) {
-				EssentialsMod.LOGGER.debug("[SlideClient] Jump pressed -> cancel slide (client+server) for {}", mc.player.getGameProfile().getName());
+                org.lupz.doomsdayessentials.util.ModLog.debug("[SlideClient] Jump pressed -> cancel slide (server) for {}", mc.player.getGameProfile().getName());
 				PacketHandler.CHANNEL.sendToServer(new CancelSlidePacket());
-				AnimationManager.clearAnimator(mc.player);
 				jumpCancelConsumed = true;
 			}
 			if (!jumpDown) jumpCancelConsumed = false;
@@ -58,7 +57,7 @@ public class SlideClientHandler {
 		long now = System.currentTimeMillis();
 		if (now - lastSendMs < COOLDOWN_MS) return;
 
-		EssentialsMod.LOGGER.debug("[SlideClient] Sending StartSlidePacket from client for {}", mc.player.getGameProfile().getName());
+        org.lupz.doomsdayessentials.util.ModLog.debug("[SlideClient] Sending StartSlidePacket from client for {}", mc.player.getGameProfile().getName());
 		PacketHandler.CHANNEL.sendToServer(new StartSlidePacket());
 		// Don't set animator here - wait for server confirmation via StartSlideS2CPacket
 		lastSendMs = now;

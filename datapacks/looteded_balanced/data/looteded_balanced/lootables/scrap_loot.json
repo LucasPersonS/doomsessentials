@@ -1,0 +1,28 @@
+{
+  "pools": [
+    {
+      "rolls": { "min": 2, "max": 4 },
+      "entries": [
+        { "type": "minecraft:item", "name": "apocalypsenow:deodorant", "weight": 90 },
+        { "type": "minecraft:item", "name": "apocalypsenow:ducttape", "weight": 90 },
+        { "type": "minecraft:item", "name": "apocalypsenow:glue", "weight": 90 },
+        { "type": "minecraft:item", "name": "apocalypsenow:rope", "weight": 90 },
+        { "type": "minecraft:item", "name": "zombiekit:pocket_radio", "weight": 18 },
+        { "type": "minecraft:item", "name": "apocalypsenow:aabattery", "weight": 90 },
+        { "type": "minecraft:item", "name": "apocalypsenow:broken_plasma_tv", "weight": 45 },
+        { "type": "minecraft:item", "name": "apocalypsenow:sawi", "weight": 45 },
+        { "type": "minecraft:item", "name": "apocalypsenow:small_can", "weight": 90 },
+        { "type": "minecraft:item", "name": "apocalypsenow:thincan", "weight": 90 },
+        { "type": "minecraft:item", "name": "apocalypsenow:nailbox", "weight": 90 },
+        { "type": "minecraft:item", "name": "apocalypsenow:bottle", "weight": 90 },
+        { "type": "minecraft:item", "name": "apocalypsenow:engineering_parts", "weight": 45 },
+        { "type": "minecraft:item", "name": "apocalypsenow:hairdryer", "weight": 45 },
+        { "type": "minecraft:item", "name": "apocalypsenow:cellphone", "weight": 45 },
+        { "type": "minecraft:item", "name": "apocalypsenow:cloth", "weight": 90 },
+        { "type": "minecraft:item", "name": "apocalypsenow:copperwire", "weight": 90 },
+        { "type": "minecraft:item", "name": "apocalypsenow:can", "weight": 90 },
+        { "type": "minecraft:item", "name": "apocalypsenow:watch", "weight": 45 }
+      ]
+    }
+  ]
+}

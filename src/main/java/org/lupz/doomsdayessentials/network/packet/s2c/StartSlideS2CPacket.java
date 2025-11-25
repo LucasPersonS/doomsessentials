@@ -20,11 +20,11 @@ public class StartSlideS2CPacket {
 			var level = Minecraft.getInstance().level;
 			if (level == null) return;
 			var player = level.getPlayerByUUID(playerId);
-			if (player == null) {
-				EssentialsMod.LOGGER.debug("[SlideS2C] StartSlideS2C received but player not found: {}", playerId);
-				return;
-			}
-			EssentialsMod.LOGGER.debug("[SlideS2C] Setting SlidingAnimator for {} ({})", player.getGameProfile().getName(), playerId);
+            if (player == null) {
+                org.lupz.doomsdayessentials.util.ModLog.debug("[SlideS2C] StartSlideS2C received but player not found: {}", playerId);
+                return;
+            }
+            org.lupz.doomsdayessentials.util.ModLog.debug("[SlideS2C] Setting SlidingAnimator for {} ({})", player.getGameProfile().getName(), playerId);
 			AnimationManager.setAnimator(player, new SlidingAnimator());
 		});
 		ctx.get().setPacketHandled(true);

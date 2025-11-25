@@ -24,7 +24,7 @@ public abstract class PlayerModelMixin<T extends LivingEntity> {
 		transformer.resetToVanillaDefaults();
 		boolean cancel = animator.animatePre(player, transformer);
 		if (cancel) {
-			EssentialsMod.LOGGER.debug("[Mixin] Canceling vanilla setupAnim for {}", player.getGameProfile().getName());
+            org.lupz.doomsdayessentials.util.ModLog.debug("[Mixin] Canceling vanilla setupAnim for {}", player.getGameProfile().getName());
 			ci.cancel();
 		}
 	}
@@ -36,7 +36,7 @@ public abstract class PlayerModelMixin<T extends LivingEntity> {
 		if (animator == null) return;
 		// Reset baseline then add post adjustments (optional)
 		AnimationManager.applyBaselineIfPresent((PlayerModel<?>) (Object) this, player);
-		EssentialsMod.LOGGER.debug("[Mixin] PlayerModel.setupAnim -> animatePost for {}", player.getGameProfile().getName());
+        org.lupz.doomsdayessentials.util.ModLog.debug("[Mixin] PlayerModel.setupAnim -> animatePost for {}", player.getGameProfile().getName());
 		animator.animatePost((PlayerModel<?>) (Object) this, player, net.minecraft.client.Minecraft.getInstance().getFrameTime());
 	}
 } 

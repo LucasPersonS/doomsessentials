@@ -1,0 +1,101 @@
+{
+  "pools": [
+    {
+      "rolls": { "min": 2, "max": 4 },
+      "entries": [
+        { "type": "minecraft:item", "name": "apocalypsenow:canned_beetroot", "weight": 90 },
+        { "type": "minecraft:item", "name": "apocalypsenow:canned_beans", "weight": 90 },
+        { "type": "minecraft:item", "name": "apocalypsenow:canned_tomatos", "weight": 90 },
+        { "type": "minecraft:item", "name": "apocalypsenow:canned_corn", "weight": 90 },
+        { "type": "minecraft:item", "name": "apocalypsenow:canned_food", "weight": 90 },
+        { "type": "minecraft:item", "name": "apocalypsenow:canned_carrot", "weight": 90 },
+        { "type": "minecraft:item", "name": "apocalypsenow:dogs_food", "weight": 45 },
+
+        { "type": "minecraft:item", "name": "doomsdayessentials:scrapmetal", "weight": 90 },
+        { "type": "minecraft:item", "name": "apocalypsenow:copperwire", "weight": 90 },
+        { "type": "minecraft:item", "name": "apocalypsenow:cloth", "weight": 90 },
+        { "type": "minecraft:item", "name": "apocalypsenow:cellphone", "weight": 45 },
+        { "type": "minecraft:item", "name": "apocalypsenow:can", "weight": 90 }
+      ]
+    },
+    {
+      "rolls": 1,
+      "entries": [
+        { "type": "minecraft:item", "name": "tacz:9mm", "weight": 45 },
+        { "type": "minecraft:item", "name": "tacz:45acp", "weight": 45 },
+        { "type": "minecraft:item", "name": "ea:75fk", "weight": 45 }
+      ]
+    },
+    {
+      "rolls": { "min": 0, "max": 1 },
+      "entries": [
+        { "type": "minecraft:item", "name": "tacz:glock_17", "weight": 18 },
+        { "type": "minecraft:item", "name": "tacz:m1911", "weight": 18 },
+        { "type": "minecraft:item", "name": "tacz:cz75", "weight": 18 },
+        { "type": "minecraft:item", "name": "lradd:p250", "weight": 18 },
+        { "type": "minecraft:item", "name": "tacz:b93r", "weight": 18 },
+        { "type": "minecraft:item", "name": "maxstuff:glock_18", "weight": 18 },
+        { "type": "minecraft:item", "name": "tacz:hk_mp5a5", "weight": 18 },
+        { "type": "minecraft:item", "name": "tacz:uzi", "weight": 18 },
+        { "type": "minecraft:item", "name": "maxstuff:hk_mp5k", "weight": 18 },
+        { "type": "minecraft:item", "name": "maxstuff:hk_mp5sd", "weight": 18 },
+        { "type": "minecraft:item", "name": "lradd:smg45", "weight": 18 },
+        { "type": "minecraft:item", "name": "maxstuff:luty", "weight": 18 },
+        { "type": "minecraft:item", "name": "lradd:nailgun", "weight": 18 },
+        { "type": "minecraft:item", "name": "maxstuff:nailgun", "weight": 18 }
+      ]
+    },
+    {
+      "rolls": { "min": 1, "max": 2 },
+      "entries": [
+        { "type": "minecraft:item", "name": "apocalypsenow:officer_helmet", "weight": 45 },
+        { "type": "minecraft:item", "name": "apocalypsenow:pink_bikers_helmet", "weight": 45 },
+        { "type": "minecraft:item", "name": "apocalypsenow:red_fighting_helmet", "weight": 45 },
+        { "type": "minecraft:item", "name": "apocalypsenow:sheriff_helmet", "weight": 45 },
+        { "type": "minecraft:item", "name": "apocalypsenow:soviet_ushanka_helmet", "weight": 18 },
+        { "type": "minecraft:item", "name": "apocalypsenow:beret_helmet", "weight": 45 },
+        { "type": "minecraft:item", "name": "apocalypsenow:black_bikers_helmet", "weight": 45 },
+        { "type": "minecraft:item", "name": "apocalypsenow:baseball_helmet_helmet", "weight": 90 },
+        { "type": "minecraft:item", "name": "apocalypsenow:hunting_helmet", "weight": 90 },
+        { "type": "minecraft:item", "name": "survival_instinct:chicken_head_helmet", "weight": 45 },
+        { "type": "minecraft:item", "name": "apocalypsenow:cowboy_hat_helmet", "weight": 45 },
+        { "type": "minecraft:item", "name": "apocalypsenow:jasonmask_helmet", "weight": 18 },
+        { "type": "minecraft:item", "name": "apocalypsenow:military_beret_helmet", "weight": 18 },
+        { "type": "minecraft:item", "name": "apocalypsenow:officer_beret_helmet", "weight": 18 },
+        { "type": "minecraft:item", "name": "apocalypsenow:brazilian_army_boots", "weight": 45 },
+        { "type": "minecraft:item", "name": "apocalypsenow:police_chestplate", "weight": 18 },
+        { "type": "minecraft:item", "name": "apocalypsenow:rusty_chestplate", "weight": 45 },
+        { "type": "minecraft:item", "name": "apocalypsenow:anarchy_chestplate", "weight": 45 },
+        { "type": "minecraft:item", "name": "apocalypsenow:advanced_hazmat_suit_boots", "weight": 18 },
+        { "type": "minecraft:item", "name": "apocalypsenow:divingsuit_boots", "weight": 45 },
+        { "type": "minecraft:item", "name": "apocalypsenow:divingsuit_chestplate", "weight": 18 },
+        { "type": "minecraft:item", "name": "apocalypsenow:anarchy_leggings", "weight": 45 },
+        { "type": "minecraft:item", "name": "apocalypsenow:army_leggings", "weight": 45 }
+      ]
+    },
+    {
+      "rolls": { "min": 1, "max": 2 },
+      "entries": [
+        { "type": "minecraft:item", "name": "apocalypsenow:deodorant", "weight": 90 },
+        { "type": "minecraft:item", "name": "apocalypsenow:ducttape", "weight": 90 },
+        { "type": "minecraft:item", "name": "apocalypsenow:glue", "weight": 90 },
+        { "type": "minecraft:item", "name": "apocalypsenow:rope", "weight": 90 },
+        { "type": "minecraft:item", "name": "zombiekit:pocket_radio", "weight": 18 },
+        { "type": "minecraft:item", "name": "apocalypsenow:aabattery", "weight": 90 },
+        { "type": "minecraft:item", "name": "apocalypsenow:broken_plasma_tv", "weight": 45 },
+        { "type": "minecraft:item", "name": "apocalypsenow:sawi", "weight": 45 },
+        { "type": "minecraft:item", "name": "apocalypsenow:small_can", "weight": 90 },
+        { "type": "minecraft:item", "name": "apocalypsenow:thincan", "weight": 90 },
+        { "type": "minecraft:item", "name": "apocalypsenow:nailbox", "weight": 90 },
+        { "type": "minecraft:item", "name": "apocalypsenow:bottle", "weight": 90 },
+        { "type": "minecraft:item", "name": "apocalypsenow:engineering_parts", "weight": 45 },
+        { "type": "minecraft:item", "name": "apocalypsenow:hairdryer", "weight": 45 },
+        { "type": "minecraft:item", "name": "apocalypsenow:cellphone", "weight": 45 },
+        { "type": "minecraft:item", "name": "apocalypsenow:cloth", "weight": 90 },
+        { "type": "minecraft:item", "name": "apocalypsenow:copperwire", "weight": 90 },
+        { "type": "minecraft:item", "name": "apocalypsenow:can", "weight": 90 },
+        { "type": "minecraft:item", "name": "apocalypsenow:watch", "weight": 45 }
+      ]
+    }
+  ]
+}

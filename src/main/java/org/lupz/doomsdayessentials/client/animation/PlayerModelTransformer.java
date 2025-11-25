@@ -20,8 +20,7 @@ public class PlayerModelTransformer {
 	public PlayerModel<?> getRawModel() { return model; }
 
 	public void resetToVanillaDefaults() {
-		// Reset head but preserve yRot for vanilla head tracking
-		model.head.xRot = 0; model.head.zRot = 0; model.head.x = 0; model.head.y = 0; model.head.z = 0;
+		model.head.xRot = 0; model.head.yRot = 0; model.head.zRot = 0; model.head.x = 0; model.head.y = 0; model.head.z = 0;
 		reset(model.hat);
 		reset(model.jacket);
 		reset(model.body);

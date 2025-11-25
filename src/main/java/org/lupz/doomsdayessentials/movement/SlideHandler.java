@@ -58,7 +58,7 @@ public final class SlideHandler {
 		player.getPersistentData().putInt(KEY_SLIDE_AIR_GRACE, AIR_GRACE_TICKS);
 		player.getPersistentData().putInt("slideCooldown", 20); // 1s cooldown
 
-		org.lupz.doomsdayessentials.EssentialsMod.LOGGER.debug("[SlideServer] Slide START for {} at {} {} {}", player.getGameProfile().getName(), String.format("%.2f", player.getX()), String.format("%.2f", player.getY()), String.format("%.2f", player.getZ()));
+        org.lupz.doomsdayessentials.util.ModLog.debug("[SlideServer] Slide START for {} at {} {} {}", player.getGameProfile().getName(), String.format("%.2f", player.getX()), String.format("%.2f", player.getY()), String.format("%.2f", player.getZ()));
 		org.lupz.doomsdayessentials.network.PacketHandler.CHANNEL.send(
 			net.minecraftforge.network.PacketDistributor.TRACKING_ENTITY_AND_SELF.with(() -> player),
 			new org.lupz.doomsdayessentials.network.packet.s2c.StartSlideS2CPacket(player.getUUID())
@@ -131,7 +131,7 @@ public final class SlideHandler {
 		player.getPersistentData().putInt(KEY_SLIDE_END_CROUCH_TICKS, END_CROUCH_TICKS);
 		player.setPose(Pose.CROUCHING);
 		player.setSwimming(false);
-		org.lupz.doomsdayessentials.EssentialsMod.LOGGER.debug("[SlideServer] Slide END for {}", player.getGameProfile().getName());
+        org.lupz.doomsdayessentials.util.ModLog.debug("[SlideServer] Slide END for {}", player.getGameProfile().getName());
 		org.lupz.doomsdayessentials.network.PacketHandler.CHANNEL.send(
 			net.minecraftforge.network.PacketDistributor.TRACKING_ENTITY_AND_SELF.with(() -> player),
 			new org.lupz.doomsdayessentials.network.packet.s2c.EndSlideS2CPacket(player.getUUID())

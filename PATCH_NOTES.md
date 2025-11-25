@@ -1,75 +1,54 @@
-# DoomsEssentials — Patch Notes (Forge 1.20.1)
-
+# DoomsEssentials — Patch Notes (V.1.0)
 Data: 22/11/2025
 
-## Visão Geral
-- Foco em performance do servidor, UX clara em combate/zonas e consistência visual/áudio da Frequência.
-- Ajustes de inventário e corpse em zonas neutras para evitar frustração e exploração.
+## O que muda para você
+- Zonas Neutras (amarelas)
+  - Se você morrer fora de combate dentro de uma zona neutra, seus itens serão mantidos no respawn.
+  - Não será gerado “corpse” no local da morte e nada cairá no chão nesses casos.
+  - Agressor continua podendo virar “foragido” ao matar em zona neutra.
 
-## Novidades
-- Recicladora sem dependência de ticks
-  - Processamento agora é agendado em tempo real, reduzindo impacto em TPS.
-  - Persistência de estado garante retomada após reinício do servidor.
-  - Tempo de reciclagem configurável por `recycler.processSeconds`.
-- Frequência
-  - `/frequency set` exibe apenas imagens da pasta `assets/doomsdayessentials/textures/frequencia/`.
-  - Removida dependência de texturas antigas (antes listadas em `textures/misc`).
-- Foragido (HUD)
-  - Escala da logo ajustável via config `combat.wantedIconScale` (0.5–3.0, padrão 1.0).
-- Zonas Neutras (inventário e corpse)
-  - Morrer em zona `NEUTRAL` fora de combate mantém o inventário no respawn.
-  - Não gera corpo do mod `corpse` e limpa drops no chão.
+- Frequência (efeitos visuais e sons)
+  - As imagens exibidas pela Frequência foram atualizadas
 
-## Balanceamentos
-- Zonas Neutras
-  - Mortes PvP em zona neutra continuam marcando o agressor como “foragido”.
-  - Curios (se presentes) também são preservados/restaurados quando aplicável.
+- Logo de “Foragido”
+  - O ícone acima da cabeça dos jogadores “foragidos” está mais visível e pode aparecer maior 
 
-## Correções
-- Corpse indesejado em zonas neutras fora de combate
-  - Remoção automática de entidades próximas do mod `corpse` e limpeza de drops.
-- Frequência
-  - Imagens antigas não são mais carregadas; apenas os arquivos em `textures/frequencia` são usados para os símbolos/overlays.
-
-## Desempenho e Técnica
 - Recicladora
-  - Remoção do `BlockEntityTicker` do bloco da recicladora para eliminar trabalho por tick.
-  - Agendamento em milissegundos com finalização precisa e persistente.
-- HUD/Render
-  - Render de “foragido” usa escala configurável sem alterar o asset original.
+  - Processa em tempo real e não depende de ticks; experiência mais fluida.
+  
+# ZONAS PERIGOSAS
 
-## Comandos
-- `/frequency set <0..100> [nosound] [noimage]`
-  - Define nível de Frequência (intensidade de imagens/sons e efeitos de câmera/shader).
-  - `nosound` desativa sons; `noimage` desativa imagens.
-- Comandos de organização (conforme development.md)
-  - `/organizacao alianca <nome>`, `/organizacao aceitar <nome>`, `/organizacao quebraralianca <nome>`
-  - `/organizacao grupos`, `/organizacao info <tag>`
-  - `/organizacao admin deletar <nome>` (restrito)
+- Foi adicionado um horário específico onde as zonas abrem, e fecham
+- Foi adicionado um timer para quando a zona está perto de fechar, para alertar os jogadores.
+- Foi adicionado um indicador visual para quando uma zona está fechada e você tenta entrar
+- Foi corrigido o bug de crashar ao entrar na zona perigosa
 
-## Configurações Novas/Ajustadas
-- Combate
-  - `combat.fugitiveDurationSeconds`: duração do status “foragido”.
-  - `combat.enterOnAttackOnly`: entrar em combate apenas ao atacar.
-  - `combat.wantedIconScale`: escala da logo “foragido” no HUD (novo).
-- Recicladora
-  - `recycler.processSeconds`: tempo real para reciclar 1 item (novo).
-- Mercado/Zumbis
-  - `market.disableDebugOpenTrades`: remove logs de debug ao abrir trades.
-  - `zombies.stripArmor.aggressive`: remover/impedir armadura em zumbis agressivamente.
-- Organização
-  - `organization.maxAlliances`: limite de alianças por organização.
-  - `organization.vault.breakOnlyInsideTerritory`: só quebra/coleta dentro do território.
-  - `organization.vault.blockBreakDuringRaid`: bloqueia quebra durante invasão.
+## Comandos úteis
+Foram criados comandos úteis para ver todas organizações existentes no servidor, por comandos próprios.
 
-## Testes
-- Unitários citados no development.md
-  - `ManagedAreaTimeWindowTest` (janelas de horário com wrap-around).
-  - `GuildAllianceTests` (alianças no modelo).
-- Build
-  - `./gradlew build` concluído com sucesso.
+- `/organizacao alianca <nome>`: enviar convite de aliança.
+- `/organizacao aceitar <nome>`: aceitar convite.
+- `/organizacao quebraralianca <nome>`: encerrar aliança.
+- `/organizacao grupos`: ver organizações, membros e alianças.
+- `/organizacao info <tag>`: ver membros e hierarquia de uma organização.
 
-## Notas de Migração
-- Verifique `doomsdayessentials-essentials.toml` para ajustar `combat.wantedIconScale` e `recycler.processSeconds` conforme seu servidor.
-- Caso use o mod `corpse`, comportamento em zonas neutras foi alterado para não gerar corpo quando o jogador não está em combate.
+## Organização
 
+- Foi corrigido o bug que dava pra pegar a cabeça de um jogador pela HUD de Organizacao.
+- Foi corrigido um bug onde o organizacao invadir não funcionava como o esperado > Não repassava os itens da defensora ao atacante ao quebrar a bandeira
+
+## Regras de combate (resumo)
+- “entrar em combate apenas ao atacar”, ser atacado não coloca você automaticamente em combate mais.
+- Em zona neutra, se você não estiver em combate, a morte preserva seu inventário.
+- Ao matar um jogador em zona neutra, atualmente você recebe a tag de foragido e é adicionado ao sistema de bounty hunters
+
+## Qualidade de vida
+- Menos quedas de desempenho em tarefas contínuas (como reciclagem).
+- HUD com ícones e mensagens mais claros em combate/zonas.
+
+# Sliding
+
+- O sliding agora está menor, não está tão agressivo quanto antes.
+- Foi corrigido um bug onde sua cabeça ficava rodando ao slidar.
+- Foi corrigido um bug que você fica preso na animação de sliding infinito
+- Foi corrigido um bug da tela flickar após dar sliding

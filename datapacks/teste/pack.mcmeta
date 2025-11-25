@@ -1,0 +1,6 @@
+{
+  "pack": {
+    "pack_format": 15,
+    "description": "Example datapack: namespace 'my_pack' with wear_raiders, drops_raiders, inventory_raiders loot tables for tacz_npcs"
+  }
+}

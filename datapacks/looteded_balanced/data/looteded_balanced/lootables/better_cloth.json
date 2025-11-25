@@ -1,0 +1,65 @@
+{
+  "pools": [
+    {
+      "rolls": { "min": 1, "max": 3 },
+      "entries": [
+        { "type": "minecraft:item", "name": "apocalypsenow:forestguard_leggings", "weight": 45 },
+        { "type": "minecraft:item", "name": "apocalypsenow:forestguard_chestplate", "weight": 45 },
+        { "type": "minecraft:item", "name": "apocalypsenow:rusty_helmet", "weight": 90 },
+        { "type": "minecraft:item", "name": "apocalypsenow:army_boots", "weight": 45 },
+        { "type": "minecraft:item", "name": "apocalypsenow:army_chestplate", "weight": 45 },
+        { "type": "minecraft:item", "name": "apocalypsenow:forestguard_helmet", "weight": 45 },
+        { "type": "minecraft:item", "name": "apocalypsenow:blackhockeymask_helmet", "weight": 18 },
+        { "type": "minecraft:item", "name": "apocalypsenow:black_bikers_helmet", "weight": 45 },
+        { "type": "minecraft:item", "name": "apocalypsenow:contamination_suit_blue_chestplate", "weight": 7 },
+        { "type": "minecraft:item", "name": "apocalypsenow:contamination_suit_blue_helmet", "weight": 7 },
+        { "type": "minecraft:item", "name": "apocalypsenow:blue_football_armor_chestplate", "weight": 45 },
+        { "type": "minecraft:item", "name": "survival_instinct:cloth_balaclava_helmet", "weight": 45 },
+        { "type": "minecraft:item", "name": "survival_instinct:fire_fighter_boots", "weight": 45 },
+        { "type": "minecraft:item", "name": "survival_instinct:fire_fighter_helmet", "weight": 45 },
+        { "type": "minecraft:item", "name": "survival_instinct:chicken_head_helmet", "weight": 45 },
+        { "type": "minecraft:item", "name": "survival_instinct:fire_fighter_leggings", "weight": 45 },
+        { "type": "minecraft:item", "name": "survival_instinct:fire_fighter_chestplate", "weight": 45 },
+        { "type": "minecraft:item", "name": "apocalypsenow:forestguard_boots", "weight": 45 },
+        { "type": "minecraft:item", "name": "survival_instinct:hazmat_boots", "weight": 18 },
+        { "type": "minecraft:item", "name": "apocalypsenow:hazmat_suit_helmet", "weight": 18 },
+        { "type": "minecraft:item", "name": "survival_instinct:hazmat_helmet", "weight": 18 },
+        { "type": "minecraft:item", "name": "survival_instinct:hazmat_leggings", "weight": 18 },
+        { "type": "minecraft:item", "name": "survival_instinct:hazmat_chestplate", "weight": 18 },
+        { "type": "minecraft:item", "name": "apocalypsenow:jasonmask_helmet", "weight": 18 },
+        { "type": "minecraft:item", "name": "survival_instinct:motorcycle_helmet", "weight": 45 },
+        { "type": "minecraft:item", "name": "survival_instinct:desert_recluit_armor_leggings", "weight": 45 },
+        { "type": "minecraft:item", "name": "survival_instinct:desert_recluit_armor_chestplate", "weight": 45 },
+        { "type": "minecraft:item", "name": "survival_instinct:wool_balaclava_helmet", "weight": 45 },
+        { "type": "minecraft:item", "name": "apocalypsenow:army_leggings", "weight": 45 },
+        { "type": "minecraft:item", "name": "apocalypsenow:contamination_suit_green_chestplate", "weight": 7 },
+        { "type": "minecraft:item", "name": "apocalypsenow:contamination_suit_green_helmet", "weight": 7 },
+        { "type": "minecraft:item", "name": "apocalypsenow:contamination_suit_green_leggings", "weight": 7 }
+      ]
+    },
+    {
+      "rolls": { "min": 1, "max": 2 },
+      "entries": [
+        { "type": "minecraft:item", "name": "apocalypsenow:deodorant", "weight": 90 },
+        { "type": "minecraft:item", "name": "apocalypsenow:ducttape", "weight": 90 },
+        { "type": "minecraft:item", "name": "apocalypsenow:glue", "weight": 90 },
+        { "type": "minecraft:item", "name": "apocalypsenow:rope", "weight": 90 },
+        { "type": "minecraft:item", "name": "zombiekit:pocket_radio", "weight": 18 },
+        { "type": "minecraft:item", "name": "apocalypsenow:aabattery", "weight": 90 },
+        { "type": "minecraft:item", "name": "apocalypsenow:broken_plasma_tv", "weight": 45 },
+        { "type": "minecraft:item", "name": "apocalypsenow:sawi", "weight": 45 },
+        { "type": "minecraft:item", "name": "apocalypsenow:small_can", "weight": 90 },
+        { "type": "minecraft:item", "name": "apocalypsenow:thincan", "weight": 90 },
+        { "type": "minecraft:item", "name": "apocalypsenow:nailbox", "weight": 90 },
+        { "type": "minecraft:item", "name": "apocalypsenow:bottle", "weight": 90 },
+        { "type": "minecraft:item", "name": "apocalypsenow:engineering_parts", "weight": 45 },
+        { "type": "minecraft:item", "name": "apocalypsenow:hairdryer", "weight": 45 },
+        { "type": "minecraft:item", "name": "apocalypsenow:cellphone", "weight": 45 },
+        { "type": "minecraft:item", "name": "apocalypsenow:cloth", "weight": 90 },
+        { "type": "minecraft:item", "name": "apocalypsenow:copperwire", "weight": 90 },
+        { "type": "minecraft:item", "name": "apocalypsenow:can", "weight": 90 },
+        { "type": "minecraft:item", "name": "apocalypsenow:watch", "weight": 45 }
+      ]
+    }
+  ]
+}

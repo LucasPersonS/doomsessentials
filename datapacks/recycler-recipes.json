@@ -1,0 +1,446 @@
+{
+  "dog_tags": {
+    "input": {
+      "f_135804_": "apocalypsenow",
+      "f_135805_": "dog_tags"
+    },
+    "outputs": [
+      {
+        "output": {
+          "f_135804_": "doomsdayessentials",
+          "f_135805_": "scrapmetal"
+        },
+        "count": 1
+      }
+    ]
+  },
+  "straightener": {
+    "input": {
+      "f_135804_": "apocalypsenow",
+      "f_135805_": "straightener"
+    },
+    "outputs": [
+      {
+        "output": {
+          "f_135804_": "doomsdayessentials",
+          "f_135805_": "scrapmetal"
+        },
+        "count": 2
+      }
+    ]
+  },
+  "aabattery": {
+    "input": {
+      "f_135804_": "apocalypsenow",
+      "f_135805_": "aabattery"
+    },
+    "outputs": [
+      {
+        "output": {
+          "f_135804_": "doomsdayessentials",
+          "f_135805_": "scrapmetal"
+        },
+        "count": 1
+      },
+      {
+        "output": {
+          "f_135804_": "doomsdayessentials",
+          "f_135805_": "gears"
+        },
+        "count": 1
+      }
+    ]
+  },
+  "pocket_radio": {
+    "input": {
+      "f_135804_": "zombiekit",
+      "f_135805_": "pocket_radio"
+    },
+    "outputs": [
+      {
+        "output": {
+          "f_135804_": "doomsdayessentials",
+          "f_135805_": "scrapmetal"
+        },
+        "count": 2
+      },
+      {
+        "output": {
+          "f_135804_": "doomsdayessentials",
+          "f_135805_": "metal_fragments"
+        },
+        "count": 1
+      },
+      {
+        "output": {
+          "f_135804_": "doomsdayessentials",
+          "f_135805_": "metalblade"
+        },
+        "count": 1
+      }
+    ]
+  },
+  "can": {
+    "input": {
+      "f_135804_": "apocalypsenow",
+      "f_135805_": "can"
+    },
+    "outputs": [
+      {
+        "output": {
+          "f_135804_": "doomsdayessentials",
+          "f_135805_": "scrapmetal"
+        },
+        "count": 1
+      }
+    ]
+  },
+  "thincan": {
+    "input": {
+      "f_135804_": "apocalypsenow",
+      "f_135805_": "thincan"
+    },
+    "outputs": [
+      {
+        "output": {
+          "f_135804_": "doomsdayessentials",
+          "f_135805_": "scrapmetal"
+        },
+        "count": 1
+      }
+    ]
+  },
+  "broken_military_radio": {
+    "input": {
+      "f_135804_": "apocalypsenow",
+      "f_135805_": "broken_military_radio"
+    },
+    "outputs": [
+      {
+        "output": {
+          "f_135804_": "doomsdayessentials",
+          "f_135805_": "scrapmetal"
+        },
+        "count": 3
+      },
+      {
+        "output": {
+          "f_135804_": "doomsdayessentials",
+          "f_135805_": "metal_fragments"
+        },
+        "count": 1
+      }
+    ]
+  },
+  "watch": {
+    "input": {
+      "f_135804_": "apocalypsenow",
+      "f_135805_": "watch"
+    },
+    "outputs": [
+      {
+        "output": {
+          "f_135804_": "doomsdayessentials",
+          "f_135805_": "scrapmetal"
+        },
+        "count": 1
+      },
+      {
+        "output": {
+          "f_135804_": "doomsdayessentials",
+          "f_135805_": "sheetmetal"
+        },
+        "count": 1
+      }
+    ]
+  },
+  "example_iron_helmet": {
+    "input": {
+      "f_135804_": "minecraft",
+      "f_135805_": "iron_helmet"
+    },
+    "outputs": [
+      {
+        "output": {
+          "f_135804_": "minecraft",
+          "f_135805_": "iron_nugget"
+        },
+        "count": 5
+      }
+    ]
+  },
+  "engineering_parts": {
+    "input": {
+      "f_135804_": "apocalypsenow",
+      "f_135805_": "engineering_parts"
+    },
+    "outputs": [
+      {
+        "output": {
+          "f_135804_": "doomsdayessentials",
+          "f_135805_": "scrapmetal"
+        },
+        "count": 3
+      },
+      {
+        "output": {
+          "f_135804_": "doomsdayessentials",
+          "f_135805_": "metal_fragments"
+        },
+        "count": 2
+      },
+      {
+        "output": {
+          "f_135804_": "doomsdayessentials",
+          "f_135805_": "sheetmetal"
+        },
+        "count": 1
+      }
+    ]
+  },
+  "broken_plasma_tv": {
+    "input": {
+      "f_135804_": "apocalypsenow",
+      "f_135805_": "broken_plasma_tv"
+    },
+    "outputs": [
+      {
+        "output": {
+          "f_135804_": "doomsdayessentials",
+          "f_135805_": "scrapmetal"
+        },
+        "count": 8
+      },
+      {
+        "output": {
+          "f_135804_": "apocalypsenow",
+          "f_135805_": "electrical_scrap"
+        },
+        "count": 6
+      },
+      {
+        "output": {
+          "f_135804_": "doomsdayessentials",
+          "f_135805_": "sheetmetal"
+        },
+        "count": 1
+      }
+    ]
+  },
+  "cellphone": {
+    "input": {
+      "f_135804_": "apocalypsenow",
+      "f_135805_": "cellphone"
+    },
+    "outputs": [
+      {
+        "output": {
+          "f_135804_": "doomsdayessentials",
+          "f_135805_": "scrapmetal"
+        },
+        "count": 2
+      },
+      {
+        "output": {
+          "f_135804_": "doomsdayessentials",
+          "f_135805_": "metal_fragments"
+        },
+        "count": 1
+      },
+      {
+        "output": {
+          "f_135804_": "doomsdayessentials",
+          "f_135805_": "sheetmetal"
+        },
+        "count": 1
+      }
+    ]
+  },
+  "hairdryer": {
+    "input": {
+      "f_135804_": "apocalypsenow",
+      "f_135805_": "hairdryer"
+    },
+    "outputs": [
+      {
+        "output": {
+          "f_135804_": "doomsdayessentials",
+          "f_135805_": "scrapmetal"
+        },
+        "count": 2
+      },
+      {
+        "output": {
+          "f_135804_": "doomsdayessentials",
+          "f_135805_": "sheetmetal"
+        },
+        "count": 1
+      }
+    ]
+  },
+  "empty_can": {
+    "input": {
+      "f_135804_": "survival_instinct",
+      "f_135805_": "empty_can"
+    },
+    "outputs": [
+      {
+        "output": {
+          "f_135804_": "doomsdayessentials",
+          "f_135805_": "scrapmetal"
+        },
+        "count": 1
+      }
+    ]
+  },
+  "deodorant": {
+    "input": {
+      "f_135804_": "apocalypsenow",
+      "f_135805_": "deodorant"
+    },
+    "outputs": [
+      {
+        "output": {
+          "f_135804_": "doomsdayessentials",
+          "f_135805_": "scrapmetal"
+        },
+        "count": 2
+      }
+    ]
+  },
+  "ducttape": {
+    "input": {
+      "f_135804_": "apocalypsenow",
+      "f_135805_": "ducttape"
+    },
+    "outputs": [
+      {
+        "output": {
+          "f_135804_": "doomsdayessentials",
+          "f_135805_": "scrapmetal"
+        },
+        "count": 2
+      }
+    ]
+  },
+  "glue": {
+    "input": {
+      "f_135804_": "apocalypsenow",
+      "f_135805_": "glue"
+    },
+    "outputs": [
+      {
+        "output": {
+          "f_135804_": "doomsdayessentials",
+          "f_135805_": "scrapmetal"
+        },
+        "count": 2
+      }
+    ]
+  },
+  "rope": {
+    "input": {
+      "f_135804_": "apocalypsenow",
+      "f_135805_": "rope"
+    },
+    "outputs": [
+      {
+        "output": {
+          "f_135804_": "doomsdayessentials",
+          "f_135805_": "scrapmetal"
+        },
+        "count": 2
+      }
+    ]
+  },
+  "small_can": {
+    "input": {
+      "f_135804_": "apocalypsenow",
+      "f_135805_": "small_can"
+    },
+    "outputs": [
+      {
+        "output": {
+          "f_135804_": "doomsdayessentials",
+          "f_135805_": "scrapmetal"
+        },
+        "count": 2
+      }
+    ]
+  },
+  "nailbox": {
+    "input": {
+      "f_135804_": "apocalypsenow",
+      "f_135805_": "nailbox"
+    },
+    "outputs": [
+      {
+        "output": {
+          "f_135804_": "doomsdayessentials",
+          "f_135805_": "scrapmetal"
+        },
+        "count": 2
+      }
+    ]
+  },
+  "bottle": {
+    "input": {
+      "f_135804_": "apocalypsenow",
+      "f_135805_": "bottle"
+    },
+    "outputs": [
+      {
+        "output": {
+          "f_135804_": "doomsdayessentials",
+          "f_135805_": "scrapmetal"
+        },
+        "count": 1
+      }
+    ]
+  },
+  "sawi": {
+    "input": {
+      "f_135804_": "apocalypsenow",
+      "f_135805_": "sawi"
+    },
+    "outputs": [
+      {
+        "output": {
+          "f_135804_": "doomsdayessentials",
+          "f_135805_": "sheetmetal"
+        },
+        "count": 1
+      }
+    ]
+  },
+  "cloth": {
+    "input": {
+      "f_135804_": "apocalypsenow",
+      "f_135805_": "cloth"
+    },
+    "outputs": [
+      {
+        "output": {
+          "f_135804_": "doomsdayessentials",
+          "f_135805_": "scrapmetal"
+        },
+        "count": 1
+      }
+    ]
+  },
+  "copperwire": {
+    "input": {
+      "f_135804_": "apocalypsenow",
+      "f_135805_": "copperwire"
+    },
+    "outputs": [
+      {
+        "output": {
+          "f_135804_": "doomsdayessentials",
+          "f_135805_": "scrapmetal"
+        },
+        "count": 2
+      }
+    ]
+  }
+}

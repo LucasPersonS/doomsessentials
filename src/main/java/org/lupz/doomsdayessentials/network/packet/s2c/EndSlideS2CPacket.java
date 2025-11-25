@@ -19,11 +19,11 @@ public class EndSlideS2CPacket {
 			var level = Minecraft.getInstance().level;
 			if (level == null) return;
 			var player = level.getPlayerByUUID(playerId);
-			if (player == null) {
-				EssentialsMod.LOGGER.debug("[SlideS2C] EndSlideS2C received but player not found: {}", playerId);
-				return;
-			}
-			EssentialsMod.LOGGER.debug("[SlideS2C] Clearing animator for {} ({})", player.getGameProfile().getName(), playerId);
+            if (player == null) {
+                org.lupz.doomsdayessentials.util.ModLog.debug("[SlideS2C] EndSlideS2C received but player not found: {}", playerId);
+                return;
+            }
+            org.lupz.doomsdayessentials.util.ModLog.debug("[SlideS2C] Clearing animator for {} ({})", player.getGameProfile().getName(), playerId);
 			AnimationManager.clearAnimator(player);
 			AnimationManager.onSlideEnd(player);
 		});

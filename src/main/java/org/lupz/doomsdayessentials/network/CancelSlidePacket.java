@@ -16,7 +16,7 @@ public class CancelSlidePacket {
 		ctx.get().enqueueWork(() -> {
 			ServerPlayer player = ctx.get().getSender();
 			if (player == null) return;
-			org.lupz.doomsdayessentials.EssentialsMod.LOGGER.debug("[SlideServer] CancelSlidePacket received from {}", player.getGameProfile().getName());
+            org.lupz.doomsdayessentials.util.ModLog.debug("[SlideServer] CancelSlidePacket received from {}", player.getGameProfile().getName());
 			SlideHandler.cancelSlide(player);
 		});
 		ctx.get().setPacketHandled(true);

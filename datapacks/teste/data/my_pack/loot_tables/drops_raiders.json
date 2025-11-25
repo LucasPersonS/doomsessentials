@@ -1,0 +1,53 @@
+{
+  "type": "minecraft:empty",
+  "pools": [
+    {
+      "rolls": 1,
+      "entries": [
+        {
+          "type": "item",
+          "name": "minecraft:iron_nugget",
+          "functions": [
+            { "function": "minecraft:set_count", "count": { "min": 2, "max": 8 } }
+          ],
+          "weight": 3
+        },
+        {
+          "type": "item",
+          "name": "minecraft:iron_ingot",
+          "functions": [
+            { "function": "minecraft:set_count", "count": { "min": 0, "max": 2 } }
+          ],
+          "conditions": [
+            { "condition": "minecraft:random_chance", "chance": 0.25 }
+          ],
+          "weight": 1
+        }
+      ]
+    },
+    {
+      "rolls": { "min": 2, "max": 4 },
+      "entries": [
+        { "type": "item", "name": "apocalypsenow:deodorant", "weight": 90 },
+        { "type": "item", "name": "apocalypsenow:ducttape", "weight": 90 },
+        { "type": "item", "name": "apocalypsenow:glue", "weight": 90 },
+        { "type": "item", "name": "apocalypsenow:rope", "weight": 90 },
+        { "type": "item", "name": "zombiekit:pocket_radio", "weight": 18 },
+        { "type": "item", "name": "apocalypsenow:aabattery", "weight": 90 },
+        { "type": "item", "name": "apocalypsenow:broken_plasma_tv", "weight": 45 },
+        { "type": "item", "name": "apocalypsenow:sawi", "weight": 45 },
+        { "type": "item", "name": "apocalypsenow:small_can", "weight": 90 },
+        { "type": "item", "name": "apocalypsenow:thincan", "weight": 90 },
+        { "type": "item", "name": "apocalypsenow:nailbox", "weight": 90 },
+        { "type": "item", "name": "apocalypsenow:bottle", "weight": 90 },
+        { "type": "item", "name": "apocalypsenow:engineering_parts", "weight": 45 },
+        { "type": "item", "name": "apocalypsenow:hairdryer", "weight": 45 },
+        { "type": "item", "name": "apocalypsenow:cellphone", "weight": 45 },
+        { "type": "item", "name": "apocalypsenow:cloth", "weight": 90 },
+        { "type": "item", "name": "apocalypsenow:copperwire", "weight": 90 },
+        { "type": "item", "name": "apocalypsenow:can", "weight": 90 },
+        { "type": "item", "name": "apocalypsenow:watch", "weight": 45 }
+      ]
+    }
+  ]
+}

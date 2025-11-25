@@ -22,7 +22,7 @@ public class StartSlidePacket {
 		ctx.get().enqueueWork(() -> {
 			ServerPlayer player = ctx.get().getSender();
 			if (player == null) return;
-			org.lupz.doomsdayessentials.EssentialsMod.LOGGER.debug("[SlideServer] StartSlidePacket received from {}", player.getGameProfile().getName());
+            org.lupz.doomsdayessentials.util.ModLog.debug("[SlideServer] StartSlidePacket received from {}", player.getGameProfile().getName());
 			SlideHandler.tryStartSlide(player);
 		});
 		ctx.get().setPacketHandled(true);

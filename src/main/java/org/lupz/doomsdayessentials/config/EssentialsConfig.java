@@ -75,6 +75,9 @@ public class EssentialsConfig {
     public static final ForgeConfigSpec.BooleanValue MARKET_DISABLE_DEBUG_OPEN_TRADES;
     // Recycler
     public static final ForgeConfigSpec.IntValue RECYCLER_PROCESS_SECONDS;
+    public static final ForgeConfigSpec.BooleanValue DEBUG_LOGS_ENABLED;
+    // Players
+    public static final ForgeConfigSpec.ConfigValue<java.util.List<? extends String>> VIP_PLAYERS;
 
     static {
         BUILDER.push("combat");
@@ -87,7 +90,7 @@ public class EssentialsConfig {
         COMBAT_LOG_TIMER = BUILDER.comment("The duration (in seconds) that combat logs are visible.")
                 .defineInRange("combatLogTimer", 30, 1, 300);
         COMBAT_FUGITIVE_DURATION_SECONDS = BUILDER.comment("Duration (in seconds) of the 'foragido' status when a player kills unjustly.")
-                .defineInRange("fugitiveDurationSeconds", 1800, 60, 86400);
+                .defineInRange("fugitiveDurationSeconds", 86400, 60, 86400);
         COMBAT_ENTER_ON_ATTACK_ONLY = BUILDER.comment("If true, only attackers are combat-tagged on hit; victims are not.")
                 .define("enterOnAttackOnly", true);
         WANTED_ICON_SCALE = BUILDER.comment("Escala do ícone de foragido acima da cabeça (1.0 = padrão).")
@@ -210,6 +213,14 @@ public class EssentialsConfig {
         BUILDER.push("recycler");
         RECYCLER_PROCESS_SECONDS = BUILDER.comment("Tempo em segundos para reciclar 1 item (tempo real, independente de ticks).")
                 .defineInRange("processSeconds", 10, 1, 600);
+        BUILDER.pop();
+
+        BUILDER.push("debug");
+        DEBUG_LOGS_ENABLED = BUILDER.define("enableDebugLogs", false);
+        BUILDER.pop();
+
+        BUILDER.push("players");
+        VIP_PLAYERS = BUILDER.defineList("vipPlayers", java.util.Collections.emptyList(), o -> o instanceof String);
         BUILDER.pop();
 
         SPEC = BUILDER.build();
