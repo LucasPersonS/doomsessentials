@@ -21,12 +21,14 @@ import net.minecraftforge.network.NetworkHooks;
 import org.jetbrains.annotations.Nullable;
 
 /**
- * Decorative recycle block rendered via {@link org.lupz.doomsdayessentials.client.renderer.RecycleBlockRenderer}.
+ * Decorative recycle block rendered via
+ * {@link org.lupz.doomsdayessentials.client.renderer.RecycleBlockRenderer}.
  */
 public class RecycleBlock extends BaseEntityBlock {
 
     public static final BooleanProperty RUNNING = BooleanProperty.create("running");
     private static final VoxelShape SHAPE = Block.box(-15, 0, -8, 30, 29, 24);
+
     public RecycleBlock(Properties properties) {
         super(properties);
         this.registerDefaultState(this.stateDefinition.any().setValue(RUNNING, false));
@@ -51,17 +53,24 @@ public class RecycleBlock extends BaseEntityBlock {
 
     @Nullable
     @Override
-    public <T extends BlockEntity> BlockEntityTicker<T> getTicker(Level level, BlockState state, BlockEntityType<T> type) {
+    public <T extends BlockEntity> BlockEntityTicker<T> getTicker(Level level, BlockState state,
+            BlockEntityType<T> type) {
+        if (level.isClientSide) {
+            return createTickerHelper(type, org.lupz.doomsdayessentials.block.ModBlocks.RECYCLE_BLOCK_ENTITY.get(),
+                    org.lupz.doomsdayessentials.client.ClientRecycleTicker::tick);
+        }
         return null;
     }
 
     @Override
-    public VoxelShape getShape(BlockState state, net.minecraft.world.level.BlockGetter level, BlockPos pos, CollisionContext context) {
+    public VoxelShape getShape(BlockState state, net.minecraft.world.level.BlockGetter level, BlockPos pos,
+            CollisionContext context) {
         return SHAPE;
     }
 
     @Override
-    public VoxelShape getCollisionShape(BlockState state, net.minecraft.world.level.BlockGetter level, BlockPos pos, CollisionContext context) {
+    public VoxelShape getCollisionShape(BlockState state, net.minecraft.world.level.BlockGetter level, BlockPos pos,
+            CollisionContext context) {
         return SHAPE;
     }
 
@@ -71,7 +80,8 @@ public class RecycleBlock extends BaseEntityBlock {
     }
 
     @Override
-    public InteractionResult use(BlockState state, Level level, BlockPos pos, Player player, net.minecraft.world.InteractionHand hand, BlockHitResult hit) {
+    public InteractionResult use(BlockState state, Level level, BlockPos pos, Player player,
+            net.minecraft.world.InteractionHand hand, BlockHitResult hit) {
         if (!level.isClientSide) {
             if (level.getBlockEntity(pos) instanceof RecycleBlockEntity be) {
                 NetworkHooks.openScreen((ServerPlayer) player, be, buf -> buf.writeBlockPos(pos));
@@ -79,4 +89,4 @@ public class RecycleBlock extends BaseEntityBlock {
         }
         return InteractionResult.sidedSuccess(level.isClientSide);
     }
-} 
+}

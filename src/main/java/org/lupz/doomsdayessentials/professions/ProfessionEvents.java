@@ -52,23 +52,42 @@ public final class ProfessionEvents {
 
     private static void apply(net.minecraft.world.entity.player.Player player) {
         String prof = ProfissaoManager.getProfession(player.getUUID());
-        if (prof == null) return;
+        if (prof == null)
+            return;
+
+        // Ensure tags are consistent with the manager
+        ProfissaoManager.clearAllProfessionTags(player);
+
         switch (prof.toLowerCase()) {
-            case "combatente" -> CombatenteProfession.applyBonuses(player);
-            case "rastreador" -> RastreadorProfession.applyBonuses(player);
-            case "engenheiro" -> EngenheiroProfession.applyBonuses(player);
-            // Add future professions here
+            case "combatente" -> {
+                player.getPersistentData().putBoolean("isCombatente", true);
+                CombatenteProfession.applyBonuses(player);
+            }
+            case "rastreador" -> {
+                player.getPersistentData().putBoolean("isRastreador", true);
+                RastreadorProfession.applyBonuses(player);
+            }
+            case "engenheiro" -> {
+                player.getPersistentData().putBoolean("isEngenheiro", true);
+                EngenheiroProfession.applyBonuses(player);
+            }
+            case "medico" -> player.getPersistentData().putBoolean("isMedico", true);
+            case "armeiro" -> player.getPersistentData().putBoolean("isArmeiro", true);
+            case "cacador" -> player.getPersistentData().putBoolean("isCacador", true);
         }
     }
 
     @SubscribeEvent
     public static void onPlayerTick(TickEvent.PlayerTickEvent event) {
-        if (event.phase != TickEvent.Phase.END) return;
-        if (event.player.level().isClientSide) return;
+        if (event.phase != TickEvent.Phase.END)
+            return;
+        if (event.player.level().isClientSide)
+            return;
 
         Player player = event.player;
         String prof = ProfissaoManager.getProfession(player.getUUID());
-        if (prof == null) return;
+        if (prof == null)
+            return;
 
         // Call tick handlers for each profession
         switch (prof.toLowerCase()) {
@@ -80,4 +99,4 @@ public final class ProfessionEvents {
             // Caçador doesn't have tick handler currently
         }
     }
-} 
+}

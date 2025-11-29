@@ -1,0 +1,12 @@
+{
+  "kuronami/kill": {
+    "sounds": [
+      { "name": "tacz:kuronami/kurokill" }
+    ]
+  },
+  "kuronami/inspect": {
+    "sounds": [
+      { "name": "tacz:kuronami/kuronami_inspect" }
+    ]
+  }
+}

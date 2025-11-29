@@ -8,5 +8,4 @@ public class HuntingBoardBlockRenderer extends GeoBlockRenderer<HuntingBoardBloc
 	public HuntingBoardBlockRenderer() {
 		super(new HuntingBoardModel());
 	}
-
-} 
+}

@@ -21,9 +21,13 @@ import org.lupz.doomsdayessentials.block.RecycleBlock;
 @OnlyIn(Dist.CLIENT)
 public class RecycleScreen extends AbstractContainerScreen<RecycleMenu> {
 
-    private static final ResourceLocation HUD = ResourceLocation.fromNamespaceAndPath(EssentialsMod.MOD_ID, "textures/gui/recycle_hud.png");
-    private static final ResourceLocation BTN_ON = ResourceLocation.fromNamespaceAndPath(EssentialsMod.MOD_ID, "textures/gui/recycle_button_on.png");
-    private static final ResourceLocation BTN_OFF = ResourceLocation.fromNamespaceAndPath(EssentialsMod.MOD_ID, "textures/gui/recycle_button_off.png");
+    private static final ResourceLocation HUD = ResourceLocation.fromNamespaceAndPath(EssentialsMod.MOD_ID,
+            "textures/gui/recycle_hud.png");
+    private static final ResourceLocation BTN_ON = ResourceLocation.fromNamespaceAndPath(EssentialsMod.MOD_ID,
+            "textures/gui/recycle_button_on.png");
+    private static final ResourceLocation BTN_OFF = ResourceLocation.fromNamespaceAndPath(EssentialsMod.MOD_ID,
+            "textures/gui/recycle_button_off.png");
+
     public RecycleScreen(RecycleMenu menu, Inventory inv, Component title) {
         super(menu, inv, title);
         this.imageWidth = 176;
@@ -42,7 +46,8 @@ public class RecycleScreen extends AbstractContainerScreen<RecycleMenu> {
 
         // on/off overlay
         boolean on = this.menu.getBlockEntity().getBlockState().getValue(RecycleBlock.RUNNING);
-        ResourceLocation tex = on ? BTN_ON : BTN_OFF;
+        // Red (OFF texture) when ON, Green (ON texture) when OFF as requested
+        ResourceLocation tex = on ? BTN_OFF : BTN_ON;
         graphics.blit(tex, x + 152, y + 3, 0, 0, 14, 14, 14, 14);
     }
 
@@ -52,7 +57,8 @@ public class RecycleScreen extends AbstractContainerScreen<RecycleMenu> {
         float scale = 0.8f;
         g.pose().scale(scale, scale, scale);
         g.drawString(this.font, Component.literal("Input"), (int) (44 / scale), (int) (8 / scale), 0xFFFFFF, false);
-        g.drawString(this.font, Component.literal("Output"), (int) (44 / scale), (int) (34 / scale) + 2, 0xFFFFFF, false);
+        g.drawString(this.font, Component.literal("Output"), (int) (44 / scale), (int) (34 / scale) + 2, 0xFFFFFF,
+                false);
         g.pose().popPose();
     }
 
@@ -62,20 +68,21 @@ public class RecycleScreen extends AbstractContainerScreen<RecycleMenu> {
         super.render(graphics, mouseX, mouseY, partialTicks);
         this.renderTooltip(graphics, mouseX, mouseY);
     }
+
     @Override
     protected void init() {
         super.init();
         int x = (this.width - this.imageWidth) / 2;
         int y = (this.height - this.imageHeight) / 2;
         // button size 14x14 placed at top right of input row
-        this.addRenderableWidget(new Button(x+152, y+3,14,14,Component.empty(), b->{
+        this.addRenderableWidget(new Button(x + 152, y + 3, 14, 14, Component.empty(), b -> {
             PacketHandler.CHANNEL.sendToServer(new ToggleRecyclerPacket(menu.getBlockPos()));
             Minecraft.getInstance().player.playSound(SoundEvents.UI_BUTTON_CLICK.get(), 1f, 1f);
-        }, (supplier) -> supplier.get()){
+        }, (supplier) -> supplier.get()) {
             @Override
-            public void renderWidget(GuiGraphics g,int mx,int my,float pt){
+            public void renderWidget(GuiGraphics g, int mx, int my, float pt) {
                 // Invisible button; rendering is handled in renderBg
             }
         });
     }
-} 
+}

@@ -9,7 +9,8 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.client.Minecraft;
 
 /**
- * Looping sound that plays while the recycler is processing items. Automatically stops when the block stops running or is removed.
+ * Looping sound that plays while the recycler is processing items.
+ * Automatically stops when the block stops running or is removed.
  */
 public class RecyclerLoopSound extends AbstractTickableSoundInstance {
 
@@ -18,12 +19,14 @@ public class RecyclerLoopSound extends AbstractTickableSoundInstance {
     public RecyclerLoopSound(BlockPos pos) {
         super(ModSounds.RECYCLER_LOOP.get(), SoundSource.AMBIENT, SoundInstance.createUnseededRandom());
         this.pos = pos;
-        this.looping = true;
+        this.looping = false; // Manual looping handled by ticker
         this.delay = 0;
         this.x = pos.getX() + 0.5;
         this.y = pos.getY() + 0.5;
         this.z = pos.getZ() + 0.5;
         this.volume = 1.0f;
+        this.attenuation = Attenuation.LINEAR;
+        this.relative = false;
     }
 
     @Override
@@ -34,16 +37,22 @@ public class RecyclerLoopSound extends AbstractTickableSoundInstance {
             this.stop();
             return;
         }
-        if(!level.isLoaded(pos)){
+        if (!level.isLoaded(pos)) {
             this.stop();
             return;
         }
-        if(level.getBlockEntity(pos) instanceof RecycleBlockEntity be){
-            if(be.isRemoved()){
+        if (level.getBlockEntity(pos) instanceof RecycleBlockEntity be) {
+            if (be.isRemoved()
+                    || !level.getBlockState(pos).getValue(org.lupz.doomsdayessentials.block.RecycleBlock.RUNNING)) {
                 this.stop();
             }
         } else {
             this.stop();
         }
     }
-} 
+
+    // Expose stop method publicly if needed
+    public void stopPlaying() {
+        this.stop();
+    }
+}

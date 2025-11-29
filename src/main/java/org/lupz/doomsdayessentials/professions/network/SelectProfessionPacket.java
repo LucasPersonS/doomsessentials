@@ -30,7 +30,8 @@ public class SelectProfessionPacket {
     public static void handle(SelectProfessionPacket msg, Supplier<NetworkEvent.Context> ctx) {
         ctx.get().enqueueWork(() -> {
             ServerPlayer player = ctx.get().getSender();
-            if (player == null) return;
+            if (player == null)
+                return;
 
             String current = ProfissaoManager.getProfession(player.getUUID());
 
@@ -64,33 +65,28 @@ public class SelectProfessionPacket {
 
                 // Fecha e reabre menu para atualizar itens disponíveis
                 player.closeContainer();
-                net.minecraftforge.network.NetworkHooks.openScreen(player, new org.lupz.doomsdayessentials.professions.menu.ProfissoesMenuProvider());
+                net.minecraftforge.network.NetworkHooks.openScreen(player,
+                        new org.lupz.doomsdayessentials.professions.menu.ProfissoesMenuProvider());
                 return;
             }
 
             // Trying to pick a new profession: validate limits in config
             if (!ProfissaoManager.canBecome(msg.professionId)) {
                 // Localized profession plural name (e.g., Médicos, Combatentes)
-                Component pluralName = Component.translatable("profession." + msg.professionId.toLowerCase() + ".plural");
+                Component pluralName = Component
+                        .translatable("profession." + msg.professionId.toLowerCase() + ".plural");
                 player.sendSystemMessage(Component.translatable("profession.limit_reached", pluralName));
-                EssentialsMod.LOGGER.info("Player {} tried to become a {} but the limit has been reached.", player.getName().getString(), msg.professionId);
+                EssentialsMod.LOGGER.info("Player {} tried to become a {} but the limit has been reached.",
+                        player.getName().getString(), msg.professionId);
                 return;
             }
 
-            // Check if trying to select the same profession
-            if (current != null && current.equalsIgnoreCase(msg.professionId)) {
-                Component singleName = Component.translatable("profession." + msg.professionId.toLowerCase() + ".name");
-                player.sendSystemMessage(Component.translatable("profession.already_in", singleName));
-                EssentialsMod.LOGGER.info("Player {} tried to select {} but already has it.", 
-                    player.getName().getString(), msg.professionId);
-                return;
-            }
-            
-            // IMPORTANT: Clean up old profession BEFORE switching to new one
+            // IMPORTANT: Clean up old profession BEFORE checking if trying to select the
+            // same one
             if (current != null && !current.isEmpty()) {
-                EssentialsMod.LOGGER.info("Player {} is switching from {} to {}, cleaning up old profession...", 
-                    player.getName().getString(), current, msg.professionId);
-                
+                EssentialsMod.LOGGER.info("Player {} is switching from {} to {}, cleaning up old profession...",
+                        player.getName().getString(), current, msg.professionId);
+
                 // Call onLeave for the current profession to clean up passives
                 if ("medico".equalsIgnoreCase(current)) {
                     MedicoProfession.onLeaveMedico(player);
@@ -105,17 +101,27 @@ public class SelectProfessionPacket {
                 } else if ("cacador".equalsIgnoreCase(current)) {
                     org.lupz.doomsdayessentials.professions.CacadorProfession.onLeave(player);
                 }
-                
+
                 // Avoid sending extra generic leave messages; onLeave for each profession
                 // already informs the player.
             }
 
+            // Check if trying to select the same profession (AFTER cleanup to avoid state
+            // mismatch)
+            if (current != null && current.equalsIgnoreCase(msg.professionId)) {
+                Component singleName = Component.translatable("profession." + msg.professionId.toLowerCase() + ".name");
+                player.sendSystemMessage(Component.translatable("profession.already_in", singleName));
+                EssentialsMod.LOGGER.info("Player {} tried to select {} but already has it.",
+                        player.getName().getString(), msg.professionId);
+                return;
+            }
+
             // Clear ALL profession tags before setting new one (extra safety)
             ProfissaoManager.clearAllProfessionTags(player);
-            
+
             // Now set the new profession
             ProfissaoManager.setProfession(player.getUUID(), msg.professionId);
-            
+
             // Apply the new profession's benefits
             if ("medico".equalsIgnoreCase(msg.professionId)) {
                 MedicoProfession.onBecomeMedico(player);
@@ -132,8 +138,9 @@ public class SelectProfessionPacket {
             } else {
                 player.sendSystemMessage(Component.translatable("profession.become.generic", msg.professionId));
             }
-            EssentialsMod.LOGGER.info("Player {} selected profession: {}", player.getName().getString(), msg.professionId);
+            EssentialsMod.LOGGER.info("Player {} selected profession: {}", player.getName().getString(),
+                    msg.professionId);
         });
         ctx.get().setPacketHandled(true);
     }
-} 
+}

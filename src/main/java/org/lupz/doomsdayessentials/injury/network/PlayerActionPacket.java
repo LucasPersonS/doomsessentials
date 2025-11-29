@@ -26,19 +26,29 @@ public class PlayerActionPacket {
     public void handle(Supplier<NetworkEvent.Context> ctx) {
         ctx.get().enqueueWork(() -> {
             ServerPlayer player = ctx.get().getSender();
-            if (player == null) return;
+            if (player == null)
+                return;
 
             switch (this.action) {
                 case GIVE_UP:
-                    InjuryEvents.killPlayer(player);
+                    org.lupz.doomsdayessentials.injury.InjuryHelper.getCapability(player).ifPresent(cap -> {
+                        java.util.UUID attackerUUID = cap.getLastAttacker();
+                        net.minecraft.world.damagesource.DamageSource source = null;
+                        if (attackerUUID != null) {
+                            ServerPlayer attacker = player.server.getPlayerList().getPlayer(attackerUUID);
+                            if (attacker != null) {
+                                source = player.damageSources().playerAttack(attacker);
+                            }
+                        }
+                        InjuryEvents.killPlayer(player, source);
+                    });
                     break;
             }
         });
         ctx.get().setPacketHandled(true);
     }
 
-
     public enum Action {
         GIVE_UP
     }
-} 
+}

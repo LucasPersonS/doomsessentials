@@ -9,9 +9,11 @@ import net.minecraftforge.registries.RegistryObject;
 import org.lupz.doomsdayessentials.EssentialsMod;
 
 public final class LootboxMenus {
-	private LootboxMenus() {}
+	private LootboxMenus() {
+	}
 
-	public static final DeferredRegister<MenuType<?>> MENUS = DeferredRegister.create(ForgeRegistries.MENU_TYPES, EssentialsMod.MOD_ID);
+	public static final DeferredRegister<MenuType<?>> MENUS = DeferredRegister.create(ForgeRegistries.MENU_TYPES,
+			EssentialsMod.MOD_ID);
 
 	public static final RegistryObject<MenuType<LootboxMenu>> LOOTBOX_MENU = MENUS.register("lootbox_menu",
 			() -> IForgeMenuType.create((windowId, inv, data) -> {
@@ -19,11 +21,18 @@ public final class LootboxMenus {
 				java.util.List<net.minecraft.world.item.ItemStack> pool = new java.util.ArrayList<>();
 				if (data != null && data.isReadable()) {
 					int size = data.readVarInt();
-					for (int i = 0; i < size; i++) pool.add(data.readItem());
+					for (int i = 0; i < size; i++)
+						pool.add(data.readItem());
 				}
-				if (pool.isEmpty()) pool = LootboxManager.getAllAsStacks(rarity);
+				if (pool.isEmpty())
+					pool = LootboxManager.getAllAsStacks(rarity);
 				return new LootboxMenu(windowId, inv, rarity, pool);
 			}));
 
-	public static void register(IEventBus bus) { MENUS.register(bus); }
-} 
+	public static final RegistryObject<MenuType<FragmentMenu>> FRAGMENT_MENU = MENUS.register("fragment_menu",
+			() -> IForgeMenuType.create((windowId, inv, data) -> new FragmentMenu(windowId, inv)));
+
+	public static void register(IEventBus bus) {
+		MENUS.register(bus);
+	}
+}
